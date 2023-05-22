@@ -134,6 +134,7 @@ def execute(sql, cmd, conn, skipSerialization=False):
 
 def sendEmail(recipient, subject, body):
     with app.app_context():
+        # print(recipient, subject, body, app.config["MAIL_USERNAME"])
         msg = Message(
             sender=app.config["MAIL_USERNAME"],
             recipients=[recipient],
@@ -141,6 +142,7 @@ def sendEmail(recipient, subject, body):
             body=body
         )
         mail.send(msg)
+        return 'Email Sent'
 
 
 def getEmployeeBusinesses(user):
@@ -1842,6 +1844,35 @@ class UserSocialLogin(Resource):
             return response
 
 
+class SendEmail(Resource):
+    def post(self, email):
+        try:
+            conn = connect('find_me')
+
+            msg = Message(
+                subject="Schedule a meeting",
+                sender="support@skedul.online",
+                recipients=[email],
+            )
+
+            msg.body = (
+                "Hello!\n\n"
+                "Please click on the link below to schedule a meeting with.\n\n"
+                "{}"
+                + "\n\n"
+                + "Email support@skedul.online if you run into any problems or have any questions.\n"
+                "Thanks - The Skedul Team"
+            )
+
+            print(msg.body)
+            mail.send(msg)
+            return "Email Sent"
+        except:
+            raise BadRequest("Request failed, please try again later.")
+        finally:
+            disconnect(conn)
+
+
 # -- DEFINE APIS -------------------------------------------------------------------------------
 # signup endpoints
 api.add_resource(CreateAccount, "/api/v2/CreateAccount/<string:projectName>")
@@ -1870,6 +1901,8 @@ api.add_resource(UserSocialSignUp,
                  "/api/v2/UserSocialSignUp/<string:projectName>")
 api.add_resource(
     UserSocialLogin, "/api/v2/UserSocialLogin/<string:projectName>/<string:email_id>")
+api.add_resource(
+    SendEmail, "/api/v2/SendEmail/<string:email>")
 
 if __name__ == "__main__":
     # app.run()
