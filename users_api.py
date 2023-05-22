@@ -283,6 +283,45 @@ def createUser(firstName, lastName, phoneNumber, email, password, role,
 
         response = execute(query, "post", conn)
         return newUser
+    elif projectName == 'FINDME':
+        conn = connect('find_me')
+        query = ["CALL find_me.new_user_id;"]
+        NewIDresponse = execute(query[0], "get", conn)
+        newUserID = NewIDresponse["result"][0]["new_id"]
+        passwordSalt = createSalt()
+        passwordHash = createHash(password, passwordSalt)
+        newUser = {
+            'user_uid': newUserID,
+            'first_name': firstName,
+            'last_name': lastName,
+            'phone_number': phoneNumber,
+            'email': email,
+            'password_salt': passwordSalt,
+            'password_hash': passwordHash,
+            'role': role,
+            'google_auth_token': google_auth_token,
+            'google_refresh_token': google_refresh_token,
+            'social_id': social_id,
+            'access_expires_in': access_expires_in
+        }
+        query = ("""
+            INSERT INTO find_me.users SET
+                 user_uid = \'""" + newUserID + """\',
+                first_name = \'""" + firstName + """\',
+                last_name = \'""" + lastName + """\',
+                phone_number = \'""" + phoneNumber + """\',
+                email = \'""" + email + """\',
+                password_salt = \'""" + passwordSalt + """\',
+                password_hash = \'""" + passwordHash + """\',
+                role = \'""" + role + """\',
+                google_auth_token = \'""" + str(google_auth_token) + """\',
+                google_refresh_token = \'""" + str(google_refresh_token) + """\',
+                social_id = \'""" + social_id + """\',
+                access_expires_in = \'""" + str(access_expires_in) + """\';
+                    """)
+
+        response = execute(query, "post", conn)
+        return newUser
 
 
 # Get the correct users for a project
@@ -651,7 +690,7 @@ class AccountSalt(Resource):
                     return items
                 items['result'] = [{
                     "password_algorithm": "SHA256",
-                    "password_salt": str(datetime.now()),
+                    "password_salt": items['result'][0]['password_salt'],
                 }]
                 items["message"] = "SALT sent successfully"
                 items["code"] = 200
@@ -724,12 +763,12 @@ class AccountSalt(Resource):
                 items = execute(query, "get", conn)
                 print(items)
                 if not items["result"]:
-                    items["message"] = "Email doesn't exists"
+                    items["message"] = "Email doesn't exist"
                     items["code"] = 404
                     return items
                 items['result'] = [{
                     "password_algorithm": "SHA256",
-                    "password_salt": str(datetime.now()),
+                    "password_salt": items['result'][0]['password_salt'],
                 }]
                 items["message"] = "SALT sent successfully"
                 items["code"] = 200
@@ -888,12 +927,12 @@ class CreateAccount(Resource):
             email = data.get('email')
             password = data.get('password')
             role = data.get('role')
-            user = getUserByEmail(email)
+            user = getUserByEmail(email, projectName)
             if user:
                 response['message'] = 'User already exists'
             else:
                 user = createUser(firstName, lastName, phoneNumber,
-                                  email, password, role, 'PM')
+                                  email, password, role,  '', '', '', '', 'PM')
                 response['message'] = 'Signup success'
                 response['code'] = 200
                 response['result'] = createTokens(user)
@@ -1313,7 +1352,6 @@ class CreateAccount(Resource):
 
         elif projectName == 'FINDME':
             conn = connect('find_me')
-            conn = connect('pm')
             data = request.get_json()
             firstName = data.get('first_name')
             lastName = data.get('last_name')
@@ -1321,12 +1359,12 @@ class CreateAccount(Resource):
             email = data.get('email')
             password = data.get('password')
             role = data.get('role')
-            user = getUserByEmail(email)
+            user = getUserByEmail(email, projectName)
             if user:
                 response['message'] = 'User already exists'
             else:
                 user = createUser(firstName, lastName, phoneNumber,
-                                  email, password, role, 'PM')
+                                  email, password, role, '', '', '', '', 'FINDME')
                 response['message'] = 'Signup success'
                 response['code'] = 200
             return response
@@ -1367,13 +1405,11 @@ class UpdateAccessToken(Resource):
             return response, 200
         elif projectName == 'FINDME':
             conn = connect('find_me')
-            conn = connect('pm')
-
             query = """UPDATE find_me.users
                 SET google_auth_token = \'""" + google_auth_token + """\'
                 WHERE user_uid = \'""" + user_id + """\' """
             response = execute(query, "post", conn)
-
+            return response
 # get user tokens
 
 
@@ -1599,12 +1635,12 @@ class UserSocialSignUp(Resource):
             social_id = data.get('social_id')
             access_expires_in = data.get('access_expires_in')
             password = data.get('password')
-            user = getUserByEmail(email)
+            user = getUserByEmail(email, projectName)
             if user:
                 response['message'] = 'User already exists'
             else:
                 user = createUser(firstName, lastName, phoneNumber, email, password, role,
-                                  google_auth_token, google_refresh_token, social_id, access_expires_in)
+                                  google_auth_token, google_refresh_token, social_id, access_expires_in, 'PM')
                 response['message'] = 'Signup success'
                 response['code'] = 200
                 response['result'] = createTokens(user)
@@ -1612,7 +1648,6 @@ class UserSocialSignUp(Resource):
         elif projectName == 'NITYA':
             conn = connect('nitya')
             try:
-                conn = connect()
                 data = request.get_json(force=True)
 
                 ts = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
@@ -1666,7 +1701,6 @@ class UserSocialSignUp(Resource):
             conn = connect('skedul')
             timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
             try:
-                conn = connect()
                 data = request.get_json(force=True)
                 email_id = data["email_id"]
                 first_name = data["first_name"]
@@ -1737,14 +1771,16 @@ class UserSocialSignUp(Resource):
             social_id = data.get('social_id')
             access_expires_in = data.get('access_expires_in')
             password = data.get('password')
-            user = getUserByEmail(email)
+            user = getUserByEmail(email, projectName)
             if user:
                 response['message'] = 'User already exists'
             else:
                 user = createUser(firstName, lastName, phoneNumber, email, password, role,
-                                  google_auth_token, google_refresh_token, social_id, access_expires_in)
+                                  google_auth_token, google_refresh_token, social_id, access_expires_in, 'FINDME')
+                print('users', user)
                 response['message'] = 'Signup success'
                 response['code'] = 200
+            return response
 
 
 # user social login
@@ -1755,7 +1791,7 @@ class UserSocialLogin(Resource):
         items = {}
         if projectName == 'PM':
             conn = connect('pm')
-            user = getUserByEmail(email_id)
+            user = getUserByEmail(email_id, projectName)
             if user:
                 user_unique_id = user.get('user_uid')
                 google_auth_token = user.get('google_auth_token')
@@ -1768,7 +1804,7 @@ class UserSocialLogin(Resource):
         elif projectName == 'NITYA':
             conn = connect('nitya')
 
-            user = getUserByEmail(email_id)
+            user = getUserByEmail(email_id, projectName)
             if user:
                 user_unique_id = user.get('customer_uid')
                 google_auth_token = user.get('user_access_token')
@@ -1781,7 +1817,7 @@ class UserSocialLogin(Resource):
 
         elif projectName == 'SKEDUL':
             conn = connect('skedul')
-            user = getUserByEmail(email_id)
+            user = getUserByEmail(email_id, projectName)
             if user:
                 user_unique_id = user.get('user_unique_uid')
                 google_auth_token = user.get('google_auth_token')
@@ -1794,7 +1830,7 @@ class UserSocialLogin(Resource):
 
         elif projectName == 'FINDME':
             conn = connect('find_me')
-            user = getUserByEmail(email_id)
+            user = getUserByEmail(email_id, projectName)
             if user:
                 user_unique_id = user.get('user_uid')
                 google_auth_token = user.get('google_auth_token')
@@ -1819,7 +1855,7 @@ api.add_resource(UpdateEmailPassword,
                  "/api/v2/UpdateEmailPassword/<string:projectName>")
 # token endpoints
 api.add_resource(UpdateAccessToken,
-                 "/api/v2/UpdateAccessToken/<string:projectName>/<string:customer_uid>")
+                 "/api/v2/UpdateAccessToken/<string:projectName>/<string:user_id>")
 api.add_resource(
     UserToken, "/api/v2/UserToken/<string:projectName>/<string:user_email_id>")
 # get info endpoints
