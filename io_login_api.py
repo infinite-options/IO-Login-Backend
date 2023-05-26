@@ -11,6 +11,7 @@ import pymysql
 from decimal import Decimal
 import string
 import random
+from random import randint
 from hashlib import sha256, sha512
 from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager
 import hashlib
@@ -33,9 +34,9 @@ jwt = JWTManager(app)
 
 # --------------- Mail Variables ------------------
 # Mail username and password loaded in .env file
-app.config['MAIL_USERNAME'] = os.getenv('SUPPORT_EMAIL')
-app.config['MAIL_PASSWORD'] = os.getenv('SUPPORT_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
+app.config['MAIL_USERNAME'] = "support@manifestmy.space"
+app.config['MAIL_PASSWORD'] = "Support4MySpace"
+app.config['MAIL_DEFAULT_SENDER'] = "support@manifestmy.space"
 
 app.config["MAIL_SERVER"] = "smtp.mydomain.com"
 app.config["MAIL_PORT"] = 465
@@ -43,9 +44,11 @@ app.config["MAIL_PORT"] = 465
 app.config["MAIL_USE_TLS"] = False
 app.config["MAIL_USE_SSL"] = True
 
+
 # Set this to false when deploying to live application
 # app.config["DEBUG"] = True
 app.config["DEBUG"] = True
+
 mail = Mail(app)
 
 
@@ -134,15 +137,14 @@ def execute(sql, cmd, conn, skipSerialization=False):
 
 def sendEmail(recipient, subject, body):
     with app.app_context():
-        # print(recipient, subject, body, app.config["MAIL_USERNAME"])
+
         msg = Message(
-            sender=app.config["MAIL_USERNAME"],
+            sender="support@manifestmy.space",
             recipients=[recipient],
             subject=subject,
-            body=body
+            body=str(body)
         )
         mail.send(msg)
-        return 'Email Sent'
 
 
 def getEmployeeBusinesses(user):
@@ -181,10 +183,10 @@ def createHash(password, salt):
 
 def createTokens(user):
     print('IN CREATETOKENS')
-    print('IN CREATETOKENS', user)
+
     businesses = getEmployeeBusinesses(user)['result']
     tenant_user_id = getTenantProfileInfo(user)['result']
-    print('IN CREATETOKENS', businesses)
+
     userInfo = {
         'user_uid': user['user_uid'],
         'first_name': user['first_name'],
@@ -196,7 +198,7 @@ def createTokens(user):
         'businesses': businesses,
         'tenant_id': tenant_user_id
     }
-    print('IN CREATETOKENS', userInfo)
+
     return {
         'access_token': create_access_token(userInfo),
         'refresh_token': create_refresh_token(userInfo),
@@ -243,13 +245,12 @@ def getUserByEmail(email, projectName):
             return result['result'][0]
 
 
-def createUser(firstName, lastName, phoneNumber, email, password, role,
-               google_auth_token=None, google_refresh_token=None, social_id=None, access_expires_in=None, projectName=None):
+def createUser(firstName, lastName, phoneNumber, email, password, role, email_validated=None, google_auth_token=None, google_refresh_token=None, social_id=None, access_expires_in=None, projectName=None):
     if projectName == 'PM':
         conn = connect('pm')
         query = ["CALL pm.new_user_id;"]
         NewIDresponse = execute(query[0], "get", conn)
-        print(NewIDresponse)
+
         newUserID = NewIDresponse["result"][0]["new_id"]
         passwordSalt = createSalt()
         passwordHash = createHash(password, passwordSalt)
@@ -292,6 +293,7 @@ def createUser(firstName, lastName, phoneNumber, email, password, role,
         newUserID = NewIDresponse["result"][0]["new_id"]
         passwordSalt = createSalt()
         passwordHash = createHash(password, passwordSalt)
+
         newUser = {
             'user_uid': newUserID,
             'first_name': firstName,
@@ -301,6 +303,7 @@ def createUser(firstName, lastName, phoneNumber, email, password, role,
             'password_salt': passwordSalt,
             'password_hash': passwordHash,
             'role': role,
+            'email_validated': email_validated,
             'google_auth_token': google_auth_token,
             'google_refresh_token': google_refresh_token,
             'social_id': social_id,
@@ -316,6 +319,7 @@ def createUser(firstName, lastName, phoneNumber, email, password, role,
                 password_salt = \'""" + passwordSalt + """\',
                 password_hash = \'""" + passwordHash + """\',
                 role = \'""" + role + """\',
+                email_validated = \'""" + email_validated + """\',
                 google_auth_token = \'""" + str(google_auth_token) + """\',
                 google_refresh_token = \'""" + str(google_refresh_token) + """\',
                 social_id = \'""" + social_id + """\',
@@ -323,6 +327,20 @@ def createUser(firstName, lastName, phoneNumber, email, password, role,
                     """)
 
         response = execute(query, "post", conn)
+        subject = "Email Verification Code"
+        message = "Email Verification Code Sent " + email_validated
+        # msg = Message(
+        #     "Email Verification Code",
+        #     sender="support@manifestmy.space",
+        #     recipients=[email],
+        # )
+        # print(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+        # msg.body = ("Email Verification Code Sent ")
+        # # print('msg-bd----', msg.body)
+        # mail.send(str(email_validated))
+        # print('after mail send')
+        sendEmail(email, subject, message)
+
         return newUser
 
 
@@ -336,7 +354,7 @@ class GetUsers(Resource):
         print("business: ", projectName)
         if projectName == "PM":
             try:
-                print('in try')
+
                 conn = connect('pm')
                 query = ("""SELECT * FROM pm.users;""")
                 items = execute(query, "get", conn)
@@ -351,7 +369,7 @@ class GetUsers(Resource):
                 disconnect(conn)
         elif projectName == "NITYA":
             try:
-                print('in try')
+
                 conn = connect('nitya')
                 query = ("""SELECT * FROM nitya.customers;""")
                 items = execute(query, "get", conn)
@@ -366,7 +384,7 @@ class GetUsers(Resource):
                 disconnect(conn)
         elif projectName == "SKEDUL":
             try:
-                print('in try')
+
                 conn = connect('skedul')
                 query = ("""SELECT * FROM skedul.users;""")
                 items = execute(query, "get", conn)
@@ -382,7 +400,7 @@ class GetUsers(Resource):
 
         elif projectName == "FINDME":
             try:
-                print('in try')
+
                 conn = connect('find_me')
                 query = ("""SELECT * FROM find_me.users;""")
                 items = execute(query, "get", conn)
@@ -425,7 +443,7 @@ class SetTempPassword(Resource):
             pass_temp = self.get_random_string()
             passwordSalt = createSalt()
             passwordHash = createHash(pass_temp, passwordSalt)
-            print('pass_temp', pass_temp)
+
             # update table
             query_update = """
             UPDATE pm.users 
@@ -442,7 +460,7 @@ class SetTempPassword(Resource):
                 "Your temporary password is {}. Please use it to reset your password".format(
                     pass_temp)
             )
-            sendEmail(recipient, subject, body)
+            sendEmail('pm', recipient, subject, body)
             response['message'] = "A temporary password has been sent"
 
         elif projectName == "NITYA":
@@ -479,7 +497,7 @@ class SetTempPassword(Resource):
                 "Your temporary password is {}. Please use it to reset your password".format(
                     pass_temp)
             )
-            sendEmail(recipient, subject, body)
+            sendEmail('nitya', recipient, subject, body)
             response['message'] = "A temporary password has been sent"
 
         elif projectName == "SKEDUL":
@@ -514,7 +532,7 @@ class SetTempPassword(Resource):
                 "Your temporary password is {}. Please use it to reset your password".format(
                     pass_temp)
             )
-            sendEmail(recipient, subject, body)
+            sendEmail('skedul', recipient, subject, body)
             response['message'] = "A temporary password has been sent"
 
         elif projectName == "FINDME":
@@ -549,7 +567,7 @@ class SetTempPassword(Resource):
                 "Your temporary password is {}. Please use it to reset your password".format(
                     pass_temp)
             )
-            sendEmail(recipient, subject, body)
+            sendEmail('find_me', recipient, subject, body)
             response['message'] = "A temporary password has been sent"
         return response
 
@@ -685,7 +703,7 @@ class AccountSalt(Resource):
                 SELECT * FROM pm.users WHERE email = \'""" + email + """\';
                     """)
                 items = execute(query, "get", conn)
-                print(items)
+
                 if not items["result"]:
                     items["message"] = "Email doesn't exists"
                     items["code"] = 404
@@ -712,7 +730,7 @@ class AccountSalt(Resource):
                 FROM nitya.customers cus WHERE customer_email = \'""" + email + """\';
                     """)
                 items = execute(query, "get", conn)
-                print(items)
+
                 if not items["result"]:
                     items["message"] = "Email doesn't exists"
                     items["code"] = 404
@@ -740,7 +758,7 @@ class AccountSalt(Resource):
                 SELECT * FROM skedul.users WHERE user_email = \'""" + email + """\';
                     """)
                 items = execute(query, "get", conn)
-                print(items)
+
                 if not items["result"]:
                     items["message"] = "Email doesn't exists"
                     items["code"] = 404
@@ -763,7 +781,7 @@ class AccountSalt(Resource):
                 SELECT * FROM find_me.users WHERE email = \'""" + email + """\';
                     """)
                 items = execute(query, "get", conn)
-                print(items)
+
                 if not items["result"]:
                     items["message"] = "Email doesn't exist"
                     items["code"] = 404
@@ -792,31 +810,23 @@ class Login(Resource):
             conn = connect('pm')
             user = getUserByEmail(email, projectName)
             if user:
-                print('IN IF LOGIN')
                 if password == user['password_hash']:
                     response['message'] = 'Login successful'
                     response['code'] = 200
                     response['result'] = createTokens(user)
-                    print('IN IF IF LOGIN', response)
                 else:
                     response['message'] = 'Incorrect password'
                     response['code'] = 401
-                    print('IN IF ELSE LOGIN', response)
             else:
-                print('IN ELSE LOGIN')
                 response['message'] = 'Email not found'
                 response['code'] = 404
-                print('IN ELSE LOGIN', response)
 
         elif projectName == 'NITYA':
             conn = connect('nitya')
             user = getUserByEmail(email, projectName)
-            print(user)
             if not user:
-                print('IN ELSE LOGIN')
                 response['message'] = 'Email not found'
                 response['code'] = 404
-                print('IN ELSE LOGIN', response)
 
             else:
                 # checks if login was by social media
@@ -857,9 +867,7 @@ class Login(Resource):
                         return response
                 else:
                     string = " Cannot compare the password or social_id while log in. "
-                    print("*" * (len(string) + 10))
-                    print(string.center(len(string) + 10, "*"))
-                    print("*" * (len(string) + 10))
+
                     response["message"] = string
                     response["code"] = 500
                     return response
@@ -880,39 +888,30 @@ class Login(Resource):
             conn = connect('skedul')
             user = getUserByEmail(email, projectName)
             if user:
-                print('IN IF LOGIN')
                 if password == user['password_hashed']:
                     response['message'] = 'Login successful'
                     response['code'] = 200
-                    print('IN IF IF LOGIN', response)
                 else:
                     response['message'] = 'Incorrect password'
                     response['code'] = 401
-                    print('IN IF ELSE LOGIN', response)
             else:
-                print('IN ELSE LOGIN')
                 response['message'] = 'Email not found'
                 response['code'] = 404
-                print('IN ELSE LOGIN', response)
 
         elif projectName == 'FINDME':
             conn = connect('find_me')
             user = getUserByEmail(email, projectName)
             if user:
-                print('IN IF LOGIN')
                 if password == user['password_hash']:
                     response['message'] = 'Login successful'
                     response['code'] = 200
-                    print('IN IF IF LOGIN', response)
+                    response['result'] = user
                 else:
                     response['message'] = 'Incorrect password'
                     response['code'] = 401
-                    print('IN IF ELSE LOGIN', response)
             else:
-                print('IN ELSE LOGIN')
                 response['message'] = 'Email not found'
                 response['code'] = 404
-                print('IN ELSE LOGIN', response)
 
         return response
 
@@ -934,7 +933,7 @@ class CreateAccount(Resource):
                 response['message'] = 'User already exists'
             else:
                 user = createUser(firstName, lastName, phoneNumber,
-                                  email, password, role,  '', '', '', '', 'PM')
+                                  email, password, role, '', '', '', '', '', 'PM')
                 response['message'] = 'Signup success'
                 response['code'] = 200
                 response['result'] = createTokens(user)
@@ -974,21 +973,14 @@ class CreateAccount(Resource):
                 else:
                     social_signup = True
 
-                print(social_signup)
                 get_user_id_query = "CALL new_customer_uid();"
                 NewUserIDresponse = execute(get_user_id_query, "get", conn)
 
-                print("New User Code: ", NewUserIDresponse["code"])
-
                 if NewUserIDresponse["code"] == 490:
                     string = " Cannot get new User id. "
-                    print("*" * (len(string) + 10))
-                    print(string.center(len(string) + 10, "*"))
-                    print("*" * (len(string) + 10))
                     response["message"] = "Internal Server Error."
                     return response, 500
                 NewUserID = NewUserIDresponse["result"][0]["new_id"]
-                print("New User ID: ", NewUserID)
 
                 if social_signup == False:
 
@@ -996,7 +988,6 @@ class CreateAccount(Resource):
 
                     password = sha512(
                         (data["password"] + salt).encode()).hexdigest()
-                    print("password------", password)
                     algorithm = "SHA512"
                     mobile_access_token = "NULL"
                     mobile_refresh_token = "NULL"
@@ -1014,8 +1005,6 @@ class CreateAccount(Resource):
                     algorithm = "NULL"
                     user_social_signup = data["social"]
 
-                    print("ELSE- OUT")
-
                 if cust_id != "NULL" and cust_id:
 
                     NewUserID = cust_id
@@ -1030,7 +1019,6 @@ class CreateAccount(Resource):
                         """
                     )
                     it = execute(query, "get", conn)
-                    print("it-------", it)
 
                     if it["result"][0]["user_access_token"] != "FALSE":
                         user_access_token = it["result"][0]["user_access_token"]
@@ -1116,7 +1104,7 @@ class CreateAccount(Resource):
                         + email
                         + "';"
                     )
-                    print("email---------")
+
                     items = execute(query, "get", conn)
                     if items["result"]:
 
@@ -1133,7 +1121,6 @@ class CreateAccount(Resource):
                         items["message"] = "Internal Server Error."
                         return items
 
-                    print("Before write")
                     # write everything to database
                     customer_insert_query = [
                         """
@@ -1242,7 +1229,6 @@ class CreateAccount(Resource):
                         + social_id
                         + """\');"""
                     ]
-                print(customer_insert_query[0])
                 items = execute(customer_insert_query[0], "post", conn)
 
                 if items["code"] != 281:
@@ -1265,10 +1251,7 @@ class CreateAccount(Resource):
                 items["message"] = "Signup successful"
                 items["code"] = 200
 
-                print("sss-----", social_signup)
-
             except:
-                print("Error happened while Sign Up")
                 if "NewUserID" in locals():
                     execute(
                         """DELETE FROM customers WHERE customer_uid = '"""
@@ -1362,17 +1345,117 @@ class CreateAccount(Resource):
             password = data.get('password')
             role = data.get('role')
             user = getUserByEmail(email, projectName)
+            email_validated = str(randint(100, 999))
             if user:
                 response['message'] = 'User already exists'
             else:
                 user = createUser(firstName, lastName, phoneNumber,
-                                  email, password, role, '', '', '', '', 'FINDME')
+                                  email, password, role, email_validated, '', '', '', '', 'FINDME')
+
                 response['message'] = 'Signup success'
                 response['code'] = 200
+                response['result'] = user
             return response
 
 
+class CheckEmailValidationCode(Resource):
+    def post(self, projectName):
+        response = {}
+        items = {}
+        cus_id = {}
+        if projectName == 'FINDME':
+            try:
+                conn = connect('find_me')
+                data = request.get_json(force=True)
+
+                user_uid = data["user_uid"]
+                code = data["code"]
+
+                get_verification_code_query = '''
+                                SELECT email_validated FROM find_me.users WHERE user_uid=\'''' + user_uid + '''\'
+                                '''
+
+                validation = execute(get_verification_code_query, "get", conn)
+
+                # If for some reason we can't find a user in the table with the given user_uid....
+                if len(validation["result"]) == 0:
+                    response["message"] = "No user has been found for the following user_uid. " \
+                        "Perhaps you have entered an invalid user_uid, " \
+                        "or the endpoint to createNewUsers is broken"
+                    return response, 200
+
+                # If we do find such a user,
+                # we will cross-examine the code they have typed in against what we have stored in the database.
+                # If it matches --> hooray! We set the email_validated of that user to true.
+                # If it DOES NOT match --> whoops! They typed in a bad code.
+
+                if validation["result"][0]["email_validated"] == "TRUE":
+                    response["message"] = "User Email for this specific user has already been verified." \
+                        " No need for a code! :)"
+                    response["email_validated_status"] = "TRUE"
+
+                elif validation["result"][0]["email_validated"] == "FALSE":
+                    response["message"] = "You need to generate a code for this user before you verify it."
+                    response["email_validated_status"] = "FALSE"
+
+                elif validation["result"][0]["email_validated"] == code:
+                    set_code_query = '''
+                                    UPDATE find_me.users
+                                    SET email_validated =\'''' + "TRUE" + '''\'
+                                    WHERE user_uid=\'''' + user_uid + '''\'
+                                    '''
+                    verification = execute(set_code_query, "post", conn)
+                    response["message"] = "User Email Verification Code has been validated. Have fun!"
+                    response["email_validated_status"] = "TRUE"
+
+                else:
+                    response["message"] = "Invalid Verification Code." \
+                        "The code provided does not match what we have in the database"
+                    response["email_validated_status"] = "..."
+
+                return response, 200
+            except:
+                raise BadRequest(
+                    "Validate Email Verification Code Request Failed. Try again later. :(")
+            finally:
+                disconnect(conn)
+
+
+class UpdateUser(Resource):
+    def put(self, projectName):
+        response = {}
+        items = {}
+        cus_id = {}
+        if projectName == 'FINDME':
+            try:
+                conn = connect('find_me')
+                data = request.get_json(force=True)
+                user_uid = data.get('user_uid')
+                firstName = data.get('first_name')
+                lastName = data.get('last_name')
+                phoneNumber = data.get('phone_number')
+
+                query = """ UPDATE find_me.users 
+                            SET
+                            first_name = \'""" + firstName + """\',
+                            last_name = \'""" + lastName + """\',
+                            phone_number = \'""" + phoneNumber + """\'
+                            WHERE user_uid = \'""" + user_uid + """\'; """
+
+                items = execute(query, "post", conn)
+
+                response["message"] = "Successfully executed SQL query."
+                response['data'] = user_uid
+                return response
+            except:
+                raise BadRequest(
+                    "Update Request failed, please try again later")
+            finally:
+                disconnect(conn)
+
 #  updating access token if expired
+
+
 class UpdateAccessToken(Resource):
     def post(self, projectName, user_id,):
         print("In UpdateAccessToken")
@@ -1432,7 +1515,6 @@ class UserToken(Resource):
                 + user_email_id
                 + """\';"""
             )
-            print(query)
             response = execute(query, 'get', conn)
 
             return response, 200
@@ -1448,7 +1530,6 @@ class UserToken(Resource):
                 + user_email_id
                 + """\';"""
             )
-            print(query)
             response = execute(query, 'get', conn)
             response["message"] = "successful"
             response["customer_uid"] = items["result"][0]["customer_uid"]
@@ -1471,7 +1552,7 @@ class UserToken(Resource):
                 + user_email_id
                 + """\';"""
             )
-            print(query)
+
             response = execute(query, 'get', conn)
             response["message"] = "successful"
             response["user_unique_id"] = items["result"][0]["user_unique_id"]
@@ -1494,7 +1575,6 @@ class UserToken(Resource):
                 + user_email_id
                 + """\';"""
             )
-            print(query)
             response = execute(query, 'get', conn)
 
             return response, 200
@@ -1563,7 +1643,6 @@ class UserDetails(Resource):
             )
 
             items = execute(query, "get", conn)
-            print(items)
             response["message"] = "successful"
             response["user_unique_id"] = items["result"][0]["user_unique_id"]
             response["user_first_name"] = items["result"][0]["user_first_name"]
@@ -1577,6 +1656,39 @@ class UserDetails(Resource):
             return response, 200
         elif projectName == 'FINDME':
             conn = connect('find_me')
+            query = """SELECT 
+                user_uid
+                , email
+                , first_name
+                , last_name
+                , phone_number
+                , google_auth_token
+                , google_refresh_token FROM users u
+                WHERE user_uid = \'""" + user_id + """\' """
+
+            response = execute(query, 'get', conn)
+            return response
+
+
+class UserDetailsByEmail(Resource):
+    def get(self, projectName, email_id):
+        print("In userDetails")
+        response = {}
+        items = {}
+        if projectName == 'FINDME':
+            conn = connect('find_me')
+            query = """SELECT 
+                user_uid
+                , email
+                , first_name
+                , last_name
+                , phone_number
+                , google_auth_token
+                , google_refresh_token FROM users u
+                WHERE email = \'""" + email_id + """\' """
+
+            response = execute(query, 'get', conn)
+            return response
 
 
 class GetEmailId(Resource):
@@ -1641,7 +1753,7 @@ class UserSocialSignUp(Resource):
             if user:
                 response['message'] = 'User already exists'
             else:
-                user = createUser(firstName, lastName, phoneNumber, email, password, role,
+                user = createUser(firstName, lastName, phoneNumber, email, password, role, '',
                                   google_auth_token, google_refresh_token, social_id, access_expires_in, 'PM')
                 response['message'] = 'Signup success'
                 response['code'] = 200
@@ -1673,7 +1785,6 @@ class UserSocialSignUp(Resource):
                     response['message'] = "Email ID already exists."
 
                 else:
-                    print('in else')
                     new_customer_id_response = execute(
                         "CALL new_customer_uid;", 'get', conn)
                     new_customer_id = new_customer_id_response['result'][0]['new_id']
@@ -1774,12 +1885,13 @@ class UserSocialSignUp(Resource):
             access_expires_in = data.get('access_expires_in')
             password = data.get('password')
             user = getUserByEmail(email, projectName)
+            email_validated = str(randint(100, 999))
             if user:
                 response['message'] = 'User already exists'
             else:
-                user = createUser(firstName, lastName, phoneNumber, email, password, role,
+                user = createUser(firstName, lastName, phoneNumber, email, password, role, email_validated,
                                   google_auth_token, google_refresh_token, social_id, access_expires_in, 'FINDME')
-                print('users', user)
+
                 response['message'] = 'Signup success'
                 response['code'] = 200
             return response
@@ -1834,48 +1946,33 @@ class UserSocialLogin(Resource):
             conn = connect('find_me')
             user = getUserByEmail(email_id, projectName)
             if user:
-                user_unique_id = user.get('user_uid')
-                google_auth_token = user.get('google_auth_token')
-                response['result'] = user_unique_id, google_auth_token
-                response['message'] = 'Correct Email'
+                response['message'] = 'Login successful'
+                response['code'] = 200
+                response['result'] = user
             else:
                 response['result'] = False
                 response['message'] = 'Email ID doesnt exist'
             return response
 
 
+# SEND EMAIL
 class SendEmail(Resource):
-    def post(self, email):
-        try:
-            conn = connect('find_me')
 
-            msg = Message(
-                subject="Schedule a meeting",
-                sender="support@skedul.online",
-                recipients=[email],
-            )
-
-            msg.body = (
-                "Hello!\n\n"
-                "Please click on the link below to schedule a meeting with.\n\n"
-                "{}"
-                + "\n\n"
-                + "Email support@skedul.online if you run into any problems or have any questions.\n"
-                "Thanks - The Skedul Team"
-            )
-
-            print(msg.body)
-            mail.send(msg)
-            return "Email Sent"
-        except:
-            raise BadRequest("Request failed, please try again later.")
-        finally:
-            disconnect(conn)
+    def post(self):
+        print("In Send Email post")
+        data = request.get_json(force=True)
+        email = data['email']
+        code = data['code']
+        subject = "Email Verification Code"
+        message = "Email Verification Code Sent " + code
+        sendEmail(email, subject, message)
+        return 'Email Sent'
 
 
 # -- DEFINE APIS -------------------------------------------------------------------------------
 # signup endpoints
 api.add_resource(CreateAccount, "/api/v2/CreateAccount/<string:projectName>")
+api.add_resource(UpdateUser, "/api/v2/UpdateUser/<string:projectName>")
 # login endpoints
 api.add_resource(AccountSalt, "/api/v2/AccountSalt/<string:projectName>")
 api.add_resource(Login, "/api/v2/Login/<string:projectName>")
@@ -1893,6 +1990,8 @@ api.add_resource(
 api.add_resource(
     UserDetails, "/api/v2/UserDetails/<string:projectName>/<string:user_id>")
 api.add_resource(
+    UserDetailsByEmail, "/api/v2/UserDetailsByEmail/<string:projectName>/<string:email_id>")
+api.add_resource(
     GetEmailId, "/api/v2/GetEmailId/<string:projectName>/<string:user_id>")
 api.add_resource(GetUsers, "/api/v2/GetUsers/<string:projectName>")
 
@@ -1902,7 +2001,9 @@ api.add_resource(UserSocialSignUp,
 api.add_resource(
     UserSocialLogin, "/api/v2/UserSocialLogin/<string:projectName>/<string:email_id>")
 api.add_resource(
-    SendEmail, "/api/v2/SendEmail/<string:email>")
+    SendEmail, "/api/v2/SendEmail")
+api.add_resource(
+    CheckEmailValidationCode, "/api/v2/CheckEmailValidationCode/<string:projectName>")
 
 if __name__ == "__main__":
     # app.run()
