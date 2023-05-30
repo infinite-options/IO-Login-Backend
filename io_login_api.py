@@ -1578,6 +1578,22 @@ class UserToken(Resource):
             response = execute(query, 'get', conn)
 
             return response, 200
+        elif projectName == 'SF':
+            conn = connect('sf')
+            query = (
+                """SELECT customer_uid
+                                , customer_email
+                                , user_access_token
+                                , user_refresh_token
+                                , social_id
+                        FROM
+                        sf.customers WHERE customer_email = \'"""
+                + user_email_id
+                + """\';"""
+            )
+            response = execute(query, 'get', conn)
+
+            return response, 200
 
 
 class UserDetails(Resource):
