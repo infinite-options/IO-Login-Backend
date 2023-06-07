@@ -1910,6 +1910,7 @@ class UserSocialSignUp(Resource):
 
                 response['message'] = 'Signup success'
                 response['code'] = 200
+                response['result'] = user
             return response
 
 
@@ -1962,9 +1963,15 @@ class UserSocialLogin(Resource):
             conn = connect('find_me')
             user = getUserByEmail(email_id, projectName)
             if user:
-                response['message'] = 'Login successful'
-                response['code'] = 200
-                response['result'] = user
+                print(user)
+                if user['social_id'] == '':
+                    response['message'] = 'Login with email'
+                    response['result'] = False
+
+                else:
+                    response['message'] = 'Login successful'
+                    response['code'] = 200
+                    response['result'] = user
             else:
                 response['result'] = False
                 response['message'] = 'Email ID doesnt exist'
