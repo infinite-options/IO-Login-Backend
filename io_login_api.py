@@ -460,7 +460,7 @@ class SetTempPassword(Resource):
                 "Your temporary password is {}. Please use it to reset your password".format(
                     pass_temp)
             )
-            sendEmail('pm', recipient, subject, body)
+            sendEmail(recipient, subject, body)
             response['message'] = "A temporary password has been sent"
 
         elif projectName == "NITYA":
@@ -497,7 +497,7 @@ class SetTempPassword(Resource):
                 "Your temporary password is {}. Please use it to reset your password".format(
                     pass_temp)
             )
-            sendEmail('nitya', recipient, subject, body)
+            sendEmail(recipient, subject, body)
             response['message'] = "A temporary password has been sent"
 
         elif projectName == "SKEDUL":
@@ -532,7 +532,7 @@ class SetTempPassword(Resource):
                 "Your temporary password is {}. Please use it to reset your password".format(
                     pass_temp)
             )
-            sendEmail('skedul', recipient, subject, body)
+            sendEmail(recipient, subject, body)
             response['message'] = "A temporary password has been sent"
 
         elif projectName == "FINDME":
@@ -567,7 +567,7 @@ class SetTempPassword(Resource):
                 "Your temporary password is {}. Please use it to reset your password".format(
                     pass_temp)
             )
-            sendEmail('find_me', recipient, subject, body)
+            sendEmail(recipient, subject, body)
             response['message'] = "A temporary password has been sent"
         return response
 
