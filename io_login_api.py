@@ -2015,7 +2015,7 @@ api.add_resource(
 api.add_resource(
     UserDetailsByEmail, "/api/v2/UserDetailsByEmail/<string:projectName>/<string:email_id>")
 api.add_resource(
-    GetEmailId, "/api/v2/GetEmailId/<string:projectName>/<string:user_id>")
+    GetEmailId, "/api/v2/GetEmailId/<string:projectName>/<string:email_id>")
 api.add_resource(GetUsers, "/api/v2/GetUsers/<string:projectName>")
 
 # social signup and login endpoints
