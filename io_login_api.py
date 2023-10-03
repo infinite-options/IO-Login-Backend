@@ -147,7 +147,7 @@ def sendEmail(recipient, subject, body):
         mail.send(msg)
 
 
-def getEmployeeBusinesses(user, projectName):
+def getBusinessProfileInfo(user, projectName):
     if projectName == 'PM':
         response = {}
         conn = connect('pm')
@@ -160,10 +160,12 @@ def getEmployeeBusinesses(user, projectName):
     elif projectName == "MYSPACE":
         response = {}
         conn = connect('space')
-        query = """SELECT * FROM space.businessProfileInfo 
-            WHERE business_user_id = \'""" + user['user_uid'] + """\'"""
-
+        query = """SELECT business_uid, employee_uid FROM businessProfileInfo 
+            LEFT JOIN employee ON business_uid = employee_business_id
+            WHERE employee_user_id = \'""" + user['user_uid'] + """\'"""
         response = execute(query, "get", conn)
+        if "result" not in response:
+            response["result"] = ""
         return response
 
 
@@ -179,10 +181,22 @@ def getTenantProfileInfo(user, projectName):
     elif projectName == "MYSPACE":
         response = {}
         conn = connect('space')
-        query = """SELECT tenant_uid FROM space.tenantProfileInfo 
+        query = """SELECT tenant_uid FROM tenantProfileInfo 
             WHERE tenant_user_id = \'""" + user['user_uid'] + """\'"""
-
         response = execute(query, "get", conn)
+        if "result" not in response:
+            response["result"] = ""
+        return response
+    
+def getOwnerProfileInfo(user, projectName):
+    if projectName == 'MYSPACE':
+        response = {}
+        conn = connect('space')
+        query = """SELECT owner_uid FROM ownerProfileInfo 
+            WHERE owner_user_id = \'""" + user['user_uid'] + """\'"""
+        response = execute(query, "get", conn)
+        if "result" not in response:
+            response["result"] = ""
         return response
 
 
@@ -202,8 +216,9 @@ def createHash(password, salt):
 def createTokens(user, projectName):
     print('IN CREATETOKENS')
 
-    businesses = getEmployeeBusinesses(user, projectName)['result']
-    tenant_user_id = getTenantProfileInfo(user, projectName)['result']
+    businesses = getBusinessProfileInfo(user, projectName)['result']
+    tenant_id = getTenantProfileInfo(user, projectName)['result']
+    owner_id = getOwnerProfileInfo(user, projectName)['result']
 
     userInfo = {
         'user_uid': user['user_uid'],
@@ -214,7 +229,8 @@ def createTokens(user, projectName):
         'role': user['role'],
         'google_auth_token': user['google_auth_token'],
         'businesses': businesses,
-        'tenant_id': tenant_user_id
+        'tenant_id': tenant_id,
+        'owner_id': owner_id,
     }
 
     return {
