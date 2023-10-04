@@ -160,12 +160,36 @@ def getBusinessProfileInfo(user, projectName):
     elif projectName == "MYSPACE":
         response = {}
         conn = connect('space')
-        query = """SELECT business_uid, employee_uid FROM businessProfileInfo 
-            LEFT JOIN employee ON business_uid = employee_business_id
-            WHERE employee_user_id = \'""" + user['user_uid'] + """\'"""
+        query = """SELECT business_uid, business_type, 
+                employee_uid, employee_role FROM space.employees
+            LEFT JOIN space.businessProfileInfo 
+            ON employee_business_id = business_uid
+                WHERE employee_user_id = \'""" + user['user_uid'] + """\'"""
         response = execute(query, "get", conn)
         if "result" not in response:
-            response["result"] = ""
+            response["result"] = None
+        else:
+            businesses = {
+                'MAINTENANCE': {},
+                'MANAGEMENT': {}
+            }
+            key_map = {
+                'MAINTENANCE': {
+                    'OWNER': 'business_owner_id',
+                    'EMPLOYEE': 'business_employee_id'
+                },
+                'MANAGEMENT': {
+                    'OWNER': 'business_owner_id',
+                    'EMPLOYEE': 'business_employee_id' 
+                }
+            }
+            for record in response["result"]:
+                role_key = key_map[record['business_type']][record['employee_role']]
+                businesses[record['business_type']].update({
+                    role_key: record['employee_uid'],
+                    'business_uid': record['business_uid']
+                })
+            response["result"] = businesses
         return response
 
 
@@ -184,8 +208,10 @@ def getTenantProfileInfo(user, projectName):
         query = """SELECT tenant_uid FROM tenantProfileInfo 
             WHERE tenant_user_id = \'""" + user['user_uid'] + """\'"""
         response = execute(query, "get", conn)
-        if "result" not in response:
+        if "result" not in response or len(response["result"]) == 0:
             response["result"] = ""
+        else:
+            response["result"] = response["result"][0]["tenant_uid"]
         return response
     
 def getOwnerProfileInfo(user, projectName):
@@ -195,8 +221,10 @@ def getOwnerProfileInfo(user, projectName):
         query = """SELECT owner_uid FROM ownerProfileInfo 
             WHERE owner_user_id = \'""" + user['user_uid'] + """\'"""
         response = execute(query, "get", conn)
-        if "result" not in response:
+        if "result" not in response or len(response["result"]) == 0:
             response["result"] = ""
+        else:
+            response["result"] = response["result"][0]["owner_uid"]
         return response
 
 
