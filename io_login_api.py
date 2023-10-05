@@ -2267,10 +2267,14 @@ class UserSocialLogin(Resource):
         elif projectName == 'MYSPACE':
             user = getUserByEmail(email_id, projectName)
             if user:
-                user_unique_id = user.get('user_uid')
-                google_auth_token = user.get('google_auth_token')
-                response['result'] = user_unique_id, google_auth_token
-                response['message'] = 'Correct Email'
+                if user['social_id'] == '':
+                    response['message'] = 'Login with email'
+                    response['result'] = False
+
+                else:
+                    response['message'] = 'Login successful'
+                    response['code'] = 200
+                    response['result'] = createTokens(user, projectName)
             else:
                 response['result'] = False
                 response['message'] = 'Email ID doesnt exist'
