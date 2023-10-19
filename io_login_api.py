@@ -1698,6 +1698,31 @@ class UpdateUser(Resource):
             finally:
                 disconnect(conn)
 
+
+class UpdateUserByUID(Resource):
+    def put(self, projectName):
+        response = {}
+        try:
+            if projectName == 'MYSPACE':
+                conn = connect('space')
+                data = request.get_json()
+                if data.get('user_uid') is None:
+                    raise BadRequest("Request failed, no UID in payload.")
+                user_uid = data.pop('user_uid')
+                if not data:
+                    raise BadRequest("Request failed, no fields to update.")
+                fields_to_update = []
+                for key, value in data.items():
+                    fields_to_update.append(f"{key} = \'{value}\'")
+                fields_to_update_str = " AND ".join(fields_to_update)
+                query = "UPDATE users SET " + fields_to_update_str + \
+                    " WHERE user_uid = \'" + user_uid + "\';"
+                response = execute(query, "post", conn)
+        except Exception as e:
+            print("Exception while updating user: ", e)
+            raise
+        return response, 200
+
 #  updating access token if expired
 
 
@@ -2343,6 +2368,7 @@ class SendEmail(Resource):
 # signup endpoints
 api.add_resource(CreateAccount, "/api/v2/CreateAccount/<string:projectName>")
 api.add_resource(UpdateUser, "/api/v2/UpdateUser/<string:projectName>")
+api.add_resource(UpdateUserByUID, "/api/v2/UpdateUserByUID/<string:projectName>")
 # login endpoints
 api.add_resource(AccountSalt, "/api/v2/AccountSalt/<string:projectName>")
 api.add_resource(Login, "/api/v2/Login/<string:projectName>")
