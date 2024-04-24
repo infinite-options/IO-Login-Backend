@@ -267,6 +267,16 @@ def createTokens(user, projectName):
         'user': userInfo
     }
 
+def getUserByUID(uid, projectName):
+    if projectName == "MYSPACE":
+        conn = connect('space')
+        # get user
+        user_lookup_query = ("""
+        SELECT * FROM space.users
+        WHERE user_uid = \'""" + uid + """\';""")
+        result = execute(user_lookup_query, "get", conn)
+        if len(result['result']) > 0:
+            return result['result'][0]
 
 def getUserByEmail(email, projectName):
     if projectName == "PM":
@@ -1601,6 +1611,70 @@ class CreateAccount(Resource):
                 response['code'] = 200
                 response['result'] = user
             return response
+        
+    def put(self, projectName):
+        print(" In createAccount - PUT")
+        response = {}
+        if projectName == 'MYSPACE':
+            conn = connect('space')            
+            data = request.get_json()            
+
+            if "user_uid" in data:
+                userUID = data.get('user_uid')
+                firstName = data.get('first_name')
+                lastName = data.get('last_name')
+                phoneNumber = data.get('phone_number')
+                email = data.get('email')
+                password = data.get('password')
+                role = data.get('role')
+                
+                # create password salt and hash                
+                passwordSalt = createSalt()
+                passwordHash = createHash(password, passwordSalt)
+
+                # update table
+                query_update = """
+                UPDATE space.users 
+                    SET 
+                    first_name = \'""" + firstName + """\',
+                    last_name = \'""" + lastName + """\',
+                    phone_number = \'""" + phoneNumber + """\',
+                    email = \'""" + email + """\',
+                    role = \'""" + role + """\',
+                    password_salt = \'""" + passwordSalt + """\',
+                    password_hash =  \'""" + passwordHash + """\'
+                WHERE user_uid = \'""" + userUID + """\' """
+
+                items = execute(query_update, "post", conn)
+
+                user = {
+                    'user_uid': userUID,
+                    'first_name': firstName,
+                    'last_name': lastName,
+                    'phone_number': phoneNumber,
+                    'email': email,
+                    'password_salt': passwordSalt,
+                    'password_hash': passwordHash,
+                    'role': role,
+                    'google_auth_token': None,
+                    'google_refresh_token': None,
+                    'social_id': None,
+                    'access_expires_in': None
+                }
+
+                response['message'] = 'User details updated'
+                response['code'] = 200
+                response['result'] = createTokens(user, projectName)
+
+                return response
+
+
+            else:
+                return "ERROR - user_id missing"
+
+
+            
+        
 
 
 class CheckEmailValidationCode(Resource):
@@ -2270,6 +2344,75 @@ class UserSocialSignUp(Resource):
                 response['result'] = user
             return response
 
+    def put(self, projectName):
+        print("In UserSocialSignUp - PUT")
+        response = {}
+        items = {}
+        
+        if projectName == 'MYSPACE':
+            data = request.get_json(force=True)
+
+            if not ("user_uid" in data):
+                return "ERROR - user_id missing"
+
+            conn = connect('space')            
+            userUID = data.get('user_uid')
+            email = data.get('email')
+            phoneNumber = data.get('phone_number')
+            firstName = data.get('first_name')
+            lastName = data.get('last_name')
+            role = data.get('role')
+            google_auth_token = data.get('google_auth_token')
+            google_refresh_token = data.get('google_refresh_token')
+            social_id = data.get('social_id')
+            access_expires_in = data.get('access_expires_in')
+            password = data.get('password')
+
+            passwordSalt = createSalt()
+            passwordHash = createHash(password, passwordSalt)            
+
+            user = getUserByUID(userUID, projectName)
+            if not user:
+                response['message'] = 'User does not exist'
+                response['code'] = 404
+            else:                
+                query_update = """
+                    UPDATE space.users 
+                        SET 
+                        first_name = \'""" + firstName + """\',
+                        last_name = \'""" + lastName + """\',
+                        phone_number = \'""" + phoneNumber + """\',
+                        email = \'""" + email + """\',
+                        role = \'""" + role + """\',
+                        google_auth_token = \'""" + google_auth_token + """\',
+                        google_refresh_token =  \'""" + google_refresh_token + """\',
+                        social_id = \'""" + social_id + """\',
+                        access_expires_in = \'""" + access_expires_in + """\',
+                        password_salt = \'""" + passwordSalt + """\',                        
+                        password_hash = \'""" + passwordHash + """\'                        
+                    WHERE user_uid = \'""" + userUID + """\' """
+                                
+                newUser = {
+                    'user_uid': userUID,
+                    'first_name': firstName,
+                    'last_name': lastName,
+                    'phone_number': phoneNumber,
+                    'email': email,
+                    'password_salt': passwordSalt,
+                    'password_hash': passwordHash,
+                    'role': role,
+                    'google_auth_token': google_auth_token,
+                    'google_refresh_token': google_refresh_token,
+                    'social_id': social_id,
+                    'access_expires_in': access_expires_in
+                }
+
+                items = execute(query_update, "post", conn)                
+                response['message'] = 'User details updated'
+                response['code'] = 200
+                response['result'] = createTokens(newUser, projectName)
+            return response
+        
 
 # user social login
 class UserSocialLogin(Resource):
