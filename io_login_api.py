@@ -18,6 +18,7 @@ import hashlib
 
 app = Flask(__name__)
 CORS(app)
+# CORS(app, resources={r'/api/*': {'origins': '*'}})
 
 # API
 api = Api(app)
@@ -279,6 +280,7 @@ def getUserByEmail(email, projectName):
         if len(result['result']) > 0:
             return result['result'][0]
     elif projectName == "MYSPACE":
+        print("In getUserByEmail MYSPACE")
         conn = connect('space')
         # get user
         user_lookup_query = ("""
@@ -286,6 +288,7 @@ def getUserByEmail(email, projectName):
         WHERE email = \'""" + email + """\';""")
         result = execute(user_lookup_query, "get", conn)
         if len(result['result']) > 0:
+            print(result['result'][0])
             return result['result'][0]
     elif projectName == "NITYA":
         conn = connect('nitya')
@@ -1156,6 +1159,7 @@ class CreateAccount(Resource):
             password = data.get('password')
             role = data.get('role')
             user = getUserByEmail(email, projectName)
+            print("User: ", user)
             if user:
                 response['message'] = 'User already exists'
             else:
@@ -1166,6 +1170,7 @@ class CreateAccount(Resource):
                 response['result'] = createTokens(user, projectName)
             return response
         elif projectName == 'MYSPACE':
+            print("Creating User in MYSPACE")
             data = request.get_json()
             firstName = data.get('first_name')
             lastName = data.get('last_name')
