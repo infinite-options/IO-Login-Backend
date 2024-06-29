@@ -1,3 +1,16 @@
+# IO LOGIN (FOR ALL IO PROGRAMS) BACKEND PYTHON FILE
+# https://mrle52rri4.execute-api.us-west-1.amazonaws.com/dev/api/v2/<enter_endpoint_details>
+
+# To run program:  python3 io_login_api.py
+
+# README:  if conn error make sure password is set properly in RDS PASSWORD section
+
+# README:  Debug Mode may need to be set to False when deploying live (although it seems to be working through Zappa)
+
+# README:  if there are errors, make sure you have all requirements are loaded
+# pip3 install -r requirements.txt
+
+
 import json
 import os
 import requests
@@ -406,7 +419,9 @@ def createUser(firstName, lastName, phoneNumber, email, password, role, email_va
                     """)
 
         response = execute(query, "post", conn)
-        return newUser
+        print("MYSPACE response: ", response)
+        print("MYSPACE response code: ", response['code'])
+        return (newUser, response['code'])
     elif projectName == 'FINDME':
         conn = connect('find_me')
         query = ["CALL find_me.new_user_id;"]
@@ -1189,9 +1204,10 @@ class CreateAccount(Resource):
             else:
                 user = createUser(firstName, lastName, phoneNumber,
                                   email, password, role, '', '', '', '', '', 'MYSPACE')
+                # response['user'] = user[0]
                 response['message'] = 'Signup success'
-                response['code'] = 200
-                response['result'] = createTokens(user, projectName)
+                response['code'] = user[1]
+                response['result'] = createTokens(user[0], projectName)
             return response
         elif projectName == 'NITYA':
             conn = connect('nitya')
