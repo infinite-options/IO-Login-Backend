@@ -2219,8 +2219,8 @@ class UserSocialSignUp(Resource):
                 user = createUser(firstName, lastName, phoneNumber, email, password, role, '',
                                   google_auth_token, google_refresh_token, social_id, access_expires_in, 'MYSPACE')
                 response['message'] = 'Signup success'
-                response['code'] = 200
-                response['result'] = createTokens(user, projectName)
+                response['code'] = user[1]
+                response['result'] = createTokens(user[0], projectName)
             return response
         elif projectName == 'NITYA':
             conn = connect('nitya')
