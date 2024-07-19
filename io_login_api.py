@@ -258,8 +258,16 @@ def createTokens(user, projectName):
     print('IN CREATETOKENS')
 
     businesses = getBusinessProfileInfo(user, projectName)['result']
+    print("1")
     tenant_id = getTenantProfileInfo(user, projectName)['result']
+    print("2")
     owner_id = getOwnerProfileInfo(user, projectName)['result']
+    print("3")
+
+
+    if not user.get('notifications'): user['notifications'] = "true"
+    if not user.get('dark_mode'): user['dark_mode'] = "false"
+    if not user.get('cookies'): user['cookies'] = "true"
 
     userInfo = {
         'user_uid': user['user_uid'],
@@ -272,6 +280,9 @@ def createTokens(user, projectName):
         'businesses': businesses,
         'tenant_id': tenant_id,
         'owner_id': owner_id,
+        'notifications': user['notifications'],
+        'dark_mode': user['dark_mode'],
+        'cookies': user['cookies'],
     }
 
     return {
@@ -378,7 +389,9 @@ def createUser(firstName, lastName, phoneNumber, email, password, role, email_va
                 access_expires_in = \'""" + access_expires_in + """\';
                     """)
 
+        # print("PM Query: ", query)
         response = execute(query, "post", conn)
+        # print("After PM Create User: ", response)
         return newUser
     elif projectName == 'MYSPACE':
         conn = connect('space')
@@ -386,6 +399,7 @@ def createUser(firstName, lastName, phoneNumber, email, password, role, email_va
         NewIDresponse = execute(query[0], "get", conn)
 
         newUserID = NewIDresponse["result"][0]["new_id"]
+        print("MySpace userID: ", newUserID)
         passwordSalt = createSalt()
         passwordHash = createHash(password, passwordSalt)
         newUser = {
@@ -417,7 +431,7 @@ def createUser(firstName, lastName, phoneNumber, email, password, role, email_va
                 social_id = \'""" + social_id + """\',
                 access_expires_in = \'""" + access_expires_in + """\';
                     """)
-
+        print("Myspace Query: ", query)
         response = execute(query, "post", conn)
         print("MYSPACE response: ", response)
         print("MYSPACE response code: ", response['code'])
@@ -1170,6 +1184,7 @@ class Login(Resource):
 
 class CreateAccount(Resource):
     def post(self, projectName):
+        print("In Create Account POST")
         response = {}
         if projectName == 'PM':
             conn = connect('pm')
@@ -1191,6 +1206,7 @@ class CreateAccount(Resource):
                 response['result'] = createTokens(user, projectName)
             return response
         elif projectName == 'MYSPACE':
+            print("In MySpace")
             data = request.get_json()
             firstName = data.get('first_name')
             lastName = data.get('last_name')
@@ -1199,13 +1215,17 @@ class CreateAccount(Resource):
             password = data.get('password')
             role = data.get('role')
             user = getUserByEmail(email, projectName)
+            print("In Myspace User: ", user)
             if user:
                 response['message'] = 'User already exists'
             else:
                 user = createUser(firstName, lastName, phoneNumber,
                                   email, password, role, '', '', '', '', '', 'MYSPACE')
                 # response['user'] = user[0]
+                print("In MySpace: ", user)
                 response['message'] = 'Signup success'
+                print("User 0: ", user[0])
+                print("User 1: ", user[1])
                 response['code'] = user[1]
                 response['result'] = createTokens(user[0], projectName)
             return response
