@@ -1293,9 +1293,9 @@ class CreateAccount(Resource):
             password = data.get('password')
             role = data.get('role')
             user = getUserByEmail(email, projectName)
-            print("In Myspace User: ", user)
-            print("In Myspace User ID: ", user['user_uid'])
             if user:
+                print("In Myspace User: ", user)
+                print("In Myspace User ID: ", user['user_uid'])
                 response['message'] = 'User already exists'
                 response['user_uid'] = user['user_uid']
             else:
