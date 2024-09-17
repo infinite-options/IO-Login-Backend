@@ -348,9 +348,18 @@ def getUserByEmail(email, projectName):
         result = execute(user_lookup_query, "get", conn)
         if len(result['result']) > 0:
             return result['result'][0]
+    elif projectName == "MMU":
+        conn = connect('mmu')
+        # get user
+        user_lookup_query = ("""
+        SELECT * FROM mmu.users
+        WHERE user_email_id = \'""" + email + """\';""")
+        result = execute(user_lookup_query, "get", conn)
+        if len(result['result']) > 0:
+            return result['result'][0]
 
 
-def createUser(firstName, lastName, phoneNumber, email, password, role, email_validated=None, google_auth_token=None, google_refresh_token=None, social_id=None, access_expires_in=None, projectName=None):
+def createUser(firstName, lastName, phoneNumber, email, password, role=None, email_validated=None, google_auth_token=None, google_refresh_token=None, social_id=None, access_expires_in=None, projectName=None):
     if projectName == 'PM':
         conn = connect('pm')
         query = ["CALL pm.new_user_id;"]
@@ -375,7 +384,7 @@ def createUser(firstName, lastName, phoneNumber, email, password, role, email_va
         }
         query = ("""
             INSERT INTO pm.users SET
-                 user_uid = \'""" + newUserID + """\',
+                user_uid = \'""" + newUserID + """\',
                 first_name = \'""" + firstName + """\',
                 last_name = \'""" + lastName + """\',
                 phone_number = \'""" + phoneNumber + """\',
@@ -418,7 +427,7 @@ def createUser(firstName, lastName, phoneNumber, email, password, role, email_va
         }
         query = ("""
             INSERT INTO space.users SET
-                 user_uid = \'""" + newUserID + """\',
+                user_uid = \'""" + newUserID + """\',
                 first_name = \'""" + firstName + """\',
                 last_name = \'""" + lastName + """\',
                 phone_number = \'""" + phoneNumber + """\',
@@ -492,6 +501,51 @@ def createUser(firstName, lastName, phoneNumber, email, password, role, email_va
         sendEmail(email, subject, message)
 
         return newUser
+    
+
+    elif projectName == 'MMU':
+        conn = connect('mmu')
+        query = ["CALL mmu.new_user_uid;"]
+        NewIDresponse = execute(query[0], "get", conn)
+
+        newUserID = NewIDresponse["result"][0]["new_id"]
+        print("MMU userID: ", newUserID)
+        passwordSalt = createSalt()
+        passwordHash = createHash(password, passwordSalt)
+        newUser = {
+            'user_uid': newUserID,
+            'first_name': firstName,
+            'last_name': lastName,
+            'phone_number': phoneNumber,
+            'email': email,
+            'password_salt': passwordSalt,
+            'password_hash': passwordHash,
+            'role': role,
+            'google_auth_token': google_auth_token,
+            'google_refresh_token': google_refresh_token,
+            'social_id': social_id,
+            'access_expires_in': access_expires_in
+        }
+        query = ("""
+            INSERT INTO mmu.users SET
+                user_uid = \'""" + newUserID + """\',
+                -- user_first_name = \'""" + firstName + """\',
+                -- user_last_name = \'""" + lastName + """\',
+                user_phone_number = \'""" + phoneNumber + """\',
+                user_email_id = \'""" + email + """\',
+                user_password_salt = \'""" + passwordSalt + """\',
+                user_password_hash = \'""" + passwordHash + """\',
+                -- user_role = \'""" + role + """\',
+                user_google_auth_token = \'""" + google_auth_token + """\',
+                user_google_refresh_token = \'""" + google_refresh_token + """\',
+                user_social_id = \'""" + social_id + """\',
+                user_access_expires_in = \'""" + access_expires_in + """\';
+                    """)
+        # print("MMU Query: ", query)
+        response = execute(query, "post", conn)
+        # print("MMU response: ", response)
+        # print("MMU response code: ", response['code'])
+        return (newUser, response['code'])
 
 
 # Get the correct users for a project
@@ -920,6 +974,7 @@ class UpdateEmailPassword(Resource):
 
 class AccountSalt(Resource):
     def post(self, projectName):
+        print("In Account Salt POST")
         response = {}
         items = {}
         data = request.get_json(force=True)
@@ -1041,6 +1096,29 @@ class AccountSalt(Resource):
                 items['result'] = [{
                     "password_algorithm": "SHA256",
                     "password_salt": items['result'][0]['password_salt'],
+                }]
+                items["message"] = "SALT sent successfully"
+                items["code"] = 200
+                return items
+            except:
+                raise BadRequest("Request failed, please try again later.")
+            finally:
+                disconnect(conn)
+        elif projectName == 'MMU':
+            conn = connect('mmu')
+            try:
+                query = ("""
+                SELECT * FROM mmu.users WHERE user_email_id = \'""" + email + """\';
+                    """)
+                items = execute(query, "get", conn)
+
+                if not items["result"]:
+                    items["message"] = "Email doesn't exist"
+                    items["code"] = 404
+                    return items
+                items['result'] = [{
+                    "password_algorithm": "SHA256",
+                    "password_salt": items['result'][0]['user_password_salt'],
                 }]
                 items["message"] = "SALT sent successfully"
                 items["code"] = 200
@@ -1647,6 +1725,30 @@ class CreateAccount(Resource):
                 response['code'] = 200
                 response['result'] = user
             return response
+
+        elif projectName == 'MMU':
+            print("In MMU Create Account")
+            conn = connect('mmu')
+            data = request.get_json()
+            print("MMU json data: ", data)
+            firstName = "" # data.get('first_name')
+            lastName = "" # data.get('last_name')
+            phoneNumber = data.get('phone_number')
+            email = data.get('email')
+            password = data.get('password')
+            # role = data.get('role')
+            user = getUserByEmail(email, projectName)
+            # email_validated = str(randint(100, 999))
+            if user:
+                response['message'] = 'User already exists'
+            else:
+                user = createUser(firstName, lastName, phoneNumber,
+                                  email, password, '', '', '', '', '', '', 'MMU')
+
+                response['message'] = 'Signup success'
+                response['code'] = 200
+                response['result'] = user
+            return response
         
     def put(self, projectName):
         print(" In createAccount - PUT")
@@ -2192,7 +2294,7 @@ class GetEmailId(Resource):
 # creating new user social
 class UserSocialSignUp(Resource):
     def post(self, projectName):
-        print("In create new user")
+        print("In UserSocialSignUp - POST")
         response = {}
         items = {}
         if projectName == 'PM':
@@ -2374,6 +2476,34 @@ class UserSocialSignUp(Resource):
             else:
                 user = createUser(firstName, lastName, phoneNumber, email, password, role, email_validated,
                                   google_auth_token, google_refresh_token, social_id, access_expires_in, 'FINDME')
+
+                response['message'] = 'Signup success'
+                response['code'] = 200
+                response['result'] = user
+            return response
+        elif projectName == 'MMU':
+            print("In MMU")
+            conn = connect('mmu')
+
+            data = request.get_json(force=True)
+            print("MMU Social data: ", data)
+            email = data.get('email')
+            phoneNumber = data.get('phone_number')
+            firstName = "" # data.get('first_name')
+            lastName = "" # data.get('last_name')
+            role = "" # data.get('role')
+            google_auth_token = data.get('google_auth_token')
+            google_refresh_token = data.get('google_refresh_token')
+            social_id = data.get('social_id')
+            access_expires_in = data.get('access_expires_in')
+            password = data.get('password')
+            user = getUserByEmail(email, projectName)
+            email_validated = str(randint(100, 999))
+            if user:
+                response['message'] = 'User already exists'
+            else:
+                user = createUser(firstName, lastName, phoneNumber, email, password, role, email_validated,
+                                  google_auth_token, google_refresh_token, social_id, access_expires_in, 'MMU')
 
                 response['message'] = 'Signup success'
                 response['code'] = 200
