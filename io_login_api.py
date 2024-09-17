@@ -1294,8 +1294,10 @@ class CreateAccount(Resource):
             role = data.get('role')
             user = getUserByEmail(email, projectName)
             print("In Myspace User: ", user)
+            print("In Myspace User ID: ", user['user_uid'])
             if user:
                 response['message'] = 'User already exists'
+                response['user_uid'] = user['user_uid']
             else:
                 user = createUser(firstName, lastName, phoneNumber,
                                   email, password, role, '', '', '', '', '', 'MYSPACE')
@@ -1703,7 +1705,6 @@ class CreateAccount(Resource):
                 raise BadRequest("Request failed, please try again later.")
             finally:
                 disconnect(conn)
-
         elif projectName == 'FINDME':
             conn = connect('find_me')
             data = request.get_json()
@@ -1725,7 +1726,6 @@ class CreateAccount(Resource):
                 response['code'] = 200
                 response['result'] = user
             return response
-
         elif projectName == 'MMU':
             print("In MMU Create Account")
             conn = connect('mmu')
