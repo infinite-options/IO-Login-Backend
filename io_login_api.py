@@ -355,7 +355,9 @@ def getUserByEmail(email, projectName):
         SELECT * FROM mmu.users
         WHERE user_email_id = \'""" + email + """\';""")
         result = execute(user_lookup_query, "get", conn)
+        # print("MMU result: ", result)
         if len(result['result']) > 0:
+            # print("Before return: ", result['result'][0] )
             return result['result'][0]
 
 
@@ -1295,10 +1297,13 @@ class Login(Resource):
                 response['code'] = 404
 
         elif projectName == 'MMU':
+            # print("In MMU: ", projectName)
+            # print("Email: ", email, password)
             conn = connect('mmu')
             user = getUserByEmail(email, projectName)
+            # print("\n",user['user_password_hash'])
             if user:
-                if password == user['password_hash']:
+                if password == user['user_password_hash']:
                     response['message'] = 'Login successful'
                     response['code'] = 200
                     response['result'] = user
@@ -2684,7 +2689,6 @@ class UserSocialLogin(Resource):
                 response['result'] = False
                 response['message'] = 'Email ID doesnt exist'
             return response
-
         elif projectName == 'SKEDUL':
             conn = connect('skedul')
             user = getUserByEmail(email_id, projectName)
@@ -2697,7 +2701,6 @@ class UserSocialLogin(Resource):
                 response['result'] = False
                 response['message'] = 'Email ID doesnt exist'
             return response
-
         elif projectName == 'FINDME':
             conn = connect('find_me')
             user = getUserByEmail(email_id, projectName)
