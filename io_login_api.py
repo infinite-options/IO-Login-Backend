@@ -1257,6 +1257,22 @@ class Login(Resource):
                 response['message'] = 'Email not found'
                 response['code'] = 404
 
+        elif projectName == 'MMU':
+            conn = connect('mmu')
+            user = getUserByEmail(email, projectName)
+            if user:
+                if password == user['password_hash']:
+                    response['message'] = 'Login successful'
+                    response['code'] = 200
+                    response['result'] = user
+                else:
+                    response['message'] = 'Incorrect password'
+                    response['code'] = 401
+            else:
+                response['message'] = 'Email not found'
+                response['code'] = 404
+
+
         return response
 
 
@@ -1296,8 +1312,10 @@ class CreateAccount(Resource):
             if user:
                 print("In Myspace User: ", user)
                 print("In Myspace User ID: ", user['user_uid'])
+                print("In Myspace User ID: ", user['role'])
                 response['message'] = 'User already exists'
                 response['user_uid'] = user['user_uid']
+                response['user_roles'] = user['role']
             else:
                 user = createUser(firstName, lastName, phoneNumber,
                                   email, password, role, '', '', '', '', '', 'MYSPACE')
