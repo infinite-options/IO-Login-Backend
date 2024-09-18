@@ -501,8 +501,6 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
         sendEmail(email, subject, message)
 
         return newUser
-    
-
     elif projectName == 'MMU':
         conn = connect('mmu')
         query = ["CALL mmu.new_user_uid;"]
@@ -616,7 +614,6 @@ class GetUsers(Resource):
                 )
             finally:
                 disconnect(conn)
-
         elif projectName == "FINDME":
             try:
 
@@ -824,6 +821,46 @@ class SetTempPassword(Resource):
             )
             sendEmail(recipient, subject, body)
             response['message'] = "A temporary password has been sent"
+
+        elif projectName == "MMU":
+            conn = connect('mmu')
+            # get user
+            user_lookup_query = ("""
+            SELECT * FROM mmu.users
+            WHERE user_email_id = \'""" + email + """\';""")
+            user_lookup = execute(user_lookup_query, "get", conn)
+
+            if not user_lookup['result']:
+                user_lookup['message'] = 'No such email exists'
+                return user_lookup
+            user_uid = user_lookup['result'][0]['user_uid']
+            # create password salt and hash
+            pass_temp = self.get_random_string()
+            passwordSalt = createSalt()
+            passwordHash = createHash(pass_temp, passwordSalt)
+            # update table
+            query_update = """
+            UPDATE mmu.users 
+                SET 
+                user_password_salt = \'""" + passwordSalt + """\',
+                user_password_hash =  \'""" + passwordHash + """\'
+            WHERE user_uid = \'""" + user_uid + """\' """
+
+            items = execute(query_update, "post", conn)
+            # send email
+            subject = "Email Verification"
+            recipient = email
+            body = (
+                "Your temporary password is {}. Please use it to reset your password".format(
+                    pass_temp)
+            )
+            sendEmail(recipient, subject, body)
+            response['message'] = "A temporary password has been sent"
+
+        else:
+            response['message'] = "Project Not Found"
+
+        
         return response
 
 
@@ -1271,6 +1308,9 @@ class Login(Resource):
             else:
                 response['message'] = 'Email not found'
                 response['code'] = 404
+            
+        else:
+            response['message'] = 'Project not found'
 
 
         return response
