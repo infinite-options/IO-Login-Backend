@@ -1008,6 +1008,33 @@ class UpdateEmailPassword(Resource):
 
             items = execute(query_update, "post", conn)
             response['message'] = 'User email and password updated successfully'
+
+        elif projectName == "MMU":
+            conn = connect('mmu')
+            # get user
+            user_lookup_query = ("""
+            SELECT * FROM mmu.users
+            WHERE user_uid = \'""" + data['id'] + """\';""")
+            user_lookup = execute(user_lookup_query, "get", conn)
+
+            if not user_lookup['result']:
+                user_lookup['message'] = 'No such email exists'
+                return user_lookup
+            user_uid = user_lookup['result'][0]['user_uid']
+            # create password salt and hash
+            pass_temp = self.get_random_string()
+            passwordSalt = createSalt()
+            passwordHash = createHash(pass_temp, passwordSalt)
+            # update table
+            query_update = """
+            UPDATE mmu.users 
+                SET 
+                password_salt = \'""" + passwordSalt + """\',
+                password_hash =  \'""" + passwordHash + """\'
+            WHERE user_uid = \'""" + user_uid + """\' """
+
+            items = execute(query_update, "post", conn)
+            response['message'] = 'User email and password updated successfully'
         return response
 
 
@@ -2707,6 +2734,23 @@ class UserSocialLogin(Resource):
             if user:
                 print(user)
                 if user['social_id'] == '':
+                    response['message'] = 'Login with email'
+                    response['result'] = False
+
+                else:
+                    response['message'] = 'Login successful'
+                    response['code'] = 200
+                    response['result'] = user
+            else:
+                response['result'] = False
+                response['message'] = 'Email ID doesnt exist'
+            return response
+        elif projectName == 'MMU':
+            conn = connect('mmu')
+            user = getUserByEmail(email_id, projectName)
+            if user:
+                print(user)
+                if user['user_social_id'] == '':
                     response['message'] = 'Login with email'
                     response['result'] = False
 
