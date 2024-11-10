@@ -2787,33 +2787,23 @@ api.add_resource(UpdateUserByUID, "/api/v2/UpdateUserByUID/<string:projectName>"
 api.add_resource(AccountSalt, "/api/v2/AccountSalt/<string:projectName>")
 api.add_resource(Login, "/api/v2/Login/<string:projectName>")
 # update password
-api.add_resource(
-    SetTempPassword, "/api/v2/SetTempPassword/<string:projectName>")
-api.add_resource(UpdateEmailPassword,
-                 "/api/v2/UpdateEmailPassword/<string:projectName>")
+api.add_resource(SetTempPassword, "/api/v2/SetTempPassword/<string:projectName>")
+api.add_resource(UpdateEmailPassword, "/api/v2/UpdateEmailPassword/<string:projectName>")
 # token endpoints
-api.add_resource(UpdateAccessToken,
-                 "/api/v2/UpdateAccessToken/<string:projectName>/<string:user_id>")
-api.add_resource(
-    UserToken, "/api/v2/UserToken/<string:projectName>/<string:user_email_id>")
+api.add_resource(UpdateAccessToken, "/api/v2/UpdateAccessToken/<string:projectName>/<string:user_id>")
+api.add_resource(UserToken, "/api/v2/UserToken/<string:projectName>/<string:user_email_id>")
 # get info endpoints
-api.add_resource(
-    UserDetails, "/api/v2/UserDetails/<string:projectName>/<string:user_id>")
-api.add_resource(
-    UserDetailsByEmail, "/api/v2/UserDetailsByEmail/<string:projectName>/<string:email_id>")
-api.add_resource(
-    GetEmailId, "/api/v2/GetEmailId/<string:projectName>/<string:email_id>")
+api.add_resource(UserDetails, "/api/v2/UserDetails/<string:projectName>/<string:user_id>")
+api.add_resource(UserDetailsByEmail, "/api/v2/UserDetailsByEmail/<string:projectName>/<string:email_id>")
+api.add_resource(GetEmailId, "/api/v2/GetEmailId/<string:projectName>/<string:email_id>")
 api.add_resource(GetUsers, "/api/v2/GetUsers/<string:projectName>")
 
 # social signup and login endpoints
 api.add_resource(UserSocialSignUp,
                  "/api/v2/UserSocialSignUp/<string:projectName>")
-api.add_resource(
-    UserSocialLogin, "/api/v2/UserSocialLogin/<string:projectName>/<string:email_id>")
-api.add_resource(
-    SendEmail, "/api/v2/SendEmail")
-api.add_resource(
-    CheckEmailValidationCode, "/api/v2/CheckEmailValidationCode/<string:projectName>")
+api.add_resource(UserSocialLogin, "/api/v2/UserSocialLogin/<string:projectName>/<string:email_id>")
+api.add_resource(SendEmail, "/api/v2/SendEmail")
+api.add_resource(CheckEmailValidationCode, "/api/v2/CheckEmailValidationCode/<string:projectName>")
 
 if __name__ == "__main__":
     # app.run()
