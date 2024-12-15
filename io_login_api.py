@@ -28,6 +28,10 @@ from random import randint
 from hashlib import sha256, sha512
 from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager
 import hashlib
+import base64
+from cryptography.fernet import Fernet
+from dotenv import load_dotenv
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -44,6 +48,87 @@ app.config['JWT_SECRET_KEY'] = 'secret'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 3600
 app.config['PROPAGATE_EXCEPTIONS'] = True
 jwt = JWTManager(app)
+
+
+# --------------- ENCRYPTION & DECRYPTION ------------------
+
+SECRET_KEY = os.getenv("REACT_APP_MYSPACE_KEY")
+print("Secret Key: ", SECRET_KEY, type(SECRET_KEY))
+
+# # Step 1: Convert your secret key to a 32-byte Fernet key
+# def generate_fernet_key(secret_key):
+#     # Hash the secret key to ensure it is 32 bytes
+#     sha256_hash = hashlib.sha256(secret_key.encode()).digest()
+#     # Encode the hash as a Base64 string
+#     return base64.urlsafe_b64encode(sha256_hash)
+
+# # Generate a Fernet-compatible key
+# fernet_key = generate_fernet_key(SECRET_KEY)
+# print(f"Fernet Key: {fernet_key}")
+
+# fernet_key = os.getenv("REACT_APP_KEY")
+fernet_key = b'pIx9COzr_KLO87D7d8lkr08p5tpsDOU6dhZW9LZ_hPw='
+
+# Initialize Fernet cipher
+cipher = Fernet(fernet_key)
+print("Cipher: ", cipher, type(cipher))
+
+# Step 2: Define an endpoint to handle encryption
+@app.route('/encrypt', methods=['POST'])
+def encrypt_data():
+    try:
+        # Get the payload from the request body
+        data = request.json.get('data')
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        # Encrypt the data
+        encrypted_data = cipher.encrypt(data.encode())
+        return jsonify({"encrypted_data": encrypted_data.decode()})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Step 3: Define an endpoint to handle decryption
+@app.route('/decrypt', methods=['POST'])
+def decrypt_data():
+    try:
+        # Get the encrypted data from the request body
+        encrypted_data = request.json.get('encrypted_data')
+        if not encrypted_data:
+            return jsonify({"error": "No encrypted_data provided"}), 400
+
+        # Decrypt the data
+        decrypted_data = cipher.decrypt(encrypted_data.encode()).decode()
+        return jsonify({"decrypted_data": decrypted_data})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
+# Utility function to decrypt payload
+def decrypt_payload(encrypted_payload):
+    print("In decrypt_payload: ", encrypted_payload)
+    print(encrypted_payload.encode(), type(encrypted_payload.encode()))
+    try:
+        return cipher.decrypt(encrypted_payload.encode()).decode()
+    except Exception as e:
+        raise ValueError("Failed to decrypt payload") from e
+
+# Utility function to encrypt response
+def encrypt_response(data):
+    print("In encrypt_payload: ", data, type(data))
+    return cipher.encrypt(data.encode()).decode()
+
+
+
+
+
+# Step 4: Add a health check route (optional)
+@app.route('/')
+def health_check():
+    return jsonify({"message": "API is running!"})
+
+
 
 # --------------- Mail Variables ------------------
 # Mail username and password loaded in .env file
@@ -1199,10 +1284,11 @@ class AccountSalt(Resource):
 class Login(Resource):
     def post(self, projectName):
         response = {}
-        data = request.get_json(force=True)
-        email = data["email"]
-        password = data.get("password")
+
         if projectName == 'PM':
+            data = request.get_json(force=True)
+            email = data["email"]
+            password = data.get("password")
             conn = connect('pm')
             user = getUserByEmail(email, projectName)
             if user:
@@ -1218,6 +1304,19 @@ class Login(Resource):
                 response['code'] = 404
 
         elif projectName == 'MYSPACE':
+
+            encryptedData = request.get_json(force=True)
+            print("Incoming Data: ", encryptedData )
+            data = decrypt_payload(encryptedData["encrypted_data"])
+            print("Decrypted Data: ", data, type(data))
+            data = json.loads(data)
+            print("JSON Decrypted Data: ", data, type(data))
+
+            email = data.get("email")
+            print(email)
+            password = data.get("password")
+            print(password)
+
             user = getUserByEmail(email, projectName)
             if user:
                 if password == user['password_hash']:
@@ -1231,7 +1330,15 @@ class Login(Resource):
                 response['message'] = 'Email not found'
                 response['code'] = 404
 
+            print("Response: ", response, type(response))
+            response = json.dumps(response)
+            print("Encrypt Response: ", encrypt_response(response), type(encrypt_response(response)))
+            return encrypt_response(response)
+
         elif projectName == 'NITYA':
+            data = request.get_json(force=True)
+            email = data["email"]
+            password = data.get("password")
             conn = connect('nitya')
             user = getUserByEmail(email, projectName)
             if not user:
@@ -1295,6 +1402,9 @@ class Login(Resource):
                 return items
 
         elif projectName == 'SKEDUL':
+            data = request.get_json(force=True)
+            email = data["email"]
+            password = data.get("password")
             conn = connect('skedul')
             user = getUserByEmail(email, projectName)
             if user:
@@ -1309,6 +1419,9 @@ class Login(Resource):
                 response['code'] = 404
 
         elif projectName == 'FINDME':
+            data = request.get_json(force=True)
+            email = data["email"]
+            password = data.get("password")
             conn = connect('find_me')
             user = getUserByEmail(email, projectName)
             if user:
@@ -1324,6 +1437,9 @@ class Login(Resource):
                 response['code'] = 404
 
         elif projectName == 'MMU':
+            data = request.get_json(force=True)
+            email = data["email"]
+            password = data.get("password")
             # print("In MMU: ", projectName)
             # print("Email: ", email, password)
             conn = connect('mmu')
