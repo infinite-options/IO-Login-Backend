@@ -257,10 +257,10 @@ def getBusinessProfileInfo(user, projectName):
         return response
     elif projectName == "MYSPACE":
         response = {}
-        conn = connect('space')
+        conn = connect('space_prod')
         query = """SELECT business_uid, business_type, 
-                employee_uid, employee_role FROM space.employees
-            LEFT JOIN space.businessProfileInfo 
+                employee_uid, employee_role FROM space_prod.employees
+            LEFT JOIN space_prod.businessProfileInfo 
             ON employee_business_id = business_uid
                 WHERE employee_user_id = \'""" + user['user_uid'] + """\'"""
         response = execute(query, "get", conn)
@@ -302,7 +302,7 @@ def getTenantProfileInfo(user, projectName):
         return response
     elif projectName == "MYSPACE":
         response = {}
-        conn = connect('space')
+        conn = connect('space_prod')
         query = """SELECT tenant_uid FROM tenantProfileInfo 
             WHERE tenant_user_id = \'""" + user['user_uid'] + """\'"""
         response = execute(query, "get", conn)
@@ -315,7 +315,7 @@ def getTenantProfileInfo(user, projectName):
 def getOwnerProfileInfo(user, projectName):
     if projectName == 'MYSPACE':
         response = {}
-        conn = connect('space')
+        conn = connect('space_prod')
         query = """SELECT owner_uid FROM ownerProfileInfo 
             WHERE owner_user_id = \'""" + user['user_uid'] + """\'"""
         response = execute(query, "get", conn)
@@ -378,10 +378,10 @@ def createTokens(user, projectName):
 
 def getUserByUID(uid, projectName):
     if projectName == "MYSPACE":
-        conn = connect('space')
+        conn = connect('space_prod')
         # get user
         user_lookup_query = ("""
-        SELECT * FROM space.users
+        SELECT * FROM space_prod.users
         WHERE user_uid = \'""" + uid + """\';""")
         result = execute(user_lookup_query, "get", conn)
         if len(result['result']) > 0:
@@ -398,10 +398,10 @@ def getUserByEmail(email, projectName):
         if len(result['result']) > 0:
             return result['result'][0]
     elif projectName == "MYSPACE":
-        conn = connect('space')
+        conn = connect('space_prod')
         # get user
         user_lookup_query = ("""
-        SELECT * FROM space.users
+        SELECT * FROM space_prod.users
         WHERE email = \'""" + email + """\';""")
         result = execute(user_lookup_query, "get", conn)
         if len(result['result']) > 0:
@@ -490,8 +490,8 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
         # print("After PM Create User: ", response)
         return newUser
     elif projectName == 'MYSPACE':
-        conn = connect('space')
-        query = ["CALL space.new_user_uid;"]
+        conn = connect('space_prod')
+        query = ["CALL space_prod.new_user_uid;"]
         NewIDresponse = execute(query[0], "get", conn)
 
         newUserID = NewIDresponse["result"][0]["new_id"]
@@ -513,7 +513,7 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
             'access_expires_in': access_expires_in
         }
         query = ("""
-            INSERT INTO space.users SET
+            INSERT INTO space_prod.users SET
                 user_uid = \'""" + newUserID + """\',
                 first_name = \'""" + firstName + """\',
                 last_name = \'""" + lastName + """\',
@@ -660,7 +660,7 @@ class GetUsers(Resource):
             try:
 
                 conn = connect('pm')
-                query = ("""SELECT * FROM space.users;""")
+                query = ("""SELECT * FROM space_prod.users;""")
                 items = execute(query, "get", conn)
                 response["message"] = "Users from MYSPACE"
                 response["result"] = items["result"]
@@ -767,10 +767,10 @@ class SetTempPassword(Resource):
             response['message'] = "A temporary password has been sent"
 
         elif projectName == "MYSPACE":
-            conn = connect('space')
+            conn = connect('space_prod')
             # get user
             user_lookup_query = ("""
-            SELECT * FROM space.users
+            SELECT * FROM space_prod.users
             WHERE email = \'""" + email + """\';""")
             user_lookup = execute(user_lookup_query, "get", conn)
 
@@ -785,7 +785,7 @@ class SetTempPassword(Resource):
 
             # update table
             query_update = """
-            UPDATE space.users 
+            UPDATE space_prod.users 
                 SET 
                 password_salt = \'""" + passwordSalt + """\',
                 password_hash =  \'""" + passwordHash + """\'
@@ -985,10 +985,10 @@ class UpdateEmailPassword(Resource):
             response['message'] = 'User email and password updated successfully'
 
         elif projectName == "MYSPACE":
-            conn = connect('space')
+            conn = connect('space_prod')
             # get user
             user_lookup_query = ("""
-            SELECT * FROM space.users
+            SELECT * FROM space_prod.users
             WHERE user_uid = \'""" + data['id'] + """\';""")
             user_lookup = execute(user_lookup_query, "get", conn)
 
@@ -1003,7 +1003,7 @@ class UpdateEmailPassword(Resource):
             password = createHash(data['password'], salt)
             # update table
             query_update = """
-            UPDATE space.users 
+            UPDATE space_prod.users 
                 SET 
                 password_salt = \'""" + salt + """\',
                 password_hash =  \'""" + password + """\'
@@ -1155,10 +1155,10 @@ class AccountSalt(Resource):
             finally:
                 disconnect(conn)
         elif projectName == 'MYSPACE':
-            conn = connect('space')
+            conn = connect('space_prod')
             try:
                 query = ("""
-                SELECT * FROM space.users WHERE email = \'""" + email + """\';
+                SELECT * FROM space_prod.users WHERE email = \'""" + email + """\';
                     """)
                 items = execute(query, "get", conn)
 
@@ -1960,7 +1960,7 @@ class CreateAccount(Resource):
         print(" In createAccount - PUT")
         response = {}
         if projectName == 'MYSPACE':
-            conn = connect('space')            
+            conn = connect('space_prod')            
             data = request.get_json()            
 
             if "user_uid" in data:
@@ -1978,7 +1978,7 @@ class CreateAccount(Resource):
 
                 # update table
                 query_update = """
-                UPDATE space.users 
+                UPDATE space_prod.users 
                     SET 
                     first_name = \'""" + firstName + """\',
                     last_name = \'""" + lastName + """\',
@@ -2122,7 +2122,7 @@ class UpdateUserByUID(Resource):
         response = {}
         try:
             if projectName == 'MYSPACE':
-                conn = connect('space')
+                conn = connect('space_prod')
                 data = request.get_json()
                 if data.get('user_uid') is None:
                     raise BadRequest("Request failed, no UID in payload.")
@@ -2161,9 +2161,9 @@ class UpdateAccessToken(Resource):
 
             return response, 200
         elif projectName == 'MYSPACE':
-            conn = connect('space')
+            conn = connect('space_prod')
 
-            query = """UPDATE space.users
+            query = """UPDATE space_prod.users
                 SET google_auth_token = \'""" + google_auth_token + """\'
                 WHERE user_uid = \'""" + user_id + """\' """
             response = execute(query, "post", conn)
@@ -2216,14 +2216,14 @@ class UserToken(Resource):
 
             return response, 200
         elif projectName == 'MYSPACE':
-            conn = connect('space')
+            conn = connect('space_prod')
             query = (
                 """SELECT user_uid
                                 , email
                                 , google_auth_token
                                 , google_refresh_token
                         FROM
-                        space.users WHERE email = \'"""
+                        space_prod.users WHERE email = \'"""
                 + user_email_id
                 + """\';"""
             )
@@ -2354,7 +2354,7 @@ class UserDetails(Resource):
                 response = execute(query, 'get', conn)
             return response
         elif projectName == 'MYSPACE':
-            conn = connect('space')
+            conn = connect('space_prod')
             if user_id[0] == '1':
                 query = """SELECT 
                 user_uid
@@ -2362,7 +2362,7 @@ class UserDetails(Resource):
                 , first_name
                 , last_name
                 , google_auth_token
-                , google_refresh_token FROM space.users WHERE user_uid = \'""" + user_id + """\' """
+                , google_refresh_token FROM space_prod.users WHERE user_uid = \'""" + user_id + """\' """
 
                 response = execute(query, 'get', conn)
 
@@ -2373,9 +2373,9 @@ class UserDetails(Resource):
                 , first_name
                 , last_name
                 , google_auth_token
-                , google_refresh_token FROM space.tenantProfileInfo t
+                , google_refresh_token FROM space_prod.tenantProfileInfo t
                                     LEFT JOIN
-                                    space.users u
+                                    space_prod.users u
                                      ON t.tenant_user_id = u.user_uid WHERE tenant_id = \'""" + user_id + """\' """
 
                 response = execute(query, 'get', conn)
@@ -2383,14 +2383,14 @@ class UserDetails(Resource):
             else:
                 query = """ SELECT business_uid
                                     , business_email
-                                    , business_name FROM space.businessProfileInfo WHERE business_uid = \'""" + user_id + """\' """
+                                    , business_name FROM space_prod.businessProfileInfo WHERE business_uid = \'""" + user_id + """\' """
                 business_email = execute(query, 'get', conn)
                 query = """SELECT user_uid
                                     , email
                                     , first_name
                                     , last_name
                                     , google_auth_token
-                                    , google_refresh_token FROM space.users WHERE email = \'""" + business_email['result'][0]['business_email'] + """\' """
+                                    , google_refresh_token FROM space_prod.users WHERE email = \'""" + business_email['result'][0]['business_email'] + """\' """
                 response = execute(query, 'get', conn)
             return response
         elif projectName == 'SKEDUL':
@@ -2727,7 +2727,7 @@ class UserSocialSignUp(Resource):
             if not ("user_uid" in data):
                 return "ERROR - user_id missing"
 
-            conn = connect('space')            
+            conn = connect('space_prod')            
             userUID = data.get('user_uid')
             email = data.get('email')
             phoneNumber = data.get('phone_number')
@@ -2749,7 +2749,7 @@ class UserSocialSignUp(Resource):
                 response['code'] = 404
             else:                
                 query_update = """
-                    UPDATE space.users 
+                    UPDATE space_prod.users 
                         SET 
                         first_name = \'""" + firstName + """\',
                         last_name = \'""" + lastName + """\',
