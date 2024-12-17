@@ -2958,10 +2958,10 @@ def encrypt_response(data):
 
 
 # Health check route (optional)
-@app.route('/')
-def health_check():
-    print("In Health Check")
-    return jsonify({"message": "API is running!"})
+# @app.route('/')
+# def health_check():
+#     print("In Health Check")
+#     return jsonify({"message": "API is running!"})
 
 
 # Actual middleware.  Commands before request (check JWT and then decrypt data) and after request (encrypt response before passing to FrontEnd)
