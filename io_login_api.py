@@ -29,61 +29,60 @@ from hashlib import sha256, sha512
 from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager
 import hashlib
 
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad, unpad
-import base64
-import json
+# from Crypto.Cipher import AES
+# from Crypto.Util.Padding import pad, unpad
+# import base64
 
-# AES encryption key (must be 16, 24, or 32 bytes)
-AES_KEY = b'IO95120secretkey'  # 16 bytes
-BLOCK_SIZE = 16  # AES block size
+# # AES encryption key (must be 16, 24, or 32 bytes)
+# AES_KEY = b'IO95120secretkey'  # 16 bytes
+# BLOCK_SIZE = 16  # AES block size
 
-# Encrypt dictionary
-def encrypt_dict(data_dict):
-    try:
-        print("In encrypt_dict: ", data_dict)
-        # Convert dictionary to JSON string
-        json_data = json.dumps(data_dict)
+# # Encrypt dictionary
+# def encrypt_dict(data_dict):
+#     try:
+#         print("In encrypt_dict: ", data_dict)
+#         # Convert dictionary to JSON string
+#         json_data = json.dumps(data_dict)
 
-        # Create a new AES cipher with a random IV
-        cipher = AES.new(AES_KEY, AES.MODE_CBC)
-        iv = cipher.iv  # Initialization vector
+#         # Create a new AES cipher with a random IV
+#         cipher = AES.new(AES_KEY, AES.MODE_CBC)
+#         iv = cipher.iv  # Initialization vector
 
-        # Pad and encrypt the JSON data
-        padded_data = pad(json_data.encode(), BLOCK_SIZE)
-        encrypted_data = cipher.encrypt(padded_data)
+#         # Pad and encrypt the JSON data
+#         padded_data = pad(json_data.encode(), BLOCK_SIZE)
+#         encrypted_data = cipher.encrypt(padded_data)
 
-        # Combine IV and encrypted data, then Base64 encode
-        encrypted_blob = base64.b64encode(iv + encrypted_data).decode()
-        return encrypted_blob
-    except Exception as e:
-        print(f"Encryption error: {e}")
-        return None
+#         # Combine IV and encrypted data, then Base64 encode
+#         encrypted_blob = base64.b64encode(iv + encrypted_data).decode()
+#         return encrypted_blob
+#     except Exception as e:
+#         print(f"Encryption error: {e}")
+#         return None
 
-# Decrypt dictionary
-def decrypt_dict(encrypted_blob):
-    print("Actual decrypton started")
-    try:
-        # Base64 decode the encrypted blob
-        encrypted_data = base64.b64decode(encrypted_blob)
+# # Decrypt dictionary
+# def decrypt_dict(encrypted_blob):
+#     print("Actual decrypton started")
+#     try:
+#         # Base64 decode the encrypted blob
+#         encrypted_data = base64.b64decode(encrypted_blob)
 
-        # Extract the IV (first BLOCK_SIZE bytes) and the encrypted content
-        iv = encrypted_data[:BLOCK_SIZE]
-        encrypted_content = encrypted_data[BLOCK_SIZE:]
+#         # Extract the IV (first BLOCK_SIZE bytes) and the encrypted content
+#         iv = encrypted_data[:BLOCK_SIZE]
+#         encrypted_content = encrypted_data[BLOCK_SIZE:]
 
-        # Create a new AES cipher with the extracted IV
-        cipher = AES.new(AES_KEY, AES.MODE_CBC, iv=iv)
+#         # Create a new AES cipher with the extracted IV
+#         cipher = AES.new(AES_KEY, AES.MODE_CBC, iv=iv)
 
-        # Decrypt and unpad the content
-        decrypted_padded_data = cipher.decrypt(encrypted_content)
-        decrypted_data = unpad(decrypted_padded_data, BLOCK_SIZE).decode()
-        print("Decrypted data: ", decrypted_data)
+#         # Decrypt and unpad the content
+#         decrypted_padded_data = cipher.decrypt(encrypted_content)
+#         decrypted_data = unpad(decrypted_padded_data, BLOCK_SIZE).decode()
+#         print("Decrypted data: ", decrypted_data)
 
-        # Convert the JSON string back to a dictionary
-        return json.loads(decrypted_data)
-    except Exception as e:
-        print(f"Decryption error: {e}")
-        return None
+#         # Convert the JSON string back to a dictionary
+#         return json.loads(decrypted_data)
+#     except Exception as e:
+#         print(f"Decryption error: {e}")
+#         return None
 
 
 app = Flask(__name__)
