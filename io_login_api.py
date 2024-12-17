@@ -1101,6 +1101,10 @@ class AccountSalt(Resource):
         response = {}
         items = {}
         data = request.get_json(force=True)
+        if data["encrypted_data"]:
+            encrypted_data = data["encrypted_data"]
+            data = decrypt_dict(encrypted_data)
+
         email = data["email"]
 
         if projectName == 'PM':
