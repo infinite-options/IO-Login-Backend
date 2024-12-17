@@ -29,61 +29,61 @@ from hashlib import sha256, sha512
 from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager
 import hashlib
 
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad, unpad
-import base64
-import json
+# from Crypto.Cipher import AES
+# from Crypto.Util.Padding import pad, unpad
+# import base64
+# import json
 
-# AES encryption key (must be 16, 24, or 32 bytes)
-AES_KEY = b'IO95120secretkey'  # 16 bytes
-BLOCK_SIZE = 16  # AES block size
+# # AES encryption key (must be 16, 24, or 32 bytes)
+# AES_KEY = b'IO95120secretkey'  # 16 bytes
+# BLOCK_SIZE = 16  # AES block size
 
-# Encrypt dictionary
-def encrypt_dict(data_dict):
-    try:
-        print("In encrypt_dict: ", data_dict)
-        # Convert dictionary to JSON string
-        json_data = json.dumps(data_dict)
+# # Encrypt dictionary
+# def encrypt_dict(data_dict):
+#     try:
+#         print("In encrypt_dict: ", data_dict)
+#         # Convert dictionary to JSON string
+#         json_data = json.dumps(data_dict)
 
-        # Create a new AES cipher with a random IV
-        cipher = AES.new(AES_KEY, AES.MODE_CBC)
-        iv = cipher.iv  # Initialization vector
+#         # Create a new AES cipher with a random IV
+#         cipher = AES.new(AES_KEY, AES.MODE_CBC)
+#         iv = cipher.iv  # Initialization vector
 
-        # Pad and encrypt the JSON data
-        padded_data = pad(json_data.encode(), BLOCK_SIZE)
-        encrypted_data = cipher.encrypt(padded_data)
+#         # Pad and encrypt the JSON data
+#         padded_data = pad(json_data.encode(), BLOCK_SIZE)
+#         encrypted_data = cipher.encrypt(padded_data)
 
-        # Combine IV and encrypted data, then Base64 encode
-        encrypted_blob = base64.b64encode(iv + encrypted_data).decode()
-        return encrypted_blob
-    except Exception as e:
-        print(f"Encryption error: {e}")
-        return None
+#         # Combine IV and encrypted data, then Base64 encode
+#         encrypted_blob = base64.b64encode(iv + encrypted_data).decode()
+#         return encrypted_blob
+#     except Exception as e:
+#         print(f"Encryption error: {e}")
+#         return None
 
-# Decrypt dictionary
-def decrypt_dict(encrypted_blob):
-    print("Actual decrypton started")
-    try:
-        # Base64 decode the encrypted blob
-        encrypted_data = base64.b64decode(encrypted_blob)
+# # Decrypt dictionary
+# def decrypt_dict(encrypted_blob):
+#     print("Actual decrypton started")
+#     try:
+#         # Base64 decode the encrypted blob
+#         encrypted_data = base64.b64decode(encrypted_blob)
 
-        # Extract the IV (first BLOCK_SIZE bytes) and the encrypted content
-        iv = encrypted_data[:BLOCK_SIZE]
-        encrypted_content = encrypted_data[BLOCK_SIZE:]
+#         # Extract the IV (first BLOCK_SIZE bytes) and the encrypted content
+#         iv = encrypted_data[:BLOCK_SIZE]
+#         encrypted_content = encrypted_data[BLOCK_SIZE:]
 
-        # Create a new AES cipher with the extracted IV
-        cipher = AES.new(AES_KEY, AES.MODE_CBC, iv=iv)
+#         # Create a new AES cipher with the extracted IV
+#         cipher = AES.new(AES_KEY, AES.MODE_CBC, iv=iv)
 
-        # Decrypt and unpad the content
-        decrypted_padded_data = cipher.decrypt(encrypted_content)
-        decrypted_data = unpad(decrypted_padded_data, BLOCK_SIZE).decode()
-        print("Decrypted data: ", decrypted_data)
+#         # Decrypt and unpad the content
+#         decrypted_padded_data = cipher.decrypt(encrypted_content)
+#         decrypted_data = unpad(decrypted_padded_data, BLOCK_SIZE).decode()
+#         print("Decrypted data: ", decrypted_data)
 
-        # Convert the JSON string back to a dictionary
-        return json.loads(decrypted_data)
-    except Exception as e:
-        print(f"Decryption error: {e}")
-        return None
+#         # Convert the JSON string back to a dictionary
+#         return json.loads(decrypted_data)
+#     except Exception as e:
+#         print(f"Decryption error: {e}")
+#         return None
 
 
 app = Flask(__name__)
@@ -2865,17 +2865,17 @@ api.add_resource(CheckEmailValidationCode, "/api/v2/CheckEmailValidationCode/<st
 
 
 # @app.route('/decrypt', methods=['POST'])
-def decrypt_data():
-    try:
-        # Get the encrypted data from the request body
-        encrypted_data_base64 = request.json.get('encrypted_data')
-        # print("encrypted_data: ", encrypted_data_base64)
-        decrypted_data = decrypt_dict(encrypted_data_base64)
-        print("Decrypted Data: ", decrypt_data)
+# def decrypt_data():
+#     try:
+#         # Get the encrypted data from the request body
+#         encrypted_data_base64 = request.json.get('encrypted_data')
+#         # print("encrypted_data: ", encrypted_data_base64)
+#         decrypted_data = decrypt_dict(encrypted_data_base64)
+#         print("Decrypted Data: ", decrypt_data)
         
-        return jsonify({"decrypted_data": decrypted_data})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+#         return jsonify({"decrypted_data": decrypted_data})
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 500
 
 
 # Flask runs this code BEFORE running the actual endpoint code
@@ -2907,79 +2907,79 @@ def decrypt_data():
 
 
 # Middleware for decrypting incoming request data
-def decrypt_request():
-    print("In decrypt request")
-    if request.is_json:
-        encrypted_data = request.get_json().get('encrypted_data')
-        form_data = request.get_json().get('data_type') # True = Form data, False = JSON data
-        if encrypted_data and form_data == False:
-            print("JSON data received")
-            decrypted_data = decrypt_dict(encrypted_data)
-            request._cached_json = decrypted_data  # Override the request JSON
-        # elif encrypted_data and form_data == True:
-        #     decrypted_data = decrypt_dict(encrypted_data)
-        #     # Convert JSON to Form Data
-        #     form_data = {}
-        #     for key, value in decrypted_data.items():
-        #         if isinstance(value, dict) and 'fileName' in value and 'fileType' in value:
-        #             print("File Received: ", value['fileName'], value['fileType'])
-        #             # Check for 'fileData' field and simulate a file stream
-        #             file_stream = None
-        #             if 'fileData' in value:
-        #                 print("Actual conversion started")
-        #                 file_binary = base64.b64decode(value['fileData'])
-        #                 print("Binary created")
-        #                 file_stream = BytesIO(file_binary)  # Simulated file stream
-        #                 print("File Stream created")
-        #             # If the value represents a file, simulate a FileStorage object
-        #             form_data[key] = FileStorage(
-        #                 stream=file_stream,  # Set to actual stream if available
-        #                 filename=value['fileName'],
-        #                 content_type=value['fileType']
-        #             ) 
-        #         else:
-        #             form_data[key] = value
-        #     print("Form Data: ", form_data)
-        #     request._cached_json = form_data  # Override the request JSON
-            print("Decrypted Request: ", request)
-        else:
-            print("Data issue")
+# def decrypt_request():
+#     print("In decrypt request")
+#     if request.is_json:
+#         encrypted_data = request.get_json().get('encrypted_data')
+#         form_data = request.get_json().get('data_type') # True = Form data, False = JSON data
+#         if encrypted_data and form_data == False:
+#             print("JSON data received")
+#             decrypted_data = decrypt_dict(encrypted_data)
+#             request._cached_json = decrypted_data  # Override the request JSON
+#         # elif encrypted_data and form_data == True:
+#         #     decrypted_data = decrypt_dict(encrypted_data)
+#         #     # Convert JSON to Form Data
+#         #     form_data = {}
+#         #     for key, value in decrypted_data.items():
+#         #         if isinstance(value, dict) and 'fileName' in value and 'fileType' in value:
+#         #             print("File Received: ", value['fileName'], value['fileType'])
+#         #             # Check for 'fileData' field and simulate a file stream
+#         #             file_stream = None
+#         #             if 'fileData' in value:
+#         #                 print("Actual conversion started")
+#         #                 file_binary = base64.b64decode(value['fileData'])
+#         #                 print("Binary created")
+#         #                 file_stream = BytesIO(file_binary)  # Simulated file stream
+#         #                 print("File Stream created")
+#         #             # If the value represents a file, simulate a FileStorage object
+#         #             form_data[key] = FileStorage(
+#         #                 stream=file_stream,  # Set to actual stream if available
+#         #                 filename=value['fileName'],
+#         #                 content_type=value['fileType']
+#         #             ) 
+#         #         else:
+#         #             form_data[key] = value
+#         #     print("Form Data: ", form_data)
+#         #     request._cached_json = form_data  # Override the request JSON
+#             print("Decrypted Request: ", request)
+#         else:
+#             print("Data issue")
         
 
-    else:
-        print("no JSON object received")
+#     else:
+#         print("no JSON object received")
 
     
 
-# Middleware to encrypt response data
-def encrypt_response(data):
-    encrypted_data = encrypt_dict(data)
-    return jsonify({'encrypted_data': encrypted_data})
+# # Middleware to encrypt response data
+# def encrypt_response(data):
+#     encrypted_data = encrypt_dict(data)
+#     return jsonify({'encrypted_data': encrypted_data})
 
 
-# Health check route (optional)
-# @app.route('/')
-# def health_check():
-#     print("In Health Check")
-#     return jsonify({"message": "API is running!"})
+# # Health check route (optional)
+# # @app.route('/')
+# # def health_check():
+# #     print("In Health Check")
+# #     return jsonify({"message": "API is running!"})
 
 
-# Actual middleware.  Commands before request (check JWT and then decrypt data) and after request (encrypt response before passing to FrontEnd)
-# def setup_middlewares(app):
-@app.before_request 
-def before_request():
-    print("In Middleware before_request")
-    # check_jwt_token()
-    decrypt_request()
+# # Actual middleware.  Commands before request (check JWT and then decrypt data) and after request (encrypt response before passing to FrontEnd)
+# # def setup_middlewares(app):
+# @app.before_request 
+# def before_request():
+#     print("In Middleware before_request")
+#     # check_jwt_token()
+#     decrypt_request()
 
 
-@app.after_request
-def after_request(response):
-    print("In Middleware after_request")
-    print("Actual endpoint response: ", type(response))
-    print("Actual endpoint response2: ", type(response.get_json()))
-    response = encrypt_response(response.get_json()) if response.is_json else response
-    return response
+# @app.after_request
+# def after_request(response):
+#     print("In Middleware after_request")
+#     print("Actual endpoint response: ", type(response))
+#     print("Actual endpoint response2: ", type(response.get_json()))
+#     response = encrypt_response(response.get_json()) if response.is_json else response
+#     return response
 
 # Apply middlewares
 # setup_middlewares(app)
