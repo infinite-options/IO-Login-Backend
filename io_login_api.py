@@ -62,6 +62,7 @@ def encrypt_dict(data_dict):
 
 # Decrypt dictionary
 def decrypt_dict(encrypted_blob):
+    print("Actual decrypton started")
     try:
         # Base64 decode the encrypted blob
         encrypted_data = base64.b64decode(encrypted_blob)
@@ -76,6 +77,7 @@ def decrypt_dict(encrypted_blob):
         # Decrypt and unpad the content
         decrypted_padded_data = cipher.decrypt(encrypted_content)
         decrypted_data = unpad(decrypted_padded_data, BLOCK_SIZE).decode()
+        print("Decrypted data: ", decrypted_data)
 
         # Convert the JSON string back to a dictionary
         return json.loads(decrypted_data)
@@ -2906,10 +2908,12 @@ def decrypt_data():
 
 # Middleware for decrypting incoming request data
 def decrypt_request():
+    print("In decrypt request")
     if request.is_json:
         encrypted_data = request.get_json().get('encrypted_data')
         form_data = request.get_json().get('data_type') # True = Form data, False = JSON data
         if encrypted_data and form_data == False:
+            print("JSON data received")
             decrypted_data = decrypt_dict(encrypted_data)
             request._cached_json = decrypted_data  # Override the request JSON
         # elif encrypted_data and form_data == True:
@@ -2937,10 +2941,15 @@ def decrypt_request():
         #             form_data[key] = value
         #     print("Form Data: ", form_data)
         #     request._cached_json = form_data  # Override the request JSON
+            print("Decrypted Request: ", request)
         else:
             print("Data issue")
+        
+
     else:
         print("no JSON object received")
+
+    
 
 # Middleware to encrypt response data
 def encrypt_response(data):
