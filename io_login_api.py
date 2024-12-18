@@ -1100,7 +1100,7 @@ class AccountSalt(Resource):
         response = {}
         items = {}
         data = request.get_json(force=True)
-        if data["encrypted_data"]:
+        if "encrypted_data" in data and data["encrypted_data"]:
             encrypted_data = data["encrypted_data"]
             data = decrypt_dict(encrypted_data)
 
@@ -1260,7 +1260,8 @@ class Login(Resource):
     def post(self, projectName):
         response = {}
         data = request.get_json(force=True)
-        if data["encrypted_data"]:
+        print("in Login POST ", data)
+        if "encrypted_data" in data and data["encrypted_data"]:
             encrypted_data = data["encrypted_data"]
             data = decrypt_dict(encrypted_data)
 
