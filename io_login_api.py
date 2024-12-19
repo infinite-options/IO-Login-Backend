@@ -28,6 +28,9 @@ from random import randint
 from hashlib import sha256, sha512
 from flask_jwt_extended import create_access_token, create_refresh_token, JWTManager
 import hashlib
+from werkzeug.datastructures import FileStorage  # For file handling
+from werkzeug.datastructures import ImmutableMultiDict
+from io import BytesIO
 
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
@@ -1100,10 +1103,11 @@ class AccountSalt(Resource):
         response = {}
         items = {}
         data = request.get_json(force=True)
-        if data["encrypted_data"]:
+        if "encrypted_data" in data:
             encrypted_data = data["encrypted_data"]
             data = decrypt_dict(encrypted_data)
 
+        # print("data: ", data)
         email = data["email"]
 
         if projectName == 'PM':
@@ -1260,7 +1264,7 @@ class Login(Resource):
     def post(self, projectName):
         response = {}
         data = request.get_json(force=True)
-        if data["encrypted_data"]:
+        if "encrypted_data" in data:
             encrypted_data = data["encrypted_data"]
             data = decrypt_dict(encrypted_data)
 
@@ -3008,6 +3012,98 @@ api.add_resource(CheckEmailValidationCode, "/api/v2/CheckEmailValidationCode/<st
 
 
 
+
+# new middleware
+
+# Middleware for decrypting incoming request data
+def decrypt_request():
+    if request.is_json:
+        encrypted_data = request.get_json().get('encrypted_data')
+        form_data = request.get_json().get('data_type') # True = Form data, False = JSON data
+        if encrypted_data and form_data == False:
+            decrypted_data = decrypt_dict(encrypted_data)
+
+            # Override request.get_json() to return decrypted data
+            def get_json_override(*args, **kwargs):
+                return decrypted_data
+
+            request.get_json = get_json_override
+        else:
+            print("Data issue")
+    elif request.content_type and request.content_type.startswith('multipart/form-data'):
+        # For FormData directly in the request
+        encrypted_data = request.form.get('encrypted_data')
+
+        if encrypted_data:
+            decrypted_data = decrypt_dict(encrypted_data)
+            # print("decrypted_data: ", decrypted_data)
+            fields = {}
+            files = {}
+
+            for key, value in decrypted_data.items():
+                if isinstance(value, dict) and 'fileName' in value and 'fileType' in value:
+                    # Handle file-specific data
+                    # print("image - ", value)
+                    file_binary = base64.b64decode(value['fileData'])
+                    file_stream = BytesIO(file_binary)
+                    files[key] = FileStorage(
+                        stream=file_stream,
+                        filename=value['fileName'],
+                        content_type=value['fileType']
+                    )
+                else:
+                    fields[key] = value
+
+            # Update `request.form` and `request.files`
+
+            # print(" Fields: ", fields)
+            request.form = ImmutableMultiDict(fields)
+            request.files = ImmutableMultiDict(files)
+
+            # print("Updated Form Data:", request.form)
+            # print("Updated Files:", request.files)
+        else:
+            print("No encrypted data found in multipart/form-data request")
+    else:
+        print("GET Request, no JSON object received")
+
+# Middleware to encrypt response data
+def encrypt_response(data):
+    encrypted_data = encrypt_dict(data)
+    return jsonify({'encrypted_data': encrypted_data})
+
+
+
+# Actual middleware.  Commands before request (check JWT and then decrypt data) and after request (encrypt response before passing to FrontEnd)
+# def setup_middlewares(app):
+@app.before_request 
+def before_request():
+    # Extract projectName and apply middleware logic if it matches the condition
+    project_name = get_project_name_from_request()
+    if project_name == "MYSPACE":
+        print("In Middleware before_request for MYSPACE")
+        decrypt_request()
+
+
+@app.after_request
+def after_request(response):
+    # Extract projectName and apply middleware logic if it matches the condition
+    project_name = get_project_name_from_request()
+    if project_name == "MYSPACE":
+        print("In Middleware after_request for MYSPACE")
+        print("Actual endpoint response: ", type(response))
+        print("Actual endpoint response2: ", type(response.get_json()))
+        response = encrypt_response(response.get_json()) if response.is_json else response
+    return response
+
+
+def get_project_name_from_request():
+
+    #Extract projectName from request
+    if request.view_args and "projectName" in request.view_args:
+        return request.view_args["projectName"]
+    
+    return None  # This case occur when projectName is not present in request
 
 
 if __name__ == "__main__":
