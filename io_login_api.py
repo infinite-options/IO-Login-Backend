@@ -13,6 +13,7 @@
 
 import json
 import os
+from dotenv import load_dotenv
 import requests
 from flask import Flask, render_template, jsonify, request, send_from_directory
 from flask_restful import Resource, Api
@@ -32,9 +33,6 @@ from werkzeug.datastructures import FileStorage  # For file handling
 from werkzeug.datastructures import ImmutableMultiDict
 from io import BytesIO
 
-# from Crypto.Cipher import AES
-# from Crypto.Util.Padding import pad, unpad
-# import base64
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.padding import PKCS7
@@ -42,62 +40,19 @@ from cryptography.hazmat.backends import default_backend
 import json
 import base64
 
-# AES encryption key (must be 16, 24, or 32 bytes)
-# AES_KEY = b'IO95120secretkey'  # 16 bytes
-# BLOCK_SIZE = 16  # AES block size
-
-# # Encrypt dictionary
-# def encrypt_dict(data_dict):
-#     try:
-#         print("In encrypt_dict: ", data_dict)
-#         # Convert dictionary to JSON string
-#         json_data = json.dumps(data_dict)
-
-#         # Create a new AES cipher with a random IV
-#         cipher = AES.new(AES_KEY, AES.MODE_CBC)
-#         iv = cipher.iv  # Initialization vector
-
-#         # Pad and encrypt the JSON data
-#         padded_data = pad(json_data.encode(), BLOCK_SIZE)
-#         encrypted_data = cipher.encrypt(padded_data)
-
-#         # Combine IV and encrypted data, then Base64 encode
-#         encrypted_blob = base64.b64encode(iv + encrypted_data).decode()
-#         return encrypted_blob
-#     except Exception as e:
-#         print(f"Encryption error: {e}")
-#         return None
-
-# # Decrypt dictionary
-# def decrypt_dict(encrypted_blob):
-#     print("Actual decrypton started")
-#     try:
-#         # Base64 decode the encrypted blob
-#         encrypted_data = base64.b64decode(encrypted_blob)
-
-#         # Extract the IV (first BLOCK_SIZE bytes) and the encrypted content
-#         iv = encrypted_data[:BLOCK_SIZE]
-#         encrypted_content = encrypted_data[BLOCK_SIZE:]
-
-#         # Create a new AES cipher with the extracted IV
-#         cipher = AES.new(AES_KEY, AES.MODE_CBC, iv=iv)
-
-#         # Decrypt and unpad the content
-#         decrypted_padded_data = cipher.decrypt(encrypted_content)
-#         decrypted_data = unpad(decrypted_padded_data, BLOCK_SIZE).decode()
-#         print("Decrypted data: ", decrypted_data)
-
-#         # Convert the JSON string back to a dictionary
-#         return json.loads(decrypted_data)
-#     except Exception as e:
-#         print(f"Decryption error: {e}")
-#         return None
-
 
 
 # Using cryptograpghy
-AES_KEY = b'IO95120secretkey'  # 16 bytes
-BLOCK_SIZE = 16  # AES block size
+# AES_KEY = b'IO95120secretkey'  # 16 bytes
+# BLOCK_SIZE = 16  # AES block size
+
+load_dotenv()
+AES_SECRET_KEY = os.getenv('AES_SECRET_KEY')
+# print("AES Secret Key: ", AES_SECRET_KEY)
+AES_KEY = AES_SECRET_KEY.encode('utf-8')
+BLOCK_SIZE = int(os.getenv('BLOCK_SIZE'))
+# print("Block Size: ", BLOCK_SIZE)
+
 
 # Encrypt dictionary
 def encrypt_dict(data_dict):
@@ -162,10 +117,6 @@ CORS(app)
 # API
 api = Api(app)
 
-RDS_HOST = "io-mysqldb8.cxjnrciilyjq.us-west-1.rds.amazonaws.com"
-RDS_PORT = 3306
-RDS_USER = "admin"
-RDS_PW = "prashant"
 
 app.config['JWT_SECRET_KEY'] = 'secret'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 3600
@@ -201,13 +152,23 @@ def connect(RDS_DB):
     print("Trying to connect to RDS (API v2)...")
     try:
         conn = pymysql.connect(
-            host=RDS_HOST,
-            user=RDS_USER,
-            port=RDS_PORT,
-            passwd=RDS_PW,
+            host=os.getenv('RDS_HOST'),
+            user=os.getenv('RDS_USER'),
+            port=int(os.getenv('RDS_PORT')),
+            passwd=os.getenv('RDS_PW'),
             db=RDS_DB,
+            charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor,
         )
+    # try:
+    #     conn = pymysql.connect(
+    #         host=RDS_HOST,
+    #         user=RDS_USER,
+    #         port=RDS_PORT,
+    #         passwd=RDS_PW,
+    #         db=RDS_DB,
+    #         cursorclass=pymysql.cursors.DictCursor,
+    #     )
         print("Successfully connected to RDS. (API v2)")
         return conn
     except:
