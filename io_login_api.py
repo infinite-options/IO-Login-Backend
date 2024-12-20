@@ -3117,13 +3117,15 @@ def before_request():
 
 @app.after_request
 def after_request(response):
-    # Extract projectName and apply middleware logic if it matches the condition
-    project_name = get_project_name_from_request()
-    if project_name == "MYSPACE":
-        print("In Middleware after_request for MYSPACE")
-        print("Actual endpoint response: ", type(response))
-        print("Actual endpoint response2: ", type(response.get_json()))
-        response = encrypt_response(response.get_json()) if response.is_json else response
+    print("In Middleware after_request")
+    print("Actual endpoint response: ", type(response))
+    print("Actual endpoint response2: ", type(response.get_json()))
+    original_status_code = response.status_code
+
+    response = encrypt_response(response.get_json()) if response.is_json else response
+    
+    response.status_code = original_status_code
+
     return response
 
 
