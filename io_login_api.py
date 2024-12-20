@@ -3121,6 +3121,7 @@ def after_request(response):
     print("Actual endpoint response: ", type(response))
     print("Actual endpoint response2: ", type(response.get_json()))
     original_status_code = response.status_code
+    # print(response.get_json()['code'])
 
     response = encrypt_response(response.get_json()) if response.is_json else response
     
