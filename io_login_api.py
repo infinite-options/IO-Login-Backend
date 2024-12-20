@@ -32,11 +32,70 @@ from werkzeug.datastructures import FileStorage  # For file handling
 from werkzeug.datastructures import ImmutableMultiDict
 from io import BytesIO
 
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad, unpad
+# from Crypto.Cipher import AES
+# from Crypto.Util.Padding import pad, unpad
+# import base64
+
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.padding import PKCS7
+from cryptography.hazmat.backends import default_backend
+import json
 import base64
 
 # AES encryption key (must be 16, 24, or 32 bytes)
+# AES_KEY = b'IO95120secretkey'  # 16 bytes
+# BLOCK_SIZE = 16  # AES block size
+
+# # Encrypt dictionary
+# def encrypt_dict(data_dict):
+#     try:
+#         print("In encrypt_dict: ", data_dict)
+#         # Convert dictionary to JSON string
+#         json_data = json.dumps(data_dict)
+
+#         # Create a new AES cipher with a random IV
+#         cipher = AES.new(AES_KEY, AES.MODE_CBC)
+#         iv = cipher.iv  # Initialization vector
+
+#         # Pad and encrypt the JSON data
+#         padded_data = pad(json_data.encode(), BLOCK_SIZE)
+#         encrypted_data = cipher.encrypt(padded_data)
+
+#         # Combine IV and encrypted data, then Base64 encode
+#         encrypted_blob = base64.b64encode(iv + encrypted_data).decode()
+#         return encrypted_blob
+#     except Exception as e:
+#         print(f"Encryption error: {e}")
+#         return None
+
+# # Decrypt dictionary
+# def decrypt_dict(encrypted_blob):
+#     print("Actual decrypton started")
+#     try:
+#         # Base64 decode the encrypted blob
+#         encrypted_data = base64.b64decode(encrypted_blob)
+
+#         # Extract the IV (first BLOCK_SIZE bytes) and the encrypted content
+#         iv = encrypted_data[:BLOCK_SIZE]
+#         encrypted_content = encrypted_data[BLOCK_SIZE:]
+
+#         # Create a new AES cipher with the extracted IV
+#         cipher = AES.new(AES_KEY, AES.MODE_CBC, iv=iv)
+
+#         # Decrypt and unpad the content
+#         decrypted_padded_data = cipher.decrypt(encrypted_content)
+#         decrypted_data = unpad(decrypted_padded_data, BLOCK_SIZE).decode()
+#         print("Decrypted data: ", decrypted_data)
+
+#         # Convert the JSON string back to a dictionary
+#         return json.loads(decrypted_data)
+#     except Exception as e:
+#         print(f"Decryption error: {e}")
+#         return None
+
+
+
+# Using cryptograpghy
 AES_KEY = b'IO95120secretkey'  # 16 bytes
 BLOCK_SIZE = 16  # AES block size
 
@@ -45,15 +104,21 @@ def encrypt_dict(data_dict):
     try:
         print("In encrypt_dict: ", data_dict)
         # Convert dictionary to JSON string
-        json_data = json.dumps(data_dict)
+        json_data = json.dumps(data_dict).encode()
 
-        # Create a new AES cipher with a random IV
-        cipher = AES.new(AES_KEY, AES.MODE_CBC)
-        iv = cipher.iv  # Initialization vector
+        # Pad the JSON data
+        padder = PKCS7(BLOCK_SIZE * 8).padder()
+        padded_data = padder.update(json_data) + padder.finalize()
 
-        # Pad and encrypt the JSON data
-        padded_data = pad(json_data.encode(), BLOCK_SIZE)
-        encrypted_data = cipher.encrypt(padded_data)
+        # Generate a random initialization vector (IV)
+        iv = os.urandom(BLOCK_SIZE)
+
+        # Create a new AES cipher
+        cipher = Cipher(algorithms.AES(AES_KEY), modes.CBC(iv), backend=default_backend())
+        encryptor = cipher.encryptor()
+
+        # Encrypt the padded data
+        encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
 
         # Combine IV and encrypted data, then Base64 encode
         encrypted_blob = base64.b64encode(iv + encrypted_data).decode()
@@ -64,7 +129,7 @@ def encrypt_dict(data_dict):
 
 # Decrypt dictionary
 def decrypt_dict(encrypted_blob):
-    print("Actual decrypton started")
+    print("Actual decryption started")
     try:
         # Base64 decode the encrypted blob
         encrypted_data = base64.b64decode(encrypted_blob)
@@ -73,16 +138,19 @@ def decrypt_dict(encrypted_blob):
         iv = encrypted_data[:BLOCK_SIZE]
         encrypted_content = encrypted_data[BLOCK_SIZE:]
 
-        # Create a new AES cipher with the extracted IV
-        cipher = AES.new(AES_KEY, AES.MODE_CBC, iv=iv)
+        # Create a new AES cipher
+        cipher = Cipher(algorithms.AES(AES_KEY), modes.CBC(iv), backend=default_backend())
+        decryptor = cipher.decryptor()
 
-        # Decrypt and unpad the content
-        decrypted_padded_data = cipher.decrypt(encrypted_content)
-        decrypted_data = unpad(decrypted_padded_data, BLOCK_SIZE).decode()
-        print("Decrypted data: ", decrypted_data)
+        # Decrypt the encrypted content
+        decrypted_padded_data = decryptor.update(encrypted_content) + decryptor.finalize()
+
+        # Unpad the decrypted content
+        unpadder = PKCS7(BLOCK_SIZE * 8).unpadder()
+        decrypted_data = unpadder.update(decrypted_padded_data) + unpadder.finalize()
 
         # Convert the JSON string back to a dictionary
-        return json.loads(decrypted_data)
+        return json.loads(decrypted_data.decode())
     except Exception as e:
         print(f"Decryption error: {e}")
         return None
@@ -3022,7 +3090,8 @@ def decrypt_request():
         form_data = request.get_json().get('data_type') # True = Form data, False = JSON data
         if encrypted_data and form_data == False:
             decrypted_data = decrypt_dict(encrypted_data)
-
+            # print("Decrypted data: ", decrypted_data)
+            
             # Override request.get_json() to return decrypted data
             def get_json_override(*args, **kwargs):
                 return decrypted_data
