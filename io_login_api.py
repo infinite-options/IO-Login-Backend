@@ -266,8 +266,8 @@ def getBusinessProfileInfo(user, projectName):
         response = {}
         conn = connect('space')
         query = """SELECT business_uid, business_type, 
-                employee_uid, employee_role FROM space.employees
-            LEFT JOIN space.businessProfileInfo 
+                employee_uid, employee_role FROM space_prod.employees
+            LEFT JOIN space_prod.businessProfileInfo 
             ON employee_business_id = business_uid
                 WHERE employee_user_id = \'""" + user['user_uid'] + """\'"""
         response = execute(query, "get", conn)
@@ -394,7 +394,7 @@ def getUserByUID(uid, projectName):
         conn = connect('space')
         # get user
         user_lookup_query = ("""
-        SELECT * FROM space.users
+        SELECT * FROM space_prod.users
         WHERE user_uid = \'""" + uid + """\';""")
         result = execute(user_lookup_query, "get", conn)
         if len(result['result']) > 0:
@@ -416,7 +416,7 @@ def getUserByEmail(email, projectName):
         conn = connect('space')
         # get user
         user_lookup_query = ("""
-        SELECT * FROM space.users
+        SELECT * FROM space_prod.users
         WHERE email = \'""" + email + """\';""")
         result = execute(user_lookup_query, "get", conn)
         if len(result['result']) > 0:
@@ -508,7 +508,7 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
     elif projectName == 'MYSPACE':
         encrypt_flag = True
         conn = connect('space')
-        query = ["CALL space.new_user_uid;"]
+        query = ["CALL space_prod.new_user_uid;"]
         NewIDresponse = execute(query[0], "get", conn)
 
         newUserID = NewIDresponse["result"][0]["new_id"]
@@ -530,7 +530,7 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
             'access_expires_in': access_expires_in
         }
         query = ("""
-            INSERT INTO space.users SET
+            INSERT INTO space_prod.users SET
                 user_uid = \'""" + newUserID + """\',
                 first_name = \'""" + firstName + """\',
                 last_name = \'""" + lastName + """\',
@@ -679,7 +679,7 @@ class GetUsers(Resource):
             try:
 
                 conn = connect('pm')
-                query = ("""SELECT * FROM space.users;""")
+                query = ("""SELECT * FROM space_prod.users;""")
                 items = execute(query, "get", conn)
                 response["message"] = "Users from MYSPACE"
                 response["result"] = items["result"]
@@ -791,7 +791,7 @@ class SetTempPassword(Resource):
             conn = connect('space')
             # get user
             user_lookup_query = ("""
-            SELECT * FROM space.users
+            SELECT * FROM space_prod.users
             WHERE email = \'""" + email + """\';""")
             user_lookup = execute(user_lookup_query, "get", conn)
 
@@ -806,7 +806,7 @@ class SetTempPassword(Resource):
 
             # update table
             query_update = """
-            UPDATE space.users 
+            UPDATE space_prod.users 
                 SET 
                 password_salt = \'""" + passwordSalt + """\',
                 password_hash =  \'""" + passwordHash + """\'
@@ -1011,7 +1011,7 @@ class UpdateEmailPassword(Resource):
             conn = connect('space')
             # get user
             user_lookup_query = ("""
-            SELECT * FROM space.users
+            SELECT * FROM space_prod.users
             WHERE user_uid = \'""" + data['id'] + """\';""")
             user_lookup = execute(user_lookup_query, "get", conn)
 
@@ -1026,7 +1026,7 @@ class UpdateEmailPassword(Resource):
             password = createHash(data['password'], salt)
             # update table
             query_update = """
-            UPDATE space.users 
+            UPDATE space_prod.users 
                 SET 
                 password_salt = \'""" + salt + """\',
                 password_hash =  \'""" + password + """\'
@@ -1189,7 +1189,7 @@ class AccountSalt(Resource):
             conn = connect('space')
             try:
                 query = ("""
-                SELECT * FROM space.users WHERE email = \'""" + email + """\';
+                SELECT * FROM space_prod.users WHERE email = \'""" + email + """\';
                     """)
                 items = execute(query, "get", conn)
 
@@ -1989,7 +1989,7 @@ class CreateAccount(Resource):
 
                 # update table
                 query_update = """
-                UPDATE space.users 
+                UPDATE space_prod.users 
                     SET 
                     first_name = \'""" + firstName + """\',
                     last_name = \'""" + lastName + """\',
@@ -2178,7 +2178,7 @@ class UpdateAccessToken(Resource):
             encrypt_flag = True
             conn = connect('space')
 
-            query = """UPDATE space.users
+            query = """UPDATE space_prod.users
                 SET google_auth_token = \'""" + google_auth_token + """\'
                 WHERE user_uid = \'""" + user_id + """\' """
             response = execute(query, "post", conn)
@@ -2240,7 +2240,7 @@ class UserToken(Resource):
                                 , google_auth_token
                                 , google_refresh_token
                         FROM
-                        space.users WHERE email = \'"""
+                        space_prod.users WHERE email = \'"""
                 + user_email_id
                 + """\';"""
             )
@@ -2381,7 +2381,7 @@ class UserDetails(Resource):
                 , first_name
                 , last_name
                 , google_auth_token
-                , google_refresh_token FROM space.users WHERE user_uid = \'""" + user_id + """\' """
+                , google_refresh_token FROM space_prod.users WHERE user_uid = \'""" + user_id + """\' """
 
                 response = execute(query, 'get', conn)
 
@@ -2392,9 +2392,9 @@ class UserDetails(Resource):
                 , first_name
                 , last_name
                 , google_auth_token
-                , google_refresh_token FROM space.tenantProfileInfo t
+                , google_refresh_token FROM space_prod.tenantProfileInfo t
                                     LEFT JOIN
-                                    space.users u
+                                    space_prod.users u
                                      ON t.tenant_user_id = u.user_uid WHERE tenant_id = \'""" + user_id + """\' """
 
                 response = execute(query, 'get', conn)
@@ -2402,14 +2402,14 @@ class UserDetails(Resource):
             else:
                 query = """ SELECT business_uid
                                     , business_email
-                                    , business_name FROM space.businessProfileInfo WHERE business_uid = \'""" + user_id + """\' """
+                                    , business_name FROM space_prod.businessProfileInfo WHERE business_uid = \'""" + user_id + """\' """
                 business_email = execute(query, 'get', conn)
                 query = """SELECT user_uid
                                     , email
                                     , first_name
                                     , last_name
                                     , google_auth_token
-                                    , google_refresh_token FROM space.users WHERE email = \'""" + business_email['result'][0]['business_email'] + """\' """
+                                    , google_refresh_token FROM space_prod.users WHERE email = \'""" + business_email['result'][0]['business_email'] + """\' """
                 response = execute(query, 'get', conn)
             return response
         elif projectName == 'SKEDUL':
@@ -2772,7 +2772,7 @@ class UserSocialSignUp(Resource):
                 response['code'] = 404
             else:                
                 query_update = """
-                    UPDATE space.users 
+                    UPDATE space_prod.users 
                         SET 
                         first_name = \'""" + firstName + """\',
                         last_name = \'""" + lastName + """\',
