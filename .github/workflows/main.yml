@@ -31,6 +31,7 @@ jobs:
         id: test
         env:
           AES_SECRET_KEY: ${{ secrets.AES_SECRET_KEY }}
+          BLOCK_SIZE: ${{ secrets.BLOCK_SIZE }}
         run: |
           cd IO-Login-Backend
           python3 io_login_api.py &
