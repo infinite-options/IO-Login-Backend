@@ -29,6 +29,8 @@ jobs:
 
       - name: Run app to test
         id: test
+        env:
+          AES_SECRET_KEY: ${{ secrets.AES_SECRET_KEY }}
         run: |
           cd IO-Login-Backend
           python3 io_login_api.py &
