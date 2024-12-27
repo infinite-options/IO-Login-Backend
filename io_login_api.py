@@ -1602,6 +1602,21 @@ class Login(Resource):
                 response['message'] = 'Email not found'
                 response['code'] = 404
 
+        elif projectName == 'MYSPACE-DEV':
+            encrypt_flag = True
+            user = getUserByEmail(email, projectName)
+            if user:
+                if password == user['password_hash']:
+                    response['message'] = 'Login successful'
+                    response['code'] = 200
+                    response['result'] = createTokens(user, projectName)
+                else:
+                    response['message'] = 'Incorrect password'
+                    response['code'] = 401
+            else:
+                response['message'] = 'Email not found'
+                response['code'] = 404
+
         elif projectName == 'MYSPACE':
             encrypt_flag = True
             user = getUserByEmail(email, projectName)
@@ -1757,6 +1772,35 @@ class CreateAccount(Resource):
                 response['message'] = 'Signup success'
                 response['code'] = 200
                 response['result'] = createTokens(user, projectName)
+            return response
+        elif projectName == 'MYSPACE-DEV':
+            encrypt_flag = True
+            print("In MySpace")
+            data = request.get_json()
+            firstName = data.get('first_name')
+            lastName = data.get('last_name')
+            phoneNumber = data.get('phone_number')
+            email = data.get('email')
+            password = data.get('password')
+            role = data.get('role')
+            user = getUserByEmail(email, projectName)
+            if user:
+                print("In Myspace User: ", user)
+                print("In Myspace User ID: ", user['user_uid'])
+                print("In Myspace User ID: ", user['role'])
+                response['message'] = 'User already exists'
+                response['user_uid'] = user['user_uid']
+                response['user_roles'] = user['role']
+            else:
+                user = createUser(firstName, lastName, phoneNumber,
+                                  email, password, role, '', '', '', '', '', 'MYSPACE-DEV')
+                # response['user'] = user[0]
+                print("In MySpace: ", user)
+                response['message'] = 'Signup success'
+                print("User 0: ", user[0])
+                print("User 1: ", user[1])
+                response['code'] = user[1]
+                response['result'] = createTokens(user[0], projectName)
             return response
         elif projectName == 'MYSPACE':
             encrypt_flag = True
@@ -2291,7 +2335,7 @@ class CreateAccount(Resource):
                 return "ERROR - user_id missing"
             
 
-        if projectName == 'MYSPACE':
+        elif projectName == 'MYSPACE':
             encrypt_flag = True
             conn = connect('space_prod')            
             data = request.get_json()            
@@ -2472,7 +2516,7 @@ class UpdateUserByUID(Resource):
                 query = "UPDATE space_dev.users SET " + fields_to_update_str + \
                     " WHERE user_uid = \'" + user_uid + "\';"
                 response = execute(query, "post", conn)
-            if projectName == 'MYSPACE':
+            elif projectName == 'MYSPACE':
                 encrypt_flag = True
                 conn = connect('space_prod')
                 data = request.get_json()
@@ -2975,6 +3019,30 @@ class UserSocialSignUp(Resource):
                 response['code'] = 200
                 response['result'] = createTokens(user, projectName)
             return response
+        elif projectName == 'MYSPACE-DEV':
+            encrypt_flag = True
+            data = request.get_json(force=True)
+
+            email = data.get('email')
+            phoneNumber = data.get('phone_number')
+            firstName = data.get('first_name')
+            lastName = data.get('last_name')
+            role = data.get('role')
+            google_auth_token = data.get('google_auth_token')
+            google_refresh_token = data.get('google_refresh_token')
+            social_id = data.get('social_id')
+            access_expires_in = data.get('access_expires_in')
+            password = data.get('password')
+            user = getUserByEmail(email, projectName)
+            if user:
+                response['message'] = 'User already exists'
+            else:
+                user = createUser(firstName, lastName, phoneNumber, email, password, role, '',
+                                  google_auth_token, google_refresh_token, social_id, access_expires_in, 'MYSPACE-DEV')
+                response['message'] = 'Signup success'
+                response['code'] = user[1]
+                response['result'] = createTokens(user[0], projectName)
+            return response
         elif projectName == 'MYSPACE':
             encrypt_flag = True
             data = request.get_json(force=True)
@@ -3235,7 +3303,7 @@ class UserSocialSignUp(Resource):
                 response['result'] = createTokens(newUser, projectName)
             return response
         
-        if projectName == 'MYSPACE':
+        elif projectName == 'MYSPACE':
             encrypt_flag = True
             data = request.get_json(force=True)
 
@@ -3319,7 +3387,7 @@ class UserSocialLogin(Resource):
                 response['result'] = False
                 response['message'] = 'Email ID doesnt exist'
             return response
-        elif projectName == 'MYSPACE':
+        elif projectName == 'MYSPACE' or projectName == 'MYSPACE-DEV' :
             encrypt_flag = True
             user = getUserByEmail(email_id, projectName)
             if user:
@@ -3642,10 +3710,12 @@ def encrypt_response(data):
 # def setup_middlewares(app):
 @app.before_request 
 def before_request():
+    global encrypt_flag 
     # Extract projectName and apply middleware logic if it matches the condition
     project_name = get_project_name_from_request()
-    if project_name == "MYSPACE":
+    if project_name == "MYSPACE" or project_name == "MYSPACE-DEV" :
         print("In Middleware before_request for MYSPACE")
+        encrypt_flag = True
         decrypt_request()
 
 
