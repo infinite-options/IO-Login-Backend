@@ -2255,7 +2255,8 @@ class CreateAccount(Resource):
             print("MMU json data: ", data)
             firstName = "" # data.get('first_name')
             lastName = "" # data.get('last_name')
-            phoneNumber = data.get('phone_number')
+            # phoneNumber = data.get('phone_number')
+            phoneNumber = data.get('phone_number') if data.get('phone_number') else None
             email = data.get('email')
             password = data.get('password')
             # role = data.get('role')
