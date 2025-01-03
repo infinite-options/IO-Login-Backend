@@ -758,6 +758,7 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
         print("MMU userID: ", newUserID)
         passwordSalt = createSalt()
         passwordHash = createHash(password, passwordSalt)
+        print(passwordHash)
         newUser = {
             'user_uid': newUserID,
             'first_name': firstName,
@@ -772,12 +773,13 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
             'social_id': social_id,
             'access_expires_in': access_expires_in
         }
+        print(newUser)
         query = ("""
             INSERT INTO mmu.users SET
                 user_uid = \'""" + newUserID + """\',
                 -- user_first_name = \'""" + firstName + """\',
                 -- user_last_name = \'""" + lastName + """\',
-                user_phone_number = \'""" + phoneNumber + """\',
+                -- user_phone_number = \'""" + phoneNumber + """\',
                 user_email_id = \'""" + email + """\',
                 user_password_salt = \'""" + passwordSalt + """\',
                 user_password_hash = \'""" + passwordHash + """\',
@@ -787,7 +789,7 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
                 user_social_id = \'""" + social_id + """\',
                 user_access_expires_in = \'""" + access_expires_in + """\';
                     """)
-        # print("MMU Query: ", query)
+        print("MMU Query: ", query)
         response = execute(query, "post", conn)
         # print("MMU response: ", response)
         # print("MMU response code: ", response['code'])
@@ -2256,7 +2258,7 @@ class CreateAccount(Resource):
             firstName = "" # data.get('first_name')
             lastName = "" # data.get('last_name')
             # phoneNumber = data.get('phone_number')
-            phoneNumber = data.get('phone_number') if data.get('phone_number') else None
+            phoneNumber = data.get('phone_number') if data.get('phone_number') else ""
             email = data.get('email')
             password = data.get('password')
             # role = data.get('role')
@@ -2265,6 +2267,7 @@ class CreateAccount(Resource):
             if user:
                 response['message'] = 'User already exists'
             else:
+                print(firstName, lastName, phoneNumber, email, password, '', '', '', '', '', '', 'MMU')
                 user = createUser(firstName, lastName, phoneNumber,
                                   email, password, '', '', '', '', '', '', 'MMU')
 
