@@ -530,6 +530,15 @@ def getUserByEmail(email, projectName):
         result = execute(user_lookup_query, "get", conn)
         if len(result['result']) > 0:
             return result['result'][0]
+    elif projectName == "EVERY_CIRCLE":
+        conn = connect('every_circle')
+        # get user
+        user_lookup_query = ("""
+        SELECT * FROM every_circle.users
+        WHERE customer_email =\'""" + email + """\';""")
+        result = execute(user_lookup_query, "get", conn)
+        if len(result['result']) > 0:
+            return result['result'][0]
     elif projectName == "SKEDUL":
         conn = connect('skedul')
         # get user
@@ -867,6 +876,21 @@ class GetUsers(Resource):
                 )
             finally:
                 disconnect(conn)
+        elif projectName == "EVERY-CIRCLE":
+            try:
+
+                conn = connect('every_circle')
+                query = ("""SELECT * FROM every_circle.users;""")
+                items = execute(query, "get", conn)
+                response["message"] = "Users from EVERY-CIRCLE"
+                response["result"] = items["result"]
+
+            except:
+                raise BadRequest(
+                    "Request failed, please try again later."
+                )
+            finally:
+                disconnect(conn)
         elif projectName == "SKEDUL":
             try:
 
@@ -1063,6 +1087,41 @@ class SetTempPassword(Resource):
             sendEmail(recipient, subject, body)
             response['message'] = "A temporary password has been sent"
 
+        elif projectName == "EVERY-CIRCLE":
+            conn = connect('every_circle')
+            # get user
+            user_lookup_query = ("""
+            SELECT * FROM every_circle.users
+            WHERE user_email_id = \'""" + email + """\';""")
+            user_lookup = execute(user_lookup_query, "get", conn)
+
+            if not user_lookup['result']:
+                user_lookup['message'] = 'No such email exists'
+                return user_lookup
+            user_uid = user_lookup['result'][0]['user_unique_id']
+            # create password salt and hash
+            pass_temp = self.get_random_string()
+            passwordSalt = createSalt()
+            passwordHash = createHash(pass_temp, passwordSalt)
+            # update table
+            query_update = """
+            UPDATE every_circle.users 
+                SET 
+                password_salt = \'""" + passwordSalt + """\',
+                password_hashed =  \'""" + passwordHash + """\'
+            WHERE user_unique_id = \'""" + user_uid + """\' """
+
+            items = execute(query_update, "post", conn)
+            # send email
+            subject = "Email Verification"
+            recipient = email
+            body = (
+                "Your temporary password is {}. Please use it to reset your password".format(
+                    pass_temp)
+            )
+            sendEmail(recipient, subject, body)
+            response['message'] = "A temporary password has been sent"
+            
         elif projectName == "SKEDUL":
             conn = connect('skedul')
             # get user
@@ -1299,6 +1358,33 @@ class UpdateEmailPassword(Resource):
             items = execute(query_update, "post", conn)
             response['message'] = 'User email and password updated successfully'
 
+        elif projectName == "EVERY-CIRCLE":
+            conn = connect('every_circle')
+            # get user
+            user_lookup_query = ("""
+            SELECT * FROM every_circle.users
+            WHERE user_unique_id = \'""" + data['id'] + """\';""")
+            user_lookup = execute(user_lookup_query, "get", conn)
+
+            if not user_lookup['result']:
+                user_lookup['message'] = 'No such email exists'
+                return user_lookup
+            user_uid = user_lookup['result'][0]['user_unique_id']
+            # create password salt and hash
+            pass_temp = self.get_random_string()
+            passwordSalt = createSalt()
+            passwordHash = createHash(pass_temp, passwordSalt)
+            # update table
+            query_update = """
+            UPDATE every_circle.users 
+                SET 
+                password_salt = \'""" + salt + """\',
+                password_hashed =  \'""" + password + """\'
+            WHERE user_unique_id = \'""" + user_uid + """\' """
+
+            items = execute(query_update, "post", conn)
+            response['message'] = 'User email and password updated successfully'
+
         elif projectName == "SKEDUL":
             conn = connect('skedul')
             # get user
@@ -1505,6 +1591,31 @@ class AccountSalt(Resource):
                 raise BadRequest("Request failed, please try again later.")
             finally:
                 disconnect(conn)
+        
+        elif projectName == 'EVERY-CIRCLE':
+            conn = connect('every_circle')
+            try:
+                query = ("""
+                SELECT * FROM every_circle.users WHERE user_email = \'""" + email + """\';
+                    """)
+                items = execute(query, "get", conn)
+
+                if not items["result"]:
+                    items["message"] = "Email doesn't exists"
+                    items["code"] = 404
+                    return items
+                items['result'] = [{
+                    "password_algorithm": "SHA256",
+                    "password_salt": str(datetime.now()),
+                }]
+                items["message"] = "SALT sent successfully"
+                items["code"] = 200
+                return items
+            except:
+                raise BadRequest("Request failed, please try again later.")
+            finally:
+                disconnect(conn)
+        
         elif projectName == 'SKEDUL':
             conn = connect('skedul')
             try:
@@ -1697,6 +1808,20 @@ class Login(Resource):
                 items["code"] = 200
                 return items
 
+        elif projectName == 'EVERY-CIRCLE':
+            conn = connect('every_circle')
+            user = getUserByEmail(email, projectName)
+            if user:
+                if password == user['password_hashed']:
+                    response['message'] = 'Login successful'
+                    response['code'] = 200
+                else:
+                    response['message'] = 'Incorrect password'
+                    response['code'] = 401
+            else:
+                response['message'] = 'Email not found'
+                response['code'] = 404
+        
         elif projectName == 'SKEDUL':
             conn = connect('skedul')
             user = getUserByEmail(email, projectName)
@@ -2158,6 +2283,77 @@ class CreateAccount(Resource):
                 raise BadRequest("Request failed, please try again later.")
             finally:
                 disconnect(conn)
+        elif projectName == 'EVERY-CIRCLE':
+            conn = connect('every_circle')
+            timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
+            try:
+                data = request.get_json(force=True)
+                email_id = data["email_id"]
+                password = data["password"]
+                first_name = data["first_name"]
+                last_name = data["last_name"]
+                time_zone = data["time_zone"]
+
+                user_id_response = execute(
+                    """SELECT user_unique_id FROM users
+                                                WHERE user_email_id = \'"""
+                    + email_id
+                    + """\';""",
+                    "get",
+                    conn,
+                )
+
+                if len(user_id_response["result"]) > 0:
+                    response["message"] = "User already exists"
+
+                else:
+
+                    salt = os.urandom(32)
+
+                    dk = hashlib.pbkdf2_hmac(
+                        "sha256", password.encode("utf-8"), salt, 100000, dklen=128
+                    )
+                    key = (salt + dk).hex()
+
+                    user_id_response = execute(
+                        "CAll get_user_id;", "get", conn)
+                    new_user_id = user_id_response["result"][0]["new_id"]
+
+                    execute(
+                        """INSERT INTO users
+                            SET user_unique_id = \'"""
+                        + new_user_id
+                        + """\',
+                                user_timestamp = \'"""
+                        + timestamp
+                        + """\',
+                                user_email_id  = \'"""
+                        + email_id
+                        + """\',
+                                user_first_name = \'"""
+                        + first_name
+                        + """\',
+                                user_last_name = \'"""
+                        + last_name
+                        + """\',
+                                password_hashed = \'"""
+                        + key
+                        + """\',
+                                time_zone = \'"""
+                        + time_zone
+                        + """\';""",
+                        "post",
+                        conn,
+                    )
+
+                    response["message"] = "successful"
+                    response["result"] = new_user_id
+
+                return response, 200
+            except:
+                raise BadRequest("Request failed, please try again later.")
+            finally:
+                disconnect(conn)
         elif projectName == 'SKEDUL':
             conn = connect('skedul')
             timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
@@ -2592,6 +2788,14 @@ class UpdateAccessToken(Resource):
                         """
             response = execute(query, "post", conn)
             return response, 200
+        elif projectName == 'EVERY-CIRCLE':
+            conn = connect('every_circle')
+            query = """UPDATE every_circle.users 
+                        SET  google_auth_token = \'""" + google_auth_token + """\'
+                        WHERE user_unique_id = \'""" + user_id + """\';
+                        """
+            response = execute(query, "post", conn)
+            return response, 200
         elif projectName == 'SKEDUL':
             conn = connect('skedul')
             query = """UPDATE skedul.users 
@@ -2681,6 +2885,30 @@ class UserToken(Resource):
             response["user_access_token"] = items["result"][0]["user_access_token"]
             response["user_refresh_token"] = items["result"][0][
                 "user_refresh_token"
+            ]
+
+            return response, 200
+        
+        elif projectName == 'EVERY-CIRCLE':
+            conn = connect('every_circle')
+            query = (
+                """SELECT user_unique_id
+                                , user_email
+                                , google_auth_token
+                                , google_refresh_token
+                        FROM
+                        users WHERE user_email = \'"""
+                + user_email_id
+                + """\';"""
+            )
+
+            response = execute(query, 'get', conn)
+            response["message"] = "successful"
+            response["user_unique_id"] = items["result"][0]["user_unique_id"]
+            response["user_email_id"] = items["result"][0]["user_email_id"]
+            response["google_auth_token"] = items["result"][0]["google_auth_token"]
+            response["google_refresh_token"] = items["result"][0][
+                "google_refresh_token"
             ]
 
             return response, 200
@@ -2892,6 +3120,31 @@ class UserDetails(Resource):
                     """
                 response = execute(query, 'get', conn)
             return response
+        elif projectName == 'EVERY-CIRCLE':
+            conn = connect('every_circle')
+            query = None
+
+            query = ("""
+                    SELECT user_unique_id
+                    , user_email_id
+                    , user_first_name
+                    , user_last_name
+                    , google_auth_token
+                    , google_refresh_token
+                    FROM users WHERE user_unique_id = \'""" + user_id + """\';
+                    """)
+            items = execute(query, "get", conn)
+            response["message"] = "successful"
+            response["user_unique_id"] = items["result"][0]["user_unique_id"]
+            response["user_first_name"] = items["result"][0]["user_first_name"]
+            response["user_last_name"] = items["result"][0]["user_last_name"]
+            response["user_email_id"] = items["result"][0]["user_email_id"]
+            response["google_auth_token"] = items["result"][0]["google_auth_token"]
+            response["google_refresh_token"] = items["result"][0][
+                "google_refresh_token"
+            ]
+
+            return response, 200
         elif projectName == 'SKEDUL':
             conn = connect('skedul')
             query = None
@@ -2969,6 +3222,27 @@ class GetEmailId(Resource):
                 response['message'] = 'User ID doesnt exist'
 
             return response, 200
+        elif projectName == 'EVERY-CIRCLE':
+            conn = connect('every_circle')
+            try:
+                emails = execute(
+                    """SELECT user_email_id, user_unique_id from users where user_email_id = \'"""
+                    + email_id
+                    + """\';""",
+                    "get",
+                    conn,
+                )
+                if len(emails["result"]) > 0:
+                    response["message"] = "User EmailID exists"
+                    response["result"] = emails["result"][0]["user_unique_id"]
+                else:
+                    response["message"] = "User EmailID doesnt exist"
+
+                return response, 200
+            except:
+                raise BadRequest("Request failed, please try again later.")
+            finally:
+                disconnect(conn)
         elif projectName == 'SKEDUL':
             conn = connect('skedul')
             try:
@@ -3120,6 +3394,65 @@ class UserSocialSignUp(Resource):
                 return response, 200
             except:
                 raise BadRequest('Request failed, please try again later.')
+            finally:
+                disconnect(conn)
+        elif projectName == 'EVERY-CIRCLE':
+            conn = connect('every_circle')
+            timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
+            try:
+                data = request.get_json(force=True)
+                email_id = data["email_id"]
+                first_name = data["first_name"]
+                last_name = data["last_name"]
+                time_zone = data["time_zone"]
+                google_auth_token = data["google_auth_token"]
+                social_id = data["social_id"]
+                google_refresh_token = data["google_refresh_token"]
+                access_expires_in = data["access_expires_in"]
+
+                user_id_response = execute(
+                    """SELECT user_unique_id FROM users
+                                                WHERE user_email_id = \'"""
+                    + email_id
+                    + """\';""",
+                    "get",
+                    conn,
+                )
+
+                if len(user_id_response["result"]) > 0:
+                    response["message"] = "User already exists"
+
+                else:
+                    user_id_response = execute(
+                        "CAll get_user_id;", "get", conn)
+                    new_user_id = user_id_response["result"][0]["new_id"]
+
+                    execute(
+                        """INSERT INTO users
+                            SET user_unique_id = \'""" + new_user_id + """\',
+                                user_timestamp = \'""" + timestamp + """\',
+                                user_email_id = \'""" + email_id + """\',
+                                user_first_name = \'""" + first_name + """\',        
+                                user_last_name = \'""" + last_name + """\',        
+                                social_id = \'""" + social_id + """\',        
+                                google_auth_token = \'""" + google_auth_token + """\',        
+                                google_refresh_token = \'""" + google_refresh_token + """\',       
+                                access_expires_in = \'""" + access_expires_in + """\',        
+                                time_zone = \'""" + time_zone + """\',        
+                                user_have_pic = \'""" + "False" + """\',        
+                                user_picture = \'""" + "" + """\',        
+                                user_social_media = \'""" + "null" + """\',        
+                                new_account = \'""" + "True" + """\',        
+                                user_guid_device_id_notification = \'""" + "null" + """\';""", "post",
+                        conn,
+                    )
+
+                    response["message"] = "successful"
+                    response["result"] = new_user_id
+
+                return response, 200
+            except:
+                raise BadRequest("Request failed, please try again later.")
             finally:
                 disconnect(conn)
         elif projectName == 'SKEDUL':
@@ -3414,6 +3747,18 @@ class UserSocialLogin(Resource):
             if user:
                 user_unique_id = user.get('customer_uid')
                 google_auth_token = user.get('user_access_token')
+                response['result'] = user_unique_id, google_auth_token
+                response['message'] = 'Correct Email'
+            else:
+                response['result'] = False
+                response['message'] = 'Email ID doesnt exist'
+            return response
+        elif projectName == 'EVERY-CIRCLE':
+            conn = connect('every_circle')
+            user = getUserByEmail(email_id, projectName)
+            if user:
+                user_unique_id = user.get('user_unique_uid')
+                google_auth_token = user.get('google_auth_token')
                 response['result'] = user_unique_id, google_auth_token
                 response['message'] = 'Correct Email'
             else:
