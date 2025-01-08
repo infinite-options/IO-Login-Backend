@@ -2289,36 +2289,41 @@ class CreateAccount(Resource):
             finally:
                 disconnect(conn)
         elif projectName == 'EVERY-CIRCLE':
+            # print("In Every-Circle")
             conn = connect('every_circle')
             timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
             try:
                 data = request.get_json(force=True)
-                email_id = data["email_id"]
+                # print(data)
+                # firstName = data.get('first_name')
+                # lastName = data.get('last_name')
+                # phoneNumber = data.get('phone_number')
+                email_id = data["email"]
                 password = data["password"]
-                first_name = data["first_name"]
-                last_name = data["last_name"]
-                time_zone = data["time_zone"]
+                # print(email_id, password)
 
                 user_id_response = execute(
                     """SELECT user_unique_id FROM users
-                                                WHERE user_email_id = \'"""
+                        WHERE user_email_id = \'"""
                     + email_id
                     + """\';""",
                     "get",
                     conn,
                 )
+                # print(user_id_response)
 
                 if len(user_id_response["result"]) > 0:
                     response["message"] = "User already exists"
 
                 else:
-
+                    # print("In else")
                     salt = os.urandom(32)
 
                     dk = hashlib.pbkdf2_hmac(
                         "sha256", password.encode("utf-8"), salt, 100000, dklen=128
                     )
                     key = (salt + dk).hex()
+                    # print(key)
 
                     user_id_response = execute(
                         "CAll get_user_id;", "get", conn)
@@ -2335,17 +2340,8 @@ class CreateAccount(Resource):
                                 user_email_id  = \'"""
                         + email_id
                         + """\',
-                                user_first_name = \'"""
-                        + first_name
-                        + """\',
-                                user_last_name = \'"""
-                        + last_name
-                        + """\',
                                 password_hashed = \'"""
                         + key
-                        + """\',
-                                time_zone = \'"""
-                        + time_zone
                         + """\';""",
                         "post",
                         conn,
