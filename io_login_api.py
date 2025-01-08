@@ -1593,14 +1593,19 @@ class AccountSalt(Resource):
                 disconnect(conn)
         
         elif projectName == 'EVERY-CIRCLE':
+            print("In Every Circle")
             conn = connect('every_circle')
             try:
+                print("In EC Query")
                 query = ("""
-                SELECT * FROM every_circle.users WHERE user_email = \'""" + email + """\';
+                SELECT * FROM every_circle.users WHERE user_email_id= \'""" + email + """\';
                     """)
+                print(query)
                 items = execute(query, "get", conn)
+                print(items)
 
                 if not items["result"]:
+                    print(items["result"])
                     items["message"] = "Email doesn't exists"
                     items["code"] = 404
                     return items
@@ -1620,7 +1625,7 @@ class AccountSalt(Resource):
             conn = connect('skedul')
             try:
                 query = ("""
-                SELECT * FROM skedul.users WHERE user_email = \'""" + email + """\';
+                SELECT * FROM skedul.users WHERE user_email_id= \'""" + email + """\';
                     """)
                 items = execute(query, "get", conn)
 
@@ -2897,7 +2902,7 @@ class UserToken(Resource):
                                 , google_auth_token
                                 , google_refresh_token
                         FROM
-                        users WHERE user_email = \'"""
+                        users WHERE user_email_id= \'"""
                 + user_email_id
                 + """\';"""
             )
@@ -2920,7 +2925,7 @@ class UserToken(Resource):
                                 , google_auth_token
                                 , google_refresh_token
                         FROM
-                        users WHERE user_email = \'"""
+                        users WHERE user_email_id= \'"""
                 + user_email_id
                 + """\';"""
             )
@@ -3223,6 +3228,7 @@ class GetEmailId(Resource):
 
             return response, 200
         elif projectName == 'EVERY-CIRCLE':
+            print("In Every-Circle")
             conn = connect('every_circle')
             try:
                 emails = execute(
