@@ -239,6 +239,7 @@ def getUserByUID(uid, projectName):
             return result['result'][0]
 
 def getUserByEmail(email, projectName):
+    print("In getUserByEmail")
     global encrypt_flag 
     if projectName == "PM":
         conn = connect('pm')
@@ -274,6 +275,21 @@ def getUserByEmail(email, projectName):
         print(result)
         if len(result['result']) > 0:
             return result['result'][0]
+    elif projectName == "EVERY-CIRCLE":
+        # print("In EveryCircle")
+        encrypt_flag = False
+        conn = connect('every_circle')
+        # get user
+        user_lookup_query = ("""
+            SELECT * 
+            FROM every_circle.users
+            WHERE email = \'""" + email + """\';
+            """)
+        # print(user_lookup_query)
+        result = execute(user_lookup_query, "get", conn)
+        # print(result)
+        if len(result['result']) > 0:
+            return result['result'][0]
     elif projectName == "NITYA":
         conn = connect('nitya')
         # get user
@@ -283,15 +299,15 @@ def getUserByEmail(email, projectName):
         result = execute(user_lookup_query, "get", conn)
         if len(result['result']) > 0:
             return result['result'][0]
-    elif projectName == "EVERY_CIRCLE":
-        conn = connect('every_circle')
-        # get user
-        user_lookup_query = ("""
-        SELECT * FROM every_circle.users
-        WHERE customer_email =\'""" + email + """\';""")
-        result = execute(user_lookup_query, "get", conn)
-        if len(result['result']) > 0:
-            return result['result'][0]
+    # elif projectName == "EVERY_CIRCLE":
+    #     conn = connect('every_circle')
+    #     # get user
+    #     user_lookup_query = ("""
+    #     SELECT * FROM every_circle.users
+    #     WHERE customer_email =\'""" + email + """\';""")
+    #     result = execute(user_lookup_query, "get", conn)
+    #     if len(result['result']) > 0:
+    #         return result['result'][0]
     elif projectName == "SKEDUL":
         conn = connect('skedul')
         # get user
@@ -1575,6 +1591,23 @@ class Login(Resource):
                 response['message'] = 'Email not found'
                 response['code'] = 404
 
+        elif projectName == 'EVERY-CIRCLE':
+            print("In Login Every-Circle")
+            encrypt_flag = True
+            user = getUserByEmail(email, projectName)
+            if user:
+                if password == user['password_hash']:
+                    response['message'] = 'Login successful'
+                    response['code'] = 200
+                    response['user_uid'] = user['user_uid']
+                    # response['result'] = createTokens(user, projectName)
+                else:
+                    response['message'] = 'Incorrect password'
+                    response['code'] = 401
+            else:
+                response['message'] = 'Email not found'
+                response['code'] = 404
+
         elif projectName == 'NITYA':
             conn = connect('nitya')
             user = getUserByEmail(email, projectName)
@@ -1638,19 +1671,19 @@ class Login(Resource):
                 items["code"] = 200
                 return items
 
-        elif projectName == 'EVERY-CIRCLE':
-            conn = connect('every_circle')
-            user = getUserByEmail(email, projectName)
-            if user:
-                if password == user['password_hashed']:
-                    response['message'] = 'Login successful'
-                    response['code'] = 200
-                else:
-                    response['message'] = 'Incorrect password'
-                    response['code'] = 401
-            else:
-                response['message'] = 'Email not found'
-                response['code'] = 404
+        # elif projectName == 'EVERY-CIRCLE':
+        #     conn = connect('every_circle')
+        #     user = getUserByEmail(email, projectName)
+        #     if user:
+        #         if password == user['password_hashed']:
+        #             response['message'] = 'Login successful'
+        #             response['code'] = 200
+        #         else:
+        #             response['message'] = 'Incorrect password'
+        #             response['code'] = 401
+        #     else:
+        #         response['message'] = 'Email not found'
+        #         response['code'] = 404
         
         elif projectName == 'SKEDUL':
             conn = connect('skedul')
