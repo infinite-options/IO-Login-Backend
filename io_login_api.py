@@ -1356,6 +1356,33 @@ class AccountSalt(Resource):
                 raise BadRequest("Request failed, please try again later.")
             finally:
                 disconnect(conn)
+        elif projectName == 'EVERY-CIRCLE':
+            print("In Every-Circle Account Salt")
+            encrypt_flag = False
+            conn = connect('every_circle')
+            try:
+                query = ("""
+                    SELECT * 
+                    FROM every_circle.users 
+                    WHERE email = \'""" + email + """\';
+                    """)
+                items = execute(query, "get", conn)
+
+                if not items["result"]:
+                    items["message"] = "Email doesn't exists"
+                    items["code"] = 404
+                    return items
+                items['result'] = [{
+                    "password_algorithm": "SHA256",
+                    "password_salt": items['result'][0]['password_salt'],
+                }]
+                items["message"] = "SALT sent successfully"
+                items["code"] = 200
+                return items
+            except:
+                raise BadRequest("Request failed, please try again later.")
+            finally:
+                disconnect(conn)
         elif projectName == 'NITYA':
             conn = connect('nitya')
             try:
@@ -1389,34 +1416,34 @@ class AccountSalt(Resource):
             finally:
                 disconnect(conn)
         
-        elif projectName == 'EVERY-CIRCLE':
-            print("In Every Circle")
-            conn = connect('every_circle')
-            try:
-                print("In EC Query")
-                query = ("""
-                SELECT * FROM every_circle.users WHERE user_email_id= \'""" + email + """\';
-                    """)
-                print(query)
-                items = execute(query, "get", conn)
-                print(items)
+        # elif projectName == 'EVERY-CIRCLE':
+        #     print("In Every Circle")
+        #     conn = connect('every_circle')
+        #     try:
+        #         print("In EC Query")
+        #         query = ("""
+        #         SELECT * FROM every_circle.users WHERE user_email_id= \'""" + email + """\';
+        #             """)
+        #         print(query)
+        #         items = execute(query, "get", conn)
+        #         print(items)
 
-                if not items["result"]:
-                    print(items["result"])
-                    items["message"] = "Email doesn't exists"
-                    items["code"] = 404
-                    return items
-                items['result'] = [{
-                    "password_algorithm": "SHA256",
-                    "password_salt": str(datetime.now()),
-                }]
-                items["message"] = "SALT sent successfully"
-                items["code"] = 200
-                return items
-            except:
-                raise BadRequest("Request failed, please try again later.")
-            finally:
-                disconnect(conn)
+        #         if not items["result"]:
+        #             print(items["result"])
+        #             items["message"] = "Email doesn't exists"
+        #             items["code"] = 404
+        #             return items
+        #         items['result'] = [{
+        #             "password_algorithm": "SHA256",
+        #             "password_salt": str(datetime.now()),
+        #         }]
+        #         items["message"] = "SALT sent successfully"
+        #         items["code"] = 200
+        #         return items
+        #     except:
+        #         raise BadRequest("Request failed, please try again later.")
+        #     finally:
+        #         disconnect(conn)
         
         elif projectName == 'SKEDUL':
             conn = connect('skedul')
@@ -3042,19 +3069,23 @@ class GetEmailId(Resource):
 
             return response, 200
         elif projectName == 'EVERY-CIRCLE':
-            print("In Every-Circle")
+            # print("In Every-Circle ", email_id, type(email_id))
             conn = connect('every_circle')
             try:
                 emails = execute(
-                    """SELECT user_email_id, user_unique_id from users where user_email_id = \'"""
-                    + email_id
-                    + """\';""",
+                    """
+                    SELECT user_uid, email
+                    FROM every_circle.users
+                    -- WHERE email = 'pmtest1@gmail.com'
+                    WHERE email = \'""" + email_id + """\';
+                    """,
                     "get",
                     conn,
                 )
+                # print(emails["result"])
                 if len(emails["result"]) > 0:
                     response["message"] = "User EmailID exists"
-                    response["result"] = emails["result"][0]["user_unique_id"]
+                    response["result"] = emails["result"][0]["user_uid"]
                 else:
                     response["message"] = "User EmailID doesnt exist"
 
