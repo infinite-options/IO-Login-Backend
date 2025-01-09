@@ -40,6 +40,9 @@ from cryptography.hazmat.backends import default_backend
 import json
 import base64
 
+from data import connect, disconnect, serializeResponse, execute
+from myspace import getBusinessProfileInfo, getTenantProfileInfo, getOwnerProfileInfo
+
 
 
 # Using cryptograpghy
@@ -52,9 +55,13 @@ AES_SECRET_KEY = os.getenv('AES_SECRET_KEY')
 AES_KEY = AES_SECRET_KEY.encode('utf-8')
 BLOCK_SIZE = int(os.getenv('BLOCK_SIZE'))
 # print("Block Size: ", BLOCK_SIZE)
+POSTMAN_SECRET = os.getenv('POSTMAN_SECRET')
+print("POSTMAN_SECRET: ", POSTMAN_SECRET)
+full_encryption_projects = ["MYSPACE", "MYSPACE-DEV"]
 
 
 encrypt_flag = False
+project_name = ""
 
 # Encrypt dictionary
 def encrypt_dict(data_dict):
@@ -145,97 +152,97 @@ app.config["DEBUG"] = True
 mail = Mail(app)
 
 
-def connect(RDS_DB):
-    global RDS_PW
-    global RDS_HOST
-    global RDS_PORT
-    global RDS_USER
+# def connect(RDS_DB):
+#     global RDS_PW
+#     global RDS_HOST
+#     global RDS_PORT
+#     global RDS_USER
 
-    print("Trying to connect to RDS (API v2)...")
-    try:
-        conn = pymysql.connect(
-            host=os.getenv('RDS_HOST'),
-            user=os.getenv('RDS_USER'),
-            port=int(os.getenv('RDS_PORT')),
-            passwd=os.getenv('RDS_PW'),
-            db=RDS_DB,
-            charset='utf8mb4',
-            cursorclass=pymysql.cursors.DictCursor,
-        )
-    # try:
-    #     conn = pymysql.connect(
-    #         host=RDS_HOST,
-    #         user=RDS_USER,
-    #         port=RDS_PORT,
-    #         passwd=RDS_PW,
-    #         db=RDS_DB,
-    #         cursorclass=pymysql.cursors.DictCursor,
-    #     )
-        print("Successfully connected to RDS. (API v2)")
-        return conn
-    except:
-        print("Could not connect to RDS. (API v2)")
-        raise Exception("RDS Connection failed. (API v2)")
-
-
-# Disconnect from MySQL database (API v2)
-def disconnect(conn):
-    try:
-        conn.close()
-        print("Successfully disconnected from MySQL database. (API v2)")
-    except:
-        print("Could not properly disconnect from MySQL database. (API v2)")
-        raise Exception("Failure disconnecting from MySQL database. (API v2)")
+#     print("Trying to connect to RDS (API v2)...")
+#     try:
+#         conn = pymysql.connect(
+#             host=os.getenv('RDS_HOST'),
+#             user=os.getenv('RDS_USER'),
+#             port=int(os.getenv('RDS_PORT')),
+#             passwd=os.getenv('RDS_PW'),
+#             db=RDS_DB,
+#             charset='utf8mb4',
+#             cursorclass=pymysql.cursors.DictCursor,
+#         )
+#     # try:
+#     #     conn = pymysql.connect(
+#     #         host=RDS_HOST,
+#     #         user=RDS_USER,
+#     #         port=RDS_PORT,
+#     #         passwd=RDS_PW,
+#     #         db=RDS_DB,
+#     #         cursorclass=pymysql.cursors.DictCursor,
+#     #     )
+#         print("Successfully connected to RDS. (API v2)")
+#         return conn
+#     except:
+#         print("Could not connect to RDS. (API v2)")
+#         raise Exception("RDS Connection failed. (API v2)")
 
 
-# Serialize JSON
-def serializeResponse(response):
-    try:
-        # print("In Serialize JSON")
-        for row in response:
-            for key in row:
-                if type(row[key]) is Decimal:
-                    row[key] = float(row[key])
-                elif type(row[key]) is date or type(row[key]) is datetime:
-                    row[key] = row[key].strftime("%Y-%m-%d")
-        # print("In Serialize JSON response", response)
-        return response
-    except:
-        raise Exception("Bad query JSON")
+# # Disconnect from MySQL database (API v2)
+# def disconnect(conn):
+#     try:
+#         conn.close()
+#         print("Successfully disconnected from MySQL database. (API v2)")
+#     except:
+#         print("Could not properly disconnect from MySQL database. (API v2)")
+#         raise Exception("Failure disconnecting from MySQL database. (API v2)")
 
 
-def execute(sql, cmd, conn, skipSerialization=False):
-    response = {}
-    try:
-        with conn.cursor() as cur:
-            cur.execute(sql)
-            if cmd == "get":
-                result = cur.fetchall()
+# # Serialize JSON
+# def serializeResponse(response):
+#     try:
+#         # print("In Serialize JSON")
+#         for row in response:
+#             for key in row:
+#                 if type(row[key]) is Decimal:
+#                     row[key] = float(row[key])
+#                 elif type(row[key]) is date or type(row[key]) is datetime:
+#                     row[key] = row[key].strftime("%Y-%m-%d")
+#         # print("In Serialize JSON response", response)
+#         return response
+#     except:
+#         raise Exception("Bad query JSON")
 
-                response["message"] = "Successfully executed SQL query."
-                # Return status code of 280 for successful GET request
-                response["code"] = 280
-                if not skipSerialization:
-                    result = serializeResponse(result)
-                response["result"] = result
-            elif cmd == "post":
-                conn.commit()
-                response["message"] = "Successfully committed SQL command."
-                # Return status code of 281 for successful POST request
-                response["code"] = 281
-            else:
-                response[
-                    "message"
-                ] = "Request failed. Unknown or ambiguous instruction given for MySQL command."
-                # Return status code of 480 for unknown HTTP method
-                response["code"] = 480
-    except:
-        response["message"] = "Request failed, could not execute MySQL command."
-        # Return status code of 490 for unsuccessful HTTP request
-        response["code"] = 490
-    finally:
-        response["sql"] = sql
-        return response
+
+# def execute(sql, cmd, conn, skipSerialization=False):
+#     response = {}
+#     try:
+#         with conn.cursor() as cur:
+#             cur.execute(sql)
+#             if cmd == "get":
+#                 result = cur.fetchall()
+
+#                 response["message"] = "Successfully executed SQL query."
+#                 # Return status code of 280 for successful GET request
+#                 response["code"] = 280
+#                 if not skipSerialization:
+#                     result = serializeResponse(result)
+#                 response["result"] = result
+#             elif cmd == "post":
+#                 conn.commit()
+#                 response["message"] = "Successfully committed SQL command."
+#                 # Return status code of 281 for successful POST request
+#                 response["code"] = 281
+#             else:
+#                 response[
+#                     "message"
+#                 ] = "Request failed. Unknown or ambiguous instruction given for MySQL command."
+#                 # Return status code of 480 for unknown HTTP method
+#                 response["code"] = 480
+#     except:
+#         response["message"] = "Request failed, could not execute MySQL command."
+#         # Return status code of 490 for unsuccessful HTTP request
+#         response["code"] = 490
+#     finally:
+#         response["sql"] = sql
+#         return response
 
 
 def sendEmail(recipient, subject, body):
@@ -250,163 +257,162 @@ def sendEmail(recipient, subject, body):
         mail.send(msg)
 
 
-def getBusinessProfileInfo(user, projectName):
-    global encrypt_flag 
-    if projectName == 'PM':
-        response = {}
-        conn = connect('pm')
-        query = """SELECT b.*, e.employee_role
-            FROM employees e LEFT JOIN businesses b ON e.business_uid = b.business_uid
-            WHERE user_uid = \'""" + user['user_uid'] + """\'"""
+# def getBusinessProfileInfo(user, projectName):
+#     global encrypt_flag 
+#     if projectName == 'PM':
+#         response = {}
+#         conn = connect('pm')
+#         query = """SELECT b.*, e.employee_role
+#             FROM employees e LEFT JOIN businesses b ON e.business_uid = b.business_uid
+#             WHERE user_uid = \'""" + user['user_uid'] + """\'"""
 
-        response = execute(query, "get", conn)
-        return response
-    elif projectName == "MYSPACE-DEV":
-        encrypt_flag = True
-        response = {}
-        conn = connect('space_dev')
-        query = """
-            SELECT business_uid, business_type, employee_uid, employee_role 
-            FROM space_dev.employees
-            LEFT JOIN space_dev.businessProfileInfo ON employee_business_id = business_uid
-            WHERE employee_user_id = \'""" + user['user_uid'] + """\'
-            """
-        response = execute(query, "get", conn)
-        if "result" not in response:
-            response["result"] = None
-        else:
-            businesses = {
-                'MAINTENANCE': {},
-                'MANAGEMENT': {}
-            }
-            key_map = {
-                'MAINTENANCE': {
-                    'OWNER': 'business_owner_id',
-                    'EMPLOYEE': 'business_employee_id'
-                },
-                'MANAGEMENT': {
-                    'OWNER': 'business_owner_id',
-                    'EMPLOYEE': 'business_employee_id' 
-                }
-            }
-            for record in response["result"]:
-                role_key = key_map[record['business_type']][record['employee_role']]
-                businesses[record['business_type']].update({
-                    role_key: record['employee_uid'],
-                    'business_uid': record['business_uid']
-                })
-            response["result"] = businesses
-        return response
+#         response = execute(query, "get", conn)
+#         return response
+#     elif projectName == "MYSPACE-DEV":
+#         encrypt_flag = True
+#         response = {}
+#         conn = connect('space_dev')
+#         query = """
+#             SELECT business_uid, business_type, employee_uid, employee_role 
+#             FROM space_dev.employees
+#             LEFT JOIN space_dev.businessProfileInfo ON employee_business_id = business_uid
+#             WHERE employee_user_id = \'""" + user['user_uid'] + """\'
+#             """
+#         response = execute(query, "get", conn)
+#         if "result" not in response:
+#             response["result"] = None
+#         else:
+#             businesses = {
+#                 'MAINTENANCE': {},
+#                 'MANAGEMENT': {}
+#             }
+#             key_map = {
+#                 'MAINTENANCE': {
+#                     'OWNER': 'business_owner_id',
+#                     'EMPLOYEE': 'business_employee_id'
+#                 },
+#                 'MANAGEMENT': {
+#                     'OWNER': 'business_owner_id',
+#                     'EMPLOYEE': 'business_employee_id' 
+#                 }
+#             }
+#             for record in response["result"]:
+#                 role_key = key_map[record['business_type']][record['employee_role']]
+#                 businesses[record['business_type']].update({
+#                     role_key: record['employee_uid'],
+#                     'business_uid': record['business_uid']
+#                 })
+#             response["result"] = businesses
+#         return response
     
-    elif projectName == "MYSPACE":
-        encrypt_flag = True
-        response = {}
-        conn = connect('space_prod')
-        query = """
-            SELECT business_uid, business_type, employee_uid, employee_role 
-            FROM space_prod.employees
-            LEFT JOIN space_prod.businessProfileInfo ON employee_business_id = business_uid
-            WHERE employee_user_id = \'""" + user['user_uid'] + """\'
-            """
-        response = execute(query, "get", conn)
-        if "result" not in response:
-            response["result"] = None
-        else:
-            businesses = {
-                'MAINTENANCE': {},
-                'MANAGEMENT': {}
-            }
-            key_map = {
-                'MAINTENANCE': {
-                    'OWNER': 'business_owner_id',
-                    'EMPLOYEE': 'business_employee_id'
-                },
-                'MANAGEMENT': {
-                    'OWNER': 'business_owner_id',
-                    'EMPLOYEE': 'business_employee_id' 
-                }
-            }
-            for record in response["result"]:
-                role_key = key_map[record['business_type']][record['employee_role']]
-                businesses[record['business_type']].update({
-                    role_key: record['employee_uid'],
-                    'business_uid': record['business_uid']
-                })
-            response["result"] = businesses
-        return response
+#     elif projectName == "MYSPACE":
+#         encrypt_flag = True
+#         response = {}
+#         conn = connect('space_prod')
+#         query = """
+#             SELECT business_uid, business_type, employee_uid, employee_role 
+#             FROM space_prod.employees
+#             LEFT JOIN space_prod.businessProfileInfo ON employee_business_id = business_uid
+#             WHERE employee_user_id = \'""" + user['user_uid'] + """\'
+#             """
+#         response = execute(query, "get", conn)
+#         if "result" not in response:
+#             response["result"] = None
+#         else:
+#             businesses = {
+#                 'MAINTENANCE': {},
+#                 'MANAGEMENT': {}
+#             }
+#             key_map = {
+#                 'MAINTENANCE': {
+#                     'OWNER': 'business_owner_id',
+#                     'EMPLOYEE': 'business_employee_id'
+#                 },
+#                 'MANAGEMENT': {
+#                     'OWNER': 'business_owner_id',
+#                     'EMPLOYEE': 'business_employee_id' 
+#                 }
+#             }
+#             for record in response["result"]:
+#                 role_key = key_map[record['business_type']][record['employee_role']]
+#                 businesses[record['business_type']].update({
+#                     role_key: record['employee_uid'],
+#                     'business_uid': record['business_uid']
+#                 })
+#             response["result"] = businesses
+#         return response
 
+# def getTenantProfileInfo(user, projectName):
+#     global encrypt_flag 
+#     if projectName == 'PM':
+#         response = {}
+#         conn = connect('pm')
+#         query = """ SELECT tenant_id FROM tenantProfileInfo
+#                 WHERE tenant_user_id = \'""" + user['user_uid'] + """\'"""
 
-def getTenantProfileInfo(user, projectName):
-    global encrypt_flag 
-    if projectName == 'PM':
-        response = {}
-        conn = connect('pm')
-        query = """ SELECT tenant_id FROM tenantProfileInfo
-                WHERE tenant_user_id = \'""" + user['user_uid'] + """\'"""
-
-        response = execute(query, "get", conn)
-        return response
-    elif projectName == "MYSPACE-DEV":
-        encrypt_flag = True
-        response = {}
-        conn = connect('space_dev')
-        query = """SELECT tenant_uid 
-            FROM space_dev.tenantProfileInfo 
-            WHERE tenant_user_id = \'""" + user['user_uid'] + """\'
-            """
-        response = execute(query, "get", conn)
-        if "result" not in response or len(response["result"]) == 0:
-            response["result"] = ""
-        else:
-            response["result"] = response["result"][0]["tenant_uid"]
-        return response
-    elif projectName == "MYSPACE":
-        encrypt_flag = True
-        response = {}
-        conn = connect('space_prod')
-        query = """SELECT tenant_uid 
-            FROM space_prod.tenantProfileInfo 
-            WHERE tenant_user_id = \'""" + user['user_uid'] + """\'
-            """
-        response = execute(query, "get", conn)
-        if "result" not in response or len(response["result"]) == 0:
-            response["result"] = ""
-        else:
-            response["result"] = response["result"][0]["tenant_uid"]
-        return response
+#         response = execute(query, "get", conn)
+#         return response
+#     elif projectName == "MYSPACE-DEV":
+#         encrypt_flag = True
+#         response = {}
+#         conn = connect('space_dev')
+#         query = """SELECT tenant_uid 
+#             FROM space_dev.tenantProfileInfo 
+#             WHERE tenant_user_id = \'""" + user['user_uid'] + """\'
+#             """
+#         response = execute(query, "get", conn)
+#         if "result" not in response or len(response["result"]) == 0:
+#             response["result"] = ""
+#         else:
+#             response["result"] = response["result"][0]["tenant_uid"]
+#         return response
+#     elif projectName == "MYSPACE":
+#         encrypt_flag = True
+#         response = {}
+#         conn = connect('space_prod')
+#         query = """SELECT tenant_uid 
+#             FROM space_prod.tenantProfileInfo 
+#             WHERE tenant_user_id = \'""" + user['user_uid'] + """\'
+#             """
+#         response = execute(query, "get", conn)
+#         if "result" not in response or len(response["result"]) == 0:
+#             response["result"] = ""
+#         else:
+#             response["result"] = response["result"][0]["tenant_uid"]
+#         return response
     
-def getOwnerProfileInfo(user, projectName):
-    global encrypt_flag 
-    if projectName == 'MYSPACE-DEV':
-        encrypt_flag = True
-        response = {}
-        conn = connect('space_dev')
-        query = """
-            SELECT owner_uid 
-            FROM space_dev.ownerProfileInfo 
-            WHERE owner_user_id = \'""" + user['user_uid'] + """\'
-            """
-        response = execute(query, "get", conn)
-        if "result" not in response or len(response["result"]) == 0:
-            response["result"] = ""
-        else:
-            response["result"] = response["result"][0]["owner_uid"]
-        return response
-    if projectName == 'MYSPACE':
-        encrypt_flag = True
-        response = {}
-        conn = connect('space_prod')
-        query = """
-            SELECT owner_uid 
-            FROM space_prod.ownerProfileInfo 
-            WHERE owner_user_id = \'""" + user['user_uid'] + """\'
-            """
-        response = execute(query, "get", conn)
-        if "result" not in response or len(response["result"]) == 0:
-            response["result"] = ""
-        else:
-            response["result"] = response["result"][0]["owner_uid"]
-        return response
+# def getOwnerProfileInfo(user, projectName):
+#     global encrypt_flag 
+#     if projectName == 'MYSPACE-DEV':
+#         encrypt_flag = True
+#         response = {}
+#         conn = connect('space_dev')
+#         query = """
+#             SELECT owner_uid 
+#             FROM space_dev.ownerProfileInfo 
+#             WHERE owner_user_id = \'""" + user['user_uid'] + """\'
+#             """
+#         response = execute(query, "get", conn)
+#         if "result" not in response or len(response["result"]) == 0:
+#             response["result"] = ""
+#         else:
+#             response["result"] = response["result"][0]["owner_uid"]
+#         return response
+#     if projectName == 'MYSPACE':
+#         encrypt_flag = True
+#         response = {}
+#         conn = connect('space_prod')
+#         query = """
+#             SELECT owner_uid 
+#             FROM space_prod.ownerProfileInfo 
+#             WHERE owner_user_id = \'""" + user['user_uid'] + """\'
+#             """
+#         response = execute(query, "get", conn)
+#         if "result" not in response or len(response["result"]) == 0:
+#             response["result"] = ""
+#         else:
+#             response["result"] = response["result"][0]["owner_uid"]
+#         return response
 
 
 def getHash(value):
@@ -519,6 +525,7 @@ def getUserByEmail(email, projectName):
             WHERE email = \'""" + email + """\';
             """)
         result = execute(user_lookup_query, "get", conn)
+        print(result)
         if len(result['result']) > 0:
             return result['result'][0]
     elif projectName == "NITYA":
@@ -1736,6 +1743,7 @@ class Login(Resource):
                 response['code'] = 404
 
         elif projectName == 'MYSPACE':
+            print("In Login MYSPACE")
             encrypt_flag = True
             user = getUserByEmail(email, projectName)
             if user:
@@ -4061,10 +4069,14 @@ def encrypt_response(data):
 # def setup_middlewares(app):
 @app.before_request 
 def before_request():
-    global encrypt_flag 
+    global encrypt_flag # This is likely unnecessary now that the project name is specified
+    global project_name
     # Extract projectName and apply middleware logic if it matches the condition
     project_name = get_project_name_from_request()
-    if project_name == "MYSPACE" or project_name == "MYSPACE-DEV" :
+    # full_encryption_projects = ["MYSPACE", "MYSPACE-DEV"]
+    print("Postman Secret: ", request.headers.get("Postman-Secret"))
+
+    if project_name in full_encryption_projects and request.headers.get("Postman-Secret") != POSTMAN_SECRET:
         print("In Middleware before_request for MYSPACE")
         encrypt_flag = True
         decrypt_request()
@@ -4073,11 +4085,13 @@ def before_request():
 @app.after_request
 def after_request(response):
     global encrypt_flag 
+    global project_name
     print("Encrypt Flag: ", encrypt_flag)
-    if encrypt_flag == True:
+
+    if project_name in full_encryption_projects and request.headers.get("Postman-Secret") != POSTMAN_SECRET:
         print("In Middleware after_request")
-        print("Actual endpoint response: ", type(response))
-        print("Actual endpoint response2: ", type(response.get_json()))
+        # print("Actual endpoint response: ", type(response))
+        # print("Actual endpoint response2: ", type(response.get_json()))
         original_status_code = response.status_code
         # print(response.get_json()['code'])
 
