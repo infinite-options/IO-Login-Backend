@@ -152,98 +152,6 @@ app.config["DEBUG"] = True
 mail = Mail(app)
 
 
-# def connect(RDS_DB):
-#     global RDS_PW
-#     global RDS_HOST
-#     global RDS_PORT
-#     global RDS_USER
-
-#     print("Trying to connect to RDS (API v2)...")
-#     try:
-#         conn = pymysql.connect(
-#             host=os.getenv('RDS_HOST'),
-#             user=os.getenv('RDS_USER'),
-#             port=int(os.getenv('RDS_PORT')),
-#             passwd=os.getenv('RDS_PW'),
-#             db=RDS_DB,
-#             charset='utf8mb4',
-#             cursorclass=pymysql.cursors.DictCursor,
-#         )
-#     # try:
-#     #     conn = pymysql.connect(
-#     #         host=RDS_HOST,
-#     #         user=RDS_USER,
-#     #         port=RDS_PORT,
-#     #         passwd=RDS_PW,
-#     #         db=RDS_DB,
-#     #         cursorclass=pymysql.cursors.DictCursor,
-#     #     )
-#         print("Successfully connected to RDS. (API v2)")
-#         return conn
-#     except:
-#         print("Could not connect to RDS. (API v2)")
-#         raise Exception("RDS Connection failed. (API v2)")
-
-
-# # Disconnect from MySQL database (API v2)
-# def disconnect(conn):
-#     try:
-#         conn.close()
-#         print("Successfully disconnected from MySQL database. (API v2)")
-#     except:
-#         print("Could not properly disconnect from MySQL database. (API v2)")
-#         raise Exception("Failure disconnecting from MySQL database. (API v2)")
-
-
-# # Serialize JSON
-# def serializeResponse(response):
-#     try:
-#         # print("In Serialize JSON")
-#         for row in response:
-#             for key in row:
-#                 if type(row[key]) is Decimal:
-#                     row[key] = float(row[key])
-#                 elif type(row[key]) is date or type(row[key]) is datetime:
-#                     row[key] = row[key].strftime("%Y-%m-%d")
-#         # print("In Serialize JSON response", response)
-#         return response
-#     except:
-#         raise Exception("Bad query JSON")
-
-
-# def execute(sql, cmd, conn, skipSerialization=False):
-#     response = {}
-#     try:
-#         with conn.cursor() as cur:
-#             cur.execute(sql)
-#             if cmd == "get":
-#                 result = cur.fetchall()
-
-#                 response["message"] = "Successfully executed SQL query."
-#                 # Return status code of 280 for successful GET request
-#                 response["code"] = 280
-#                 if not skipSerialization:
-#                     result = serializeResponse(result)
-#                 response["result"] = result
-#             elif cmd == "post":
-#                 conn.commit()
-#                 response["message"] = "Successfully committed SQL command."
-#                 # Return status code of 281 for successful POST request
-#                 response["code"] = 281
-#             else:
-#                 response[
-#                     "message"
-#                 ] = "Request failed. Unknown or ambiguous instruction given for MySQL command."
-#                 # Return status code of 480 for unknown HTTP method
-#                 response["code"] = 480
-#     except:
-#         response["message"] = "Request failed, could not execute MySQL command."
-#         # Return status code of 490 for unsuccessful HTTP request
-#         response["code"] = 490
-#     finally:
-#         response["sql"] = sql
-#         return response
-
 
 def sendEmail(recipient, subject, body):
     with app.app_context():
@@ -256,177 +164,15 @@ def sendEmail(recipient, subject, body):
         )
         mail.send(msg)
 
-
-# def getBusinessProfileInfo(user, projectName):
-#     global encrypt_flag 
-#     if projectName == 'PM':
-#         response = {}
-#         conn = connect('pm')
-#         query = """SELECT b.*, e.employee_role
-#             FROM employees e LEFT JOIN businesses b ON e.business_uid = b.business_uid
-#             WHERE user_uid = \'""" + user['user_uid'] + """\'"""
-
-#         response = execute(query, "get", conn)
-#         return response
-#     elif projectName == "MYSPACE-DEV":
-#         encrypt_flag = True
-#         response = {}
-#         conn = connect('space_dev')
-#         query = """
-#             SELECT business_uid, business_type, employee_uid, employee_role 
-#             FROM space_dev.employees
-#             LEFT JOIN space_dev.businessProfileInfo ON employee_business_id = business_uid
-#             WHERE employee_user_id = \'""" + user['user_uid'] + """\'
-#             """
-#         response = execute(query, "get", conn)
-#         if "result" not in response:
-#             response["result"] = None
-#         else:
-#             businesses = {
-#                 'MAINTENANCE': {},
-#                 'MANAGEMENT': {}
-#             }
-#             key_map = {
-#                 'MAINTENANCE': {
-#                     'OWNER': 'business_owner_id',
-#                     'EMPLOYEE': 'business_employee_id'
-#                 },
-#                 'MANAGEMENT': {
-#                     'OWNER': 'business_owner_id',
-#                     'EMPLOYEE': 'business_employee_id' 
-#                 }
-#             }
-#             for record in response["result"]:
-#                 role_key = key_map[record['business_type']][record['employee_role']]
-#                 businesses[record['business_type']].update({
-#                     role_key: record['employee_uid'],
-#                     'business_uid': record['business_uid']
-#                 })
-#             response["result"] = businesses
-#         return response
-    
-#     elif projectName == "MYSPACE":
-#         encrypt_flag = True
-#         response = {}
-#         conn = connect('space_prod')
-#         query = """
-#             SELECT business_uid, business_type, employee_uid, employee_role 
-#             FROM space_prod.employees
-#             LEFT JOIN space_prod.businessProfileInfo ON employee_business_id = business_uid
-#             WHERE employee_user_id = \'""" + user['user_uid'] + """\'
-#             """
-#         response = execute(query, "get", conn)
-#         if "result" not in response:
-#             response["result"] = None
-#         else:
-#             businesses = {
-#                 'MAINTENANCE': {},
-#                 'MANAGEMENT': {}
-#             }
-#             key_map = {
-#                 'MAINTENANCE': {
-#                     'OWNER': 'business_owner_id',
-#                     'EMPLOYEE': 'business_employee_id'
-#                 },
-#                 'MANAGEMENT': {
-#                     'OWNER': 'business_owner_id',
-#                     'EMPLOYEE': 'business_employee_id' 
-#                 }
-#             }
-#             for record in response["result"]:
-#                 role_key = key_map[record['business_type']][record['employee_role']]
-#                 businesses[record['business_type']].update({
-#                     role_key: record['employee_uid'],
-#                     'business_uid': record['business_uid']
-#                 })
-#             response["result"] = businesses
-#         return response
-
-# def getTenantProfileInfo(user, projectName):
-#     global encrypt_flag 
-#     if projectName == 'PM':
-#         response = {}
-#         conn = connect('pm')
-#         query = """ SELECT tenant_id FROM tenantProfileInfo
-#                 WHERE tenant_user_id = \'""" + user['user_uid'] + """\'"""
-
-#         response = execute(query, "get", conn)
-#         return response
-#     elif projectName == "MYSPACE-DEV":
-#         encrypt_flag = True
-#         response = {}
-#         conn = connect('space_dev')
-#         query = """SELECT tenant_uid 
-#             FROM space_dev.tenantProfileInfo 
-#             WHERE tenant_user_id = \'""" + user['user_uid'] + """\'
-#             """
-#         response = execute(query, "get", conn)
-#         if "result" not in response or len(response["result"]) == 0:
-#             response["result"] = ""
-#         else:
-#             response["result"] = response["result"][0]["tenant_uid"]
-#         return response
-#     elif projectName == "MYSPACE":
-#         encrypt_flag = True
-#         response = {}
-#         conn = connect('space_prod')
-#         query = """SELECT tenant_uid 
-#             FROM space_prod.tenantProfileInfo 
-#             WHERE tenant_user_id = \'""" + user['user_uid'] + """\'
-#             """
-#         response = execute(query, "get", conn)
-#         if "result" not in response or len(response["result"]) == 0:
-#             response["result"] = ""
-#         else:
-#             response["result"] = response["result"][0]["tenant_uid"]
-#         return response
-    
-# def getOwnerProfileInfo(user, projectName):
-#     global encrypt_flag 
-#     if projectName == 'MYSPACE-DEV':
-#         encrypt_flag = True
-#         response = {}
-#         conn = connect('space_dev')
-#         query = """
-#             SELECT owner_uid 
-#             FROM space_dev.ownerProfileInfo 
-#             WHERE owner_user_id = \'""" + user['user_uid'] + """\'
-#             """
-#         response = execute(query, "get", conn)
-#         if "result" not in response or len(response["result"]) == 0:
-#             response["result"] = ""
-#         else:
-#             response["result"] = response["result"][0]["owner_uid"]
-#         return response
-#     if projectName == 'MYSPACE':
-#         encrypt_flag = True
-#         response = {}
-#         conn = connect('space_prod')
-#         query = """
-#             SELECT owner_uid 
-#             FROM space_prod.ownerProfileInfo 
-#             WHERE owner_user_id = \'""" + user['user_uid'] + """\'
-#             """
-#         response = execute(query, "get", conn)
-#         if "result" not in response or len(response["result"]) == 0:
-#             response["result"] = ""
-#         else:
-#             response["result"] = response["result"][0]["owner_uid"]
-#         return response
-
-
 def getHash(value):
     base = str(value).encode()
     return sha256(base).hexdigest()
 
-
 def createSalt():
     return getHash(datetime.now())
 
-
 def createHash(password, salt):
     return getHash(password+salt)
-
 
 def createTokens(user, projectName):
     print('IN CREATETOKENS')
@@ -575,7 +321,6 @@ def getUserByEmail(email, projectName):
         if len(result['result']) > 0:
             # print("Before return: ", result['result'][0] )
             return result['result'][0]
-
 
 def createUser(firstName, lastName, phoneNumber, email, password, role=None, email_validated=None, google_auth_token=None, google_refresh_token=None, social_id=None, access_expires_in=None, projectName=None):
     global encrypt_flag 
@@ -2311,10 +2056,10 @@ class CreateAccount(Resource):
                 # print(email_id, password)
 
                 user_id_response = execute(
-                    """SELECT user_unique_id FROM users
-                        WHERE user_email_id = \'"""
-                    + email_id
-                    + """\';""",
+                    """
+                        SELECT user_unique_id FROM users
+                        WHERE user_email_id = \'""" + email_id+ """\';
+                    """,
                     "get",
                     conn,
                 )
@@ -2338,19 +2083,14 @@ class CreateAccount(Resource):
                     new_user_id = user_id_response["result"][0]["new_id"]
 
                     execute(
-                        """INSERT INTO users
-                            SET user_unique_id = \'"""
-                        + new_user_id
-                        + """\',
-                                user_timestamp = \'"""
-                        + timestamp
-                        + """\',
-                                user_email_id  = \'"""
-                        + email_id
-                        + """\',
-                                password_hashed = \'"""
-                        + key
-                        + """\';""",
+                        """
+                        INSERT INTO users
+                        SET user_unique_id = \'""" + new_user_id + """\',
+                            user_timestamp = \'""" + timestamp + """\',
+                            user_email_id  = \'""" + email_id + """\',
+                            password_salt = \'""" + salt + """\',
+                            password_hashed = \'""" + key + """\';
+                        """,
                         "post",
                         conn,
                     )
@@ -2603,11 +2343,6 @@ class CreateAccount(Resource):
                 return "ERROR - user_id missing"
 
 
-
-            
-        
-
-
 class CheckEmailValidationCode(Resource):
     def post(self, projectName):
         response = {}
@@ -2747,8 +2482,6 @@ class UpdateUserByUID(Resource):
         return response, 200
 
 #  updating access token if expired
-
-
 class UpdateAccessToken(Resource):
     def post(self, projectName, user_id,):
         print("In UpdateAccessToken")
@@ -2820,9 +2553,9 @@ class UpdateAccessToken(Resource):
                 WHERE user_uid = \'""" + user_id + """\' """
             response = execute(query, "post", conn)
             return response
+
+
 # get user tokens
-
-
 class UserToken(Resource):
     def get(self, projectName, user_email_id):
         print("In usertoken")
@@ -3866,144 +3599,7 @@ api.add_resource(CheckEmailValidationCode, "/api/v2/CheckEmailValidationCode/<st
 
 
 
-# @app.route('/decrypt', methods=['POST'])
-# def decrypt_data():
-#     try:
-#         # Get the encrypted data from the request body
-#         encrypted_data_base64 = request.json.get('encrypted_data')
-#         # print("encrypted_data: ", encrypted_data_base64)
-#         decrypted_data = decrypt_dict(encrypted_data_base64)
-#         print("Decrypted Data: ", decrypt_data)
-        
-#         return jsonify({"decrypted_data": decrypted_data})
-#     except Exception as e:
-#         return jsonify({"error": str(e)}), 500
 
-
-# Flask runs this code BEFORE running the actual endpoint code
-# @app.before_request
-
-# def check_jwt_token():
-#     if request.path == '/auth/refreshToken':
-#         return
-#     try:
-#         if request.method == 'OPTIONS':  
-#             return '', 200
-        
-#         print('Request Headers:', request.headers['Authorization'])
-#         verify_jwt_in_request()
-#         current_user = get_jwt_identity() 
-#         print(f"Current User ID: {current_user}")
-#     except jwt.ExpiredSignatureError:
-#         print('JWT Expired')
-#         return jsonify({'message': 'Token is expired!'}), 401
-
-#     except jwt.InvalidTokenError:
-#         print('JWT Invalid')
-#         return jsonify({'message': 'Invalid token!'}), 401
-
-#     except Exception as e:
-#         # This will catch any other exception, including missing token
-#         print('JWT Missing')
-#         return jsonify({'message': 'Missing token!'}), 401
-
-
-# Middleware for decrypting incoming request data
-# def decrypt_request():
-#     print("In decrypt request")
-#     if request.is_json:
-#         encrypted_data = request.get_json().get('encrypted_data')
-#         form_data = request.get_json().get('data_type') # True = Form data, False = JSON data
-#         if encrypted_data and form_data == False:
-#             print("JSON data received")
-#             decrypted_data = decrypt_dict(encrypted_data)
-#             request._cached_json = decrypted_data  # Override the request JSON
-#         # elif encrypted_data and form_data == True:
-#         #     decrypted_data = decrypt_dict(encrypted_data)
-#         #     # Convert JSON to Form Data
-#         #     form_data = {}
-#         #     for key, value in decrypted_data.items():
-#         #         if isinstance(value, dict) and 'fileName' in value and 'fileType' in value:
-#         #             print("File Received: ", value['fileName'], value['fileType'])
-#         #             # Check for 'fileData' field and simulate a file stream
-#         #             file_stream = None
-#         #             if 'fileData' in value:
-#         #                 print("Actual conversion started")
-#         #                 file_binary = base64.b64decode(value['fileData'])
-#         #                 print("Binary created")
-#         #                 file_stream = BytesIO(file_binary)  # Simulated file stream
-#         #                 print("File Stream created")
-#         #             # If the value represents a file, simulate a FileStorage object
-#         #             form_data[key] = FileStorage(
-#         #                 stream=file_stream,  # Set to actual stream if available
-#         #                 filename=value['fileName'],
-#         #                 content_type=value['fileType']
-#         #             ) 
-#         #         else:
-#         #             form_data[key] = value
-#         #     print("Form Data: ", form_data)
-#         #     request._cached_json = form_data  # Override the request JSON
-#             print("Decrypted Request: ", request)
-#         else:
-#             print("Data issue")
-        
-
-#     else:
-#         print("no JSON object received")
-
-    
-
-# Middleware to encrypt response data
-# def encrypt_response(data):
-#     encrypted_data = encrypt_dict(data)
-#     return jsonify({'encrypted_data': encrypted_data})
-
-
-# Health check route (optional)
-# @app.route('/')
-# def health_check():
-#     print("In Health Check")
-#     return jsonify({"message": "API is running!"})
-
-
-# Actual middleware.  Commands before request (check JWT and then decrypt data) and after request (encrypt response before passing to FrontEnd)
-# def setup_middlewares(app):
-# @app.before_request 
-# def before_request():
-#     print("In Middleware before_request")
-#     # check_jwt_token()
-#     decrypt_request()
-
-
-# @app.after_request
-# def after_request(response):
-#     print("In Middleware after_request")
-#     print("Actual endpoint response: ", type(response))
-#     print("Actual endpoint response2: ", type(response.get_json()))
-#     response = encrypt_response(response.get_json()) if response.is_json else response
-#     return response
-
-# Apply middlewares
-# setup_middlewares(app)
-
-#This method is to refresh the jwt token from the FrontEnd
-# @app.route('/auth/refreshToken', methods=['POST'])
-# @jwt_required(refresh=True)  # This ensures that only refresh tokens can be used here
-# def refreshToken():
-#     try:
-#         print('Inside refresh token')
-#         current_user = get_jwt_identity()  # Get user identity from refresh token
-#         new_access_token = create_access_token(identity=current_user)  # Create new access token
-#         print('New token is', new_access_token)
-#         return jsonify(access_token=new_access_token)
-#     except Exception as e:
-#         print('Error refreshing token:', e)
-#         return jsonify({'message': 'Could not refresh token'}), 401
-
-
-
-
-# new middleware
 
 # Middleware for decrypting incoming request data
 def decrypt_request():
