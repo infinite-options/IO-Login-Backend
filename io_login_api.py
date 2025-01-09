@@ -405,10 +405,10 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
                 social_id = \'""" + social_id + """\',
                 access_expires_in = \'""" + access_expires_in + """\';
                 """)
-        print("MYSPACE Query: ", query)
+        # print("MYSPACE Query: ", query)
         response = execute(query, "post", conn)
-        print("MYSPACE response: ", response)
-        print("MYSPACE response code: ", response['code'])
+        # print("MYSPACE response: ", response)
+        # print("MYSPACE response code: ", response['code'])
         return (newUser, response['code'])
     elif projectName == 'MYSPACE':
         encrypt_flag = True
@@ -449,10 +449,54 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
                 social_id = \'""" + social_id + """\',
                 access_expires_in = \'""" + access_expires_in + """\';
                 """)
-        print("MYSPACE Query: ", query)
+        # print("MYSPACE Query: ", query)
         response = execute(query, "post", conn)
-        print("MYSPACE response: ", response)
-        print("MYSPACE response code: ", response['code'])
+        # print("MYSPACE response: ", response)
+        # print("MYSPACE response code: ", response['code'])
+        return (newUser, response['code'])
+    elif projectName == 'EVERY-CIRCLE':
+        encrypt_flag = False
+        conn = connect('every_circle')
+        query = ["CALL every_circle.new_user_uid;"]
+        NewIDresponse = execute(query[0], "get", conn)
+
+        newUserID = NewIDresponse["result"][0]["new_id"]
+        print("Every Circle userID: ", newUserID)
+        passwordSalt = createSalt()
+        passwordHash = createHash(password, passwordSalt)
+        newUser = {
+            'user_uid': newUserID,
+            # 'first_name': firstName,
+            # 'last_name': lastName,
+            # 'phone_number': phoneNumber,
+            'email': email,
+            'password_salt': passwordSalt,
+            'password_hash': passwordHash,
+            # 'role': role,
+            'google_auth_token': google_auth_token,
+            'google_refresh_token': google_refresh_token,
+            'social_id': social_id,
+            'access_expires_in': access_expires_in
+        }
+        query = ("""
+            INSERT INTO every_circle.users SET
+                user_uid = \'""" + newUserID + """\',
+                -- first_name = \'""" + firstName + """\',
+                -- last_name = \'""" + lastName + """\',
+                -- phone_number = \'""" + phoneNumber + """\',
+                email = \'""" + email + """\',
+                password_salt = \'""" + passwordSalt + """\',
+                password_hash = \'""" + passwordHash + """\',
+                -- role = \'""" + role + """\',
+                google_auth_token = \'""" + google_auth_token + """\',
+                google_refresh_token = \'""" + google_refresh_token + """\',
+                social_id = \'""" + social_id + """\',
+                access_expires_in = \'""" + access_expires_in + """\';
+                """)
+        # print("EVERYCIRCLE Query: ", query)
+        response = execute(query, "post", conn)
+        # print("EVERYCIRCLE response: ", response)
+        # print("EVERYCIRCLE response code: ", response['code'])
         return (newUser, response['code'])
     elif projectName == 'FINDME':
         conn = connect('find_me')
@@ -629,6 +673,7 @@ class GetUsers(Resource):
             finally:
                 disconnect(conn)
         elif projectName == "EVERY-CIRCLE":
+            print("In Every Circle")
             try:
 
                 conn = connect('every_circle')
@@ -1680,10 +1725,10 @@ class CreateAccount(Resource):
                 user = createUser(firstName, lastName, phoneNumber,
                                   email, password, role, '', '', '', '', '', 'MYSPACE-DEV')
                 # response['user'] = user[0]
-                print("In MySpace: ", user)
+                # print("In MySpace: ", user)
                 response['message'] = 'Signup success'
-                print("User 0: ", user[0])
-                print("User 1: ", user[1])
+                # print("User 0: ", user[0])
+                # print("User 1: ", user[1])
                 response['code'] = user[1]
                 response['result'] = createTokens(user[0], projectName)
             return response
@@ -1709,12 +1754,41 @@ class CreateAccount(Resource):
                 user = createUser(firstName, lastName, phoneNumber,
                                   email, password, role, '', '', '', '', '', 'MYSPACE')
                 # response['user'] = user[0]
-                print("In MySpace: ", user)
+                # print("In MySpace: ", user)
                 response['message'] = 'Signup success'
-                print("User 0: ", user[0])
-                print("User 1: ", user[1])
+                # print("User 0: ", user[0])
+                # print("User 1: ", user[1])
                 response['code'] = user[1]
                 response['result'] = createTokens(user[0], projectName)
+            return response
+        elif projectName == 'EVERY-CIRCLE':
+            encrypt_flag = False
+            print("In EveryCircle")
+            data = request.get_json()
+            # firstName = data.get('first_name')
+            # lastName = data.get('last_name')
+            # phoneNumber = data.get('phone_number')
+            email = data.get('email')
+            password = data.get('password')
+            # role = data.get('role')
+            user = getUserByEmail(email, projectName)
+            if user:
+                print("In EveryCircle User: ", user)
+                print("In EveryCircle User ID: ", user['user_uid'])
+                # print("In EveryCircle User ID: ", user['role'])
+                response['message'] = 'User already exists'
+                response['user_uid'] = user['user_uid']
+                # response['user_roles'] = user['role']
+            else:
+                user = createUser('', '', '', email, password, '' , '', '', '', '', '', 'EVERY-CIRCLE')
+                # response['user'] = user[0]
+                # print("New User In EveryCircle: ", user)
+                response['user_uid'] = user[0]['user_uid']
+                response['message'] = 'Signup success'
+                # print("User : ", user[0])
+                # print("User Response Code: ", user[1])
+                response['code'] = user[1]
+                # response['result'] = createTokens(user[0], projectName)
             return response
         elif projectName == 'NITYA':
             conn = connect('nitya')
@@ -2041,68 +2115,71 @@ class CreateAccount(Resource):
                 raise BadRequest("Request failed, please try again later.")
             finally:
                 disconnect(conn)
-        elif projectName == 'EVERY-CIRCLE':
-            # print("In Every-Circle")
-            conn = connect('every_circle')
-            timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
-            try:
-                data = request.get_json(force=True)
-                # print(data)
-                # firstName = data.get('first_name')
-                # lastName = data.get('last_name')
-                # phoneNumber = data.get('phone_number')
-                email_id = data["email"]
-                password = data["password"]
-                # print(email_id, password)
+        # elif projectName == 'EVERY-CIRCLE':
+        #     print("In Every-Circle")
+        #     conn = connect('every_circle')
+        #     timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
+        #     try:
+        #         data = request.get_json(force=True)
+        #         print(data)
+        #         # firstName = data.get('first_name')
+        #         # lastName = data.get('last_name')
+        #         # phoneNumber = data.get('phone_number')
+        #         email_id = data["email"]
+        #         password = data["password"]
+        #         print(email_id, password)
 
-                user_id_response = execute(
-                    """
-                        SELECT user_unique_id FROM users
-                        WHERE user_email_id = \'""" + email_id+ """\';
-                    """,
-                    "get",
-                    conn,
-                )
-                # print(user_id_response)
+        #         user_id_response = execute(
+        #             """
+        #                 SELECT user_unique_id FROM users
+        #                 WHERE user_email_id = \'""" + email_id+ """\';
+        #             """,
+        #             "get",
+        #             conn,
+        #         )
+        #         print(user_id_response)
 
-                if len(user_id_response["result"]) > 0:
-                    response["message"] = "User already exists"
+        #         if len(user_id_response["result"]) > 0:
+        #             response["message"] = "User already exists"
 
-                else:
-                    # print("In else")
-                    salt = os.urandom(32)
+        #         else:
+        #             print("In else")
+        #             salt = os.urandom(32)
+        #             print(salt, type(salt))
 
-                    dk = hashlib.pbkdf2_hmac(
-                        "sha256", password.encode("utf-8"), salt, 100000, dklen=128
-                    )
-                    key = (salt + dk).hex()
-                    # print(key)
+        #             dk = hashlib.pbkdf2_hmac(
+        #                 "sha256", password.encode("utf-8"), salt, 100000, dklen=128
+        #             )
+        #             key = (salt + dk).hex()
+        #             print(key)
 
-                    user_id_response = execute(
-                        "CAll get_user_id;", "get", conn)
-                    new_user_id = user_id_response["result"][0]["new_id"]
+        #             user_id_response = execute(
+        #                 "CAll get_user_id;", "get", conn)
+        #             new_user_id = user_id_response["result"][0]["new_id"]
+        #             print(new_user_id)
 
-                    execute(
-                        """
-                        INSERT INTO users
-                        SET user_unique_id = \'""" + new_user_id + """\',
-                            user_timestamp = \'""" + timestamp + """\',
-                            user_email_id  = \'""" + email_id + """\',
-                            password_salt = \'""" + salt + """\',
-                            password_hashed = \'""" + key + """\';
-                        """,
-                        "post",
-                        conn,
-                    )
+        #             execute(
+        #                 """
+        #                 INSERT INTO users
+        #                 SET user_unique_id = \'""" + new_user_id + """\',
+        #                     user_timestamp = \'""" + timestamp + """\',
+        #                     user_email_id  = \'""" + email_id + """\',
+        #                     password_salt = \'""" + salt + """\',
+        #                     password_hashed = \'""" + key + """\';
+        #                 """,
+        #                 "post",
+        #                 conn,
+        #             )
 
-                    response["message"] = "successful"
-                    response["result"] = new_user_id
+        #             print(response)
+        #             response["message"] = "successful"
+        #             response["result"] = new_user_id
 
-                return response, 200
-            except:
-                raise BadRequest("Request failed, please try again later.")
-            finally:
-                disconnect(conn)
+        #         return response, 200
+        #     except:
+        #         raise BadRequest("Request failed, please try again later.")
+        #     finally:
+        #         disconnect(conn)
         elif projectName == 'SKEDUL':
             conn = connect('skedul')
             timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
