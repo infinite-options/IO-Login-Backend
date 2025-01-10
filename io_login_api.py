@@ -537,124 +537,6 @@ class GetUsers(Resource):
         return response
 
 
-
-    # def get(self, projectName):
-    #     response = {}
-    #     # global encrypt_flag 
-    #     items = {}
-    #     # Business Code sent in as a parameter from frontend
-    #     print("business: ", projectName)
-    #     if projectName == "PM":
-    #         try:
-
-    #             conn = connect('pm')
-    #             query = ("""SELECT * FROM pm.users;""")
-    #             items = execute(query, "get", conn)
-    #             response["message"] = "Users from PM"
-    #             response["result"] = items["result"]
-
-    #         except:
-    #             raise BadRequest(
-    #                 "Request failed, please try again later."
-    #             )
-    #         finally:
-    #             disconnect(conn)
-    #     elif projectName == "MYSPACE-DEV": 
-            
-    #         try:
-
-    #             conn = connect('space_dev')
-    #             query = ("""SELECT * FROM space_dev.users;""")
-    #             items = execute(query, "get", conn)
-    #             response["message"] = "Users from MYSPACE"
-    #             response["result"] = items["result"]
-
-    #         except:
-    #             raise BadRequest(
-    #                 "Request failed, please try again later."
-    #             )
-    #         finally:
-    #             disconnect(conn)
-    #     elif projectName == "MYSPACE": 
-            
-    #         try:
-
-    #             conn = connect('space_prod')
-    #             query = ("""SELECT * FROM space_prod.users;""")
-    #             items = execute(query, "get", conn)
-    #             response["message"] = "Users from MYSPACE"
-    #             response["result"] = items["result"]
-
-    #         except:
-    #             raise BadRequest(
-    #                 "Request failed, please try again later."
-    #             )
-    #         finally:
-    #             disconnect(conn)
-    #     elif projectName == "NITYA":
-    #         try:
-
-    #             conn = connect('nitya')
-    #             query = ("""SELECT * FROM nitya.customers;""")
-    #             items = execute(query, "get", conn)
-    #             response["message"] = "Customers from Nitya"
-    #             response["result"] = items["result"]
-
-    #         except:
-    #             raise BadRequest(
-    #                 "Request failed, please try again later."
-    #             )
-    #         finally:
-    #             disconnect(conn)
-    #     elif projectName == "EVERY-CIRCLE":
-    #         print("In Every Circle")
-    #         try:
-
-    #             conn = connect('every_circle')
-    #             query = ("""SELECT * FROM every_circle.users;""")
-    #             items = execute(query, "get", conn)
-    #             response["message"] = "Users from EVERY-CIRCLE"
-    #             response["result"] = items["result"]
-
-    #         except:
-    #             raise BadRequest(
-    #                 "Request failed, please try again later."
-    #             )
-    #         finally:
-    #             disconnect(conn)
-    #     elif projectName == "SKEDUL":
-    #         try:
-
-    #             conn = connect('skedul')
-    #             query = ("""SELECT * FROM skedul.users;""")
-    #             items = execute(query, "get", conn)
-    #             response["message"] = "Users from SKEDUL"
-    #             response["result"] = items["result"]
-
-    #         except:
-    #             raise BadRequest(
-    #                 "Request failed, please try again later."
-    #             )
-    #         finally:
-    #             disconnect(conn)
-    #     elif projectName == "FINDME":
-    #         try:
-
-    #             conn = connect('find_me')
-    #             query = ("""SELECT * FROM find_me.users;""")
-    #             items = execute(query, "get", conn)
-    #             response["message"] = "Users from FIND ME"
-    #             response["result"] = items["result"]
-
-    #         except:
-    #             raise BadRequest(
-    #                 "Request failed, please try again later."
-    #             )
-    #         finally:
-    #             disconnect(conn)
-    #     return response
-
-
 class SetTempPassword(Resource):
     def get_random_string(self, stringLength=8):
         lettersAndDigits = string.ascii_letters + string.digits
@@ -667,310 +549,351 @@ class SetTempPassword(Resource):
         user_lookup = {}
         data = request.get_json(force=True)
         email = data['email']
-        if projectName == "PM":
-            conn = connect('pm')
-            # get user
-            # user_lookup_query = ("""
-            # SELECT * FROM pm.users
-            # WHERE email = \'""" + email + """\';""")
-            # user_lookup = execute(user_lookup_query, "get", conn)
-            user_lookup = user_lookup_query(email, projectName)
 
-            if not user_lookup['result']:
+        db = db_lookup(projectName)
+        conn = connect(db)
+        user_lookup = user_lookup_query(email, projectName)
+        print(db, user_lookup)
+
+        if not user_lookup:
+                print("In not user_lookup")
                 user_lookup['message'] = 'No such email exists'
                 return user_lookup
-            user_uid = user_lookup['result'][0]['user_uid']
-            # create password salt and hash
-            pass_temp = self.get_random_string()
-            passwordSalt = createSalt()
-            passwordHash = createHash(pass_temp, passwordSalt)
+        user_uid = user_lookup['user_uid']
+        print(user_uid)
+        # create password salt and hash
+        pass_temp = self.get_random_string()
+        passwordSalt = createSalt()
+        passwordHash = createHash(pass_temp, passwordSalt)
 
-            # update table
-            query_update = """
-            UPDATE pm.users 
-                SET 
-                password_salt = \'""" + passwordSalt + """\',
+        # update table
+        query_update = f"""
+            UPDATE {db}.users 
+            SET password_salt = \'""" + passwordSalt + """\',
                 password_hash =  \'""" + passwordHash + """\'
-            WHERE user_uid = \'""" + user_uid + """\' """
-
-            items = execute(query_update, "post", conn)
-            # send email
-            subject = "Email Verification"
-            recipient = email
-            body = (
-                "Your temporary password is {}. Please use it to reset your password".format(
-                    pass_temp)
-            )
-            sendEmail(recipient, subject, body)
-            response['message'] = "A temporary password has been sent"
-
-        elif projectName == "MYSPACE-DEV":
-            
-            conn = connect('space_dev')
-            # get user
-            # user_lookup_query = ("""
-            #     SELECT * 
-            #     FROM space_dev.users
-            #     WHERE email = \'""" + email + """\';
-            #     """)
-            # user_lookup = execute(user_lookup_query, "get", conn)
-            user_lookup = user_lookup_query(email, projectName)
-
-            if not user_lookup['result']:
-                user_lookup['message'] = 'No such email exists'
-                return user_lookup
-            user_uid = user_lookup['result'][0]['user_uid']
-            # create password salt and hash
-            pass_temp = self.get_random_string()
-            passwordSalt = createSalt()
-            passwordHash = createHash(pass_temp, passwordSalt)
-
-            # update table
-            query_update = """
-            UPDATE space_dev.users 
-                SET 
-                password_salt = \'""" + passwordSalt + """\',
-                password_hash =  \'""" + passwordHash + """\'
-            WHERE user_uid = \'""" + user_uid + """\' """
-
-            items = execute(query_update, "post", conn)
-            # send email
-            subject = "Email Verification"
-            recipient = email
-            body = (
-                "Your temporary password is {}. Please use it to reset your password".format(
-                    pass_temp)
-            )
-            sendEmail(recipient, subject, body)
-            response['message'] = "A temporary password has been sent"
+            WHERE user_uid = \'""" + user_uid + """\' 
+            """
         
-        elif projectName == "MYSPACE":
-            
-            conn = connect('space_prod')
-            # get user
-            # user_lookup_query = ("""
-            #     SELECT * 
-            #     FROM space_prod.users
-            #     WHERE email = \'""" + email + """\';
-            #     """)
-            # user_lookup = execute(user_lookup_query, "get", conn)
-            user_lookup = user_lookup_query(email, projectName)
+        print(query_update)
 
-            if not user_lookup['result']:
-                user_lookup['message'] = 'No such email exists'
-                return user_lookup
-            user_uid = user_lookup['result'][0]['user_uid']
-            # create password salt and hash
-            pass_temp = self.get_random_string()
-            passwordSalt = createSalt()
-            passwordHash = createHash(pass_temp, passwordSalt)
-
-            # update table
-            query_update = """
-            UPDATE space_prod.users 
-                SET 
-                password_salt = \'""" + passwordSalt + """\',
-                password_hash =  \'""" + passwordHash + """\'
-            WHERE user_uid = \'""" + user_uid + """\' """
-
-            items = execute(query_update, "post", conn)
-            # send email
-            subject = "Email Verification"
-            recipient = email
-            body = (
-                "Your temporary password is {}. Please use it to reset your password".format(
-                    pass_temp)
+        items = execute(query_update, "post", conn)
+        # send email
+        subject = "Email Verification"
+        recipient = email
+        body = (
+            "Your temporary password is {}. Please use it to reset your password".format(pass_temp)
             )
-            sendEmail(recipient, subject, body)
-            response['message'] = "A temporary password has been sent"
+        sendEmail(recipient, subject, body)
+        response['message'] = "A temporary password has been sent"
 
-        elif projectName == "NITYA":
-            conn = connect('nitya')
-            # get user
-            # user_lookup_query = ("""
-            # SELECT * FROM nitya.customers
-            # WHERE customer_email =\'""" + email + """\';""")
-            # user_lookup = execute(user_lookup_query, "get", conn)
-            user_lookup = user_lookup_query(email, projectName)
-
-            if not user_lookup['result']:
-                user_lookup['message'] = 'No such email exists'
-                return user_lookup
-            user_uid = user_lookup['result'][0]['customer_uid']
-
-            # create password salt and hash
-            pass_temp = self.get_random_string()
-            passwordSalt = createSalt()
-            passwordHash = createHash(pass_temp, passwordSalt)
-            # update table
-            query_update = """
-            UPDATE nitya.customers 
-                SET 
-                password_salt = \'""" + passwordSalt + """\',
-                password_hashed =  \'""" + passwordHash + """\'
-            WHERE customer_uid = \'""" + user_uid + """\' """
-
-            items = execute(query_update, "post", conn)
-
-            # send email
-            subject = "Email Verification"
-            recipient = email
-            body = (
-                "Your temporary password is {}. Please use it to reset your password".format(
-                    pass_temp)
-            )
-            sendEmail(recipient, subject, body)
-            response['message'] = "A temporary password has been sent"
-
-        elif projectName == "EVERY-CIRCLE":
-            conn = connect('every_circle')
-            # get user
-            # user_lookup_query = ("""
-            # SELECT * FROM every_circle.users
-            # WHERE user_email_id = \'""" + email + """\';""")
-            # user_lookup = execute(user_lookup_query, "get", conn)
-            user_lookup = user_lookup_query(email, projectName)
-
-            if not user_lookup['result']:
-                user_lookup['message'] = 'No such email exists'
-                return user_lookup
-            user_uid = user_lookup['result'][0]['user_unique_id']
-            # create password salt and hash
-            pass_temp = self.get_random_string()
-            passwordSalt = createSalt()
-            passwordHash = createHash(pass_temp, passwordSalt)
-            # update table
-            query_update = """
-            UPDATE every_circle.users 
-                SET 
-                password_salt = \'""" + passwordSalt + """\',
-                password_hashed =  \'""" + passwordHash + """\'
-            WHERE user_unique_id = \'""" + user_uid + """\' """
-
-            items = execute(query_update, "post", conn)
-            # send email
-            subject = "Email Verification"
-            recipient = email
-            body = (
-                "Your temporary password is {}. Please use it to reset your password".format(
-                    pass_temp)
-            )
-            sendEmail(recipient, subject, body)
-            response['message'] = "A temporary password has been sent"
-            
-        elif projectName == "SKEDUL":
-            conn = connect('skedul')
-            # get user
-            # user_lookup_query = ("""
-            # SELECT * FROM skedul.users
-            # WHERE user_email_id = \'""" + email + """\';""")
-            # user_lookup = execute(user_lookup_query, "get", conn)
-            user_lookup = user_lookup_query(email, projectName)
-
-            if not user_lookup['result']:
-                user_lookup['message'] = 'No such email exists'
-                return user_lookup
-            user_uid = user_lookup['result'][0]['user_unique_id']
-            # create password salt and hash
-            pass_temp = self.get_random_string()
-            passwordSalt = createSalt()
-            passwordHash = createHash(pass_temp, passwordSalt)
-            # update table
-            query_update = """
-            UPDATE skedul.users 
-                SET 
-                password_salt = \'""" + passwordSalt + """\',
-                password_hashed =  \'""" + passwordHash + """\'
-            WHERE user_unique_id = \'""" + user_uid + """\' """
-
-            items = execute(query_update, "post", conn)
-            # send email
-            subject = "Email Verification"
-            recipient = email
-            body = (
-                "Your temporary password is {}. Please use it to reset your password".format(
-                    pass_temp)
-            )
-            sendEmail(recipient, subject, body)
-            response['message'] = "A temporary password has been sent"
-
-        elif projectName == "FINDME":
-            conn = connect('find_me')
-            # get user
-            # user_lookup_query = ("""
-            # SELECT * FROM find_me.users
-            # WHERE email = \'""" + email + """\';""")
-            # user_lookup = execute(user_lookup_query, "get", conn)
-            user_lookup = user_lookup_query(email, projectName)
-
-            if not user_lookup['result']:
-                user_lookup['message'] = 'No such email exists'
-                return user_lookup
-            user_uid = user_lookup['result'][0]['user_uid']
-            # create password salt and hash
-            pass_temp = self.get_random_string()
-            passwordSalt = createSalt()
-            passwordHash = createHash(pass_temp, passwordSalt)
-            # update table
-            query_update = """
-            UPDATE find_me.users 
-                SET 
-                password_salt = \'""" + passwordSalt + """\',
-                password_hash =  \'""" + passwordHash + """\'
-            WHERE user_uid = \'""" + user_uid + """\' """
-
-            items = execute(query_update, "post", conn)
-            # send email
-            subject = "Email Verification"
-            recipient = email
-            body = (
-                "Your temporary password is {}. Please use it to reset your password".format(
-                    pass_temp)
-            )
-            sendEmail(recipient, subject, body)
-            response['message'] = "A temporary password has been sent"
-
-        elif projectName == "MMU":
-            conn = connect('mmu')
-            # get user
-            # user_lookup_query = ("""
-            # SELECT * FROM mmu.users
-            # WHERE user_email_id = \'""" + email + """\';""")
-            # user_lookup = execute(user_lookup_query, "get", conn)
-            user_lookup = user_lookup_query(email, projectName)
-
-            if not user_lookup['result']:
-                user_lookup['message'] = 'No such email exists'
-                return user_lookup
-            user_uid = user_lookup['result'][0]['user_uid']
-            # create password salt and hash
-            pass_temp = self.get_random_string()
-            passwordSalt = createSalt()
-            passwordHash = createHash(pass_temp, passwordSalt)
-            # update table
-            query_update = """
-            UPDATE mmu.users 
-                SET 
-                user_password_salt = \'""" + passwordSalt + """\',
-                user_password_hash =  \'""" + passwordHash + """\'
-            WHERE user_uid = \'""" + user_uid + """\' """
-
-            items = execute(query_update, "post", conn)
-            # send email
-            subject = "Email Verification"
-            recipient = email
-            body = (
-                "Your temporary password is {}. Please use it to reset your password".format(
-                    pass_temp)
-            )
-            sendEmail(recipient, subject, body)
-            response['message'] = "A temporary password has been sent"
-
-        else:
-            response['message'] = "Project Not Found"
-
-        
         return response
+
+
+
+        # if projectName == "PM":
+        #     conn = connect('pm')
+        #     # get user
+        #     # user_lookup_query = ("""
+        #     # SELECT * FROM pm.users
+        #     # WHERE email = \'""" + email + """\';""")
+        #     # user_lookup = execute(user_lookup_query, "get", conn)
+        #     user_lookup = user_lookup_query(email, projectName)
+
+        #     if not user_lookup['result']:
+        #         user_lookup['message'] = 'No such email exists'
+        #         return user_lookup
+        #     user_uid = user_lookup['result'][0]['user_uid']
+        #     # create password salt and hash
+        #     pass_temp = self.get_random_string()
+        #     passwordSalt = createSalt()
+        #     passwordHash = createHash(pass_temp, passwordSalt)
+
+        #     # update table
+        #     query_update = """
+        #     UPDATE pm.users 
+        #         SET 
+        #         password_salt = \'""" + passwordSalt + """\',
+        #         password_hash =  \'""" + passwordHash + """\'
+        #     WHERE user_uid = \'""" + user_uid + """\' """
+
+        #     items = execute(query_update, "post", conn)
+        #     # send email
+        #     subject = "Email Verification"
+        #     recipient = email
+        #     body = (
+        #         "Your temporary password is {}. Please use it to reset your password".format(
+        #             pass_temp)
+        #     )
+        #     sendEmail(recipient, subject, body)
+        #     response['message'] = "A temporary password has been sent"
+
+        # elif projectName == "MYSPACE-DEV":
+            
+        #     conn = connect('space_dev')
+        #     # get user
+        #     # user_lookup_query = ("""
+        #     #     SELECT * 
+        #     #     FROM space_dev.users
+        #     #     WHERE email = \'""" + email + """\';
+        #     #     """)
+        #     # user_lookup = execute(user_lookup_query, "get", conn)
+        #     user_lookup = user_lookup_query(email, projectName)
+
+        #     if not user_lookup['result']:
+        #         user_lookup['message'] = 'No such email exists'
+        #         return user_lookup
+        #     user_uid = user_lookup['result'][0]['user_uid']
+        #     # create password salt and hash
+        #     pass_temp = self.get_random_string()
+        #     passwordSalt = createSalt()
+        #     passwordHash = createHash(pass_temp, passwordSalt)
+
+        #     # update table
+        #     query_update = """
+        #     UPDATE space_dev.users 
+        #         SET 
+        #         password_salt = \'""" + passwordSalt + """\',
+        #         password_hash =  \'""" + passwordHash + """\'
+        #     WHERE user_uid = \'""" + user_uid + """\' """
+
+        #     items = execute(query_update, "post", conn)
+        #     # send email
+        #     subject = "Email Verification"
+        #     recipient = email
+        #     body = (
+        #         "Your temporary password is {}. Please use it to reset your password".format(
+        #             pass_temp)
+        #     )
+        #     sendEmail(recipient, subject, body)
+        #     response['message'] = "A temporary password has been sent"
+        
+        # elif projectName == "MYSPACE":
+            
+        #     conn = connect('space_prod')
+        #     # get user
+        #     # user_lookup_query = ("""
+        #     #     SELECT * 
+        #     #     FROM space_prod.users
+        #     #     WHERE email = \'""" + email + """\';
+        #     #     """)
+        #     # user_lookup = execute(user_lookup_query, "get", conn)
+        #     user_lookup = user_lookup_query(email, projectName)
+
+        #     if not user_lookup['result']:
+        #         user_lookup['message'] = 'No such email exists'
+        #         return user_lookup
+        #     user_uid = user_lookup['result'][0]['user_uid']
+        #     # create password salt and hash
+        #     pass_temp = self.get_random_string()
+        #     passwordSalt = createSalt()
+        #     passwordHash = createHash(pass_temp, passwordSalt)
+
+        #     # update table
+        #     query_update = """
+        #     UPDATE space_prod.users 
+        #         SET 
+        #         password_salt = \'""" + passwordSalt + """\',
+        #         password_hash =  \'""" + passwordHash + """\'
+        #     WHERE user_uid = \'""" + user_uid + """\' """
+
+        #     items = execute(query_update, "post", conn)
+        #     # send email
+        #     subject = "Email Verification"
+        #     recipient = email
+        #     body = (
+        #         "Your temporary password is {}. Please use it to reset your password".format(
+        #             pass_temp)
+        #     )
+        #     sendEmail(recipient, subject, body)
+        #     response['message'] = "A temporary password has been sent"
+
+        # elif projectName == "NITYA":
+        #     conn = connect('nitya')
+        #     # get user
+        #     # user_lookup_query = ("""
+        #     # SELECT * FROM nitya.customers
+        #     # WHERE customer_email =\'""" + email + """\';""")
+        #     # user_lookup = execute(user_lookup_query, "get", conn)
+        #     user_lookup = user_lookup_query(email, projectName)
+
+        #     if not user_lookup['result']:
+        #         user_lookup['message'] = 'No such email exists'
+        #         return user_lookup
+        #     user_uid = user_lookup['result'][0]['customer_uid']
+
+        #     # create password salt and hash
+        #     pass_temp = self.get_random_string()
+        #     passwordSalt = createSalt()
+        #     passwordHash = createHash(pass_temp, passwordSalt)
+        #     # update table
+        #     query_update = """
+        #     UPDATE nitya.customers 
+        #         SET 
+        #         password_salt = \'""" + passwordSalt + """\',
+        #         password_hashed =  \'""" + passwordHash + """\'
+        #     WHERE customer_uid = \'""" + user_uid + """\' """
+
+        #     items = execute(query_update, "post", conn)
+
+        #     # send email
+        #     subject = "Email Verification"
+        #     recipient = email
+        #     body = (
+        #         "Your temporary password is {}. Please use it to reset your password".format(
+        #             pass_temp)
+        #     )
+        #     sendEmail(recipient, subject, body)
+        #     response['message'] = "A temporary password has been sent"
+
+        # elif projectName == "EVERY-CIRCLE":
+        #     conn = connect('every_circle')
+        #     # get user
+        #     # user_lookup_query = ("""
+        #     # SELECT * FROM every_circle.users
+        #     # WHERE user_email_id = \'""" + email + """\';""")
+        #     # user_lookup = execute(user_lookup_query, "get", conn)
+        #     user_lookup = user_lookup_query(email, projectName)
+
+        #     if not user_lookup['result']:
+        #         user_lookup['message'] = 'No such email exists'
+        #         return user_lookup
+        #     user_uid = user_lookup['result'][0]['user_unique_id']
+        #     # create password salt and hash
+        #     pass_temp = self.get_random_string()
+        #     passwordSalt = createSalt()
+        #     passwordHash = createHash(pass_temp, passwordSalt)
+        #     # update table
+        #     query_update = """
+        #     UPDATE every_circle.users 
+        #         SET 
+        #         password_salt = \'""" + passwordSalt + """\',
+        #         password_hashed =  \'""" + passwordHash + """\'
+        #     WHERE user_unique_id = \'""" + user_uid + """\' """
+
+        #     items = execute(query_update, "post", conn)
+        #     # send email
+        #     subject = "Email Verification"
+        #     recipient = email
+        #     body = (
+        #         "Your temporary password is {}. Please use it to reset your password".format(
+        #             pass_temp)
+        #     )
+        #     sendEmail(recipient, subject, body)
+        #     response['message'] = "A temporary password has been sent"
+            
+        # elif projectName == "SKEDUL":
+        #     conn = connect('skedul')
+        #     # get user
+        #     # user_lookup_query = ("""
+        #     # SELECT * FROM skedul.users
+        #     # WHERE user_email_id = \'""" + email + """\';""")
+        #     # user_lookup = execute(user_lookup_query, "get", conn)
+        #     user_lookup = user_lookup_query(email, projectName)
+
+        #     if not user_lookup['result']:
+        #         user_lookup['message'] = 'No such email exists'
+        #         return user_lookup
+        #     user_uid = user_lookup['result'][0]['user_unique_id']
+        #     # create password salt and hash
+        #     pass_temp = self.get_random_string()
+        #     passwordSalt = createSalt()
+        #     passwordHash = createHash(pass_temp, passwordSalt)
+        #     # update table
+        #     query_update = """
+        #     UPDATE skedul.users 
+        #         SET 
+        #         password_salt = \'""" + passwordSalt + """\',
+        #         password_hashed =  \'""" + passwordHash + """\'
+        #     WHERE user_unique_id = \'""" + user_uid + """\' """
+
+        #     items = execute(query_update, "post", conn)
+        #     # send email
+        #     subject = "Email Verification"
+        #     recipient = email
+        #     body = (
+        #         "Your temporary password is {}. Please use it to reset your password".format(
+        #             pass_temp)
+        #     )
+        #     sendEmail(recipient, subject, body)
+        #     response['message'] = "A temporary password has been sent"
+
+        # elif projectName == "FINDME":
+        #     conn = connect('find_me')
+        #     # get user
+        #     # user_lookup_query = ("""
+        #     # SELECT * FROM find_me.users
+        #     # WHERE email = \'""" + email + """\';""")
+        #     # user_lookup = execute(user_lookup_query, "get", conn)
+        #     user_lookup = user_lookup_query(email, projectName)
+
+        #     if not user_lookup['result']:
+        #         user_lookup['message'] = 'No such email exists'
+        #         return user_lookup
+        #     user_uid = user_lookup['result'][0]['user_uid']
+        #     # create password salt and hash
+        #     pass_temp = self.get_random_string()
+        #     passwordSalt = createSalt()
+        #     passwordHash = createHash(pass_temp, passwordSalt)
+        #     # update table
+        #     query_update = """
+        #     UPDATE find_me.users 
+        #         SET 
+        #         password_salt = \'""" + passwordSalt + """\',
+        #         password_hash =  \'""" + passwordHash + """\'
+        #     WHERE user_uid = \'""" + user_uid + """\' """
+
+        #     items = execute(query_update, "post", conn)
+        #     # send email
+        #     subject = "Email Verification"
+        #     recipient = email
+        #     body = (
+        #         "Your temporary password is {}. Please use it to reset your password".format(
+        #             pass_temp)
+        #     )
+        #     sendEmail(recipient, subject, body)
+        #     response['message'] = "A temporary password has been sent"
+
+        # elif projectName == "MMU":
+        #     conn = connect('mmu')
+        #     # get user
+        #     # user_lookup_query = ("""
+        #     # SELECT * FROM mmu.users
+        #     # WHERE user_email_id = \'""" + email + """\';""")
+        #     # user_lookup = execute(user_lookup_query, "get", conn)
+        #     user_lookup = user_lookup_query(email, projectName)
+
+        #     if not user_lookup['result']:
+        #         user_lookup['message'] = 'No such email exists'
+        #         return user_lookup
+        #     user_uid = user_lookup['result'][0]['user_uid']
+        #     # create password salt and hash
+        #     pass_temp = self.get_random_string()
+        #     passwordSalt = createSalt()
+        #     passwordHash = createHash(pass_temp, passwordSalt)
+        #     # update table
+        #     query_update = """
+        #     UPDATE mmu.users 
+        #         SET 
+        #         user_password_salt = \'""" + passwordSalt + """\',
+        #         user_password_hash =  \'""" + passwordHash + """\'
+        #     WHERE user_uid = \'""" + user_uid + """\' """
+
+        #     items = execute(query_update, "post", conn)
+        #     # send email
+        #     subject = "Email Verification"
+        #     recipient = email
+        #     body = (
+        #         "Your temporary password is {}. Please use it to reset your password".format(
+        #             pass_temp)
+        #     )
+        #     sendEmail(recipient, subject, body)
+        #     response['message'] = "A temporary password has been sent"
+
+        # else:
+        #     response['message'] = "Project Not Found"
+
+        
+        # return response
 
 
 class UpdateEmailPassword(Resource):
