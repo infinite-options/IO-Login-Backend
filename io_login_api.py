@@ -41,7 +41,7 @@ import json
 import base64
 
 from data import connect, disconnect, serializeResponse, execute
-from myspace import getBusinessProfileInfo, getTenantProfileInfo, getOwnerProfileInfo
+from profile import getBusinessProfileInfo, getTenantProfileInfo, getOwnerProfileInfo
 from encryption import (
     encrypt_dict, decrypt_dict, handle_encrypted_request, create_json_override,
     encrypt_response, handle_before_request, handle_after_request, get_project_name_from_request
@@ -61,61 +61,7 @@ full_encryption_projects = ["MYSPACE", "MYSPACE-DEV"]
 encrypt_flag = False
 project_name = ""
 
-# Encrypt dictionary
-def encrypt_dict(data_dict):
-    try:
-        print("In encrypt_dict: ", data_dict)
-        # Convert dictionary to JSON string
-        json_data = json.dumps(data_dict).encode()
 
-        # Pad the JSON data
-        padder = PKCS7(BLOCK_SIZE * 8).padder()
-        padded_data = padder.update(json_data) + padder.finalize()
-
-        # Generate a random initialization vector (IV)
-        iv = os.urandom(BLOCK_SIZE)
-
-        # Create a new AES cipher
-        cipher = Cipher(algorithms.AES(AES_KEY), modes.CBC(iv), backend=default_backend())
-        encryptor = cipher.encryptor()
-
-        # Encrypt the padded data
-        encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
-
-        # Combine IV and encrypted data, then Base64 encode
-        encrypted_blob = base64.b64encode(iv + encrypted_data).decode()
-        return encrypted_blob
-    except Exception as e:
-        print(f"Encryption error: {e}")
-        return None
-
-# Decrypt dictionary
-def decrypt_dict(encrypted_blob):
-    print("Actual decryption started")
-    try:
-        # Base64 decode the encrypted blob
-        encrypted_data = base64.b64decode(encrypted_blob)
-
-        # Extract the IV (first BLOCK_SIZE bytes) and the encrypted content
-        iv = encrypted_data[:BLOCK_SIZE]
-        encrypted_content = encrypted_data[BLOCK_SIZE:]
-
-        # Create a new AES cipher
-        cipher = Cipher(algorithms.AES(AES_KEY), modes.CBC(iv), backend=default_backend())
-        decryptor = cipher.decryptor()
-
-        # Decrypt the encrypted content
-        decrypted_padded_data = decryptor.update(encrypted_content) + decryptor.finalize()
-
-        # Unpad the decrypted content
-        unpadder = PKCS7(BLOCK_SIZE * 8).unpadder()
-        decrypted_data = unpadder.update(decrypted_padded_data) + unpadder.finalize()
-
-        # Convert the JSON string back to a dictionary
-        return json.loads(decrypted_data.decode())
-    except Exception as e:
-        print(f"Decryption error: {e}")
-        return None
 
 
 app = Flask(__name__)
@@ -2276,27 +2222,13 @@ class CreateAccount(Resource):
 
                     execute(
                         """INSERT INTO users
-                            SET user_unique_id = \'"""
-                        + new_user_id
-                        + """\',
-                                user_timestamp = \'"""
-                        + timestamp
-                        + """\',
-                                user_email_id  = \'"""
-                        + email_id
-                        + """\',
-                                user_first_name = \'"""
-                        + first_name
-                        + """\',
-                                user_last_name = \'"""
-                        + last_name
-                        + """\',
-                                password_hashed = \'"""
-                        + key
-                        + """\',
-                                time_zone = \'"""
-                        + time_zone
-                        + """\';""",
+                            SET user_unique_id = \'""" + new_user_id + """\',
+                                user_timestamp = \'""" + timestamp + """\',
+                                user_email_id  = \'""" + email_id + """\',
+                                user_first_name = \'""" + first_name + """\',
+                                user_last_name = \'""" + last_name + """\',
+                                password_hashed = \'""" + key + """\',
+                                time_zone = \'""" + time_zone + """\';""",
                         "post",
                         conn,
                     )
