@@ -5,7 +5,7 @@ from data import connect, disconnect, serializeResponse, execute
 def getBusinessProfileInfo(user, projectName):
     print("In Business Profile Info")
     # print(projectName, user)
-    global encrypt_flag 
+
     if projectName == 'PM':
         response = {}
         conn = connect('pm')
@@ -16,7 +16,7 @@ def getBusinessProfileInfo(user, projectName):
         response = execute(query, "get", conn)
         return response
     elif projectName == "MYSPACE-DEV":
-        encrypt_flag = True
+       
         response = {}
         conn = connect('space_dev')
         query = """
@@ -56,7 +56,7 @@ def getBusinessProfileInfo(user, projectName):
         return response
     
     elif projectName == "MYSPACE":
-        encrypt_flag = True
+        
         response = {}
         conn = connect('space_prod')
         query = """
@@ -94,9 +94,9 @@ def getBusinessProfileInfo(user, projectName):
 
 def getOwnerProfileInfo(user, projectName):
     print("In Owner Profile Info")
-    global encrypt_flag 
+    
     if projectName == 'MYSPACE-DEV':
-        encrypt_flag = True
+        
         response = {}
         conn = connect('space_dev')
         query = """
@@ -111,7 +111,7 @@ def getOwnerProfileInfo(user, projectName):
             response["result"] = response["result"][0]["owner_uid"]
         return response
     if projectName == 'MYSPACE':
-        encrypt_flag = True
+        
         response = {}
         conn = connect('space_prod')
         query = """
@@ -128,7 +128,7 @@ def getOwnerProfileInfo(user, projectName):
 
 def getTenantProfileInfo(user, projectName):
     print("In Tenant Profile Info")
-    global encrypt_flag 
+    
     if projectName == 'PM':
         response = {}
         conn = connect('pm')
@@ -138,7 +138,7 @@ def getTenantProfileInfo(user, projectName):
         response = execute(query, "get", conn)
         return response
     elif projectName == "MYSPACE-DEV":
-        encrypt_flag = True
+        
         response = {}
         conn = connect('space_dev')
         query = """
@@ -153,7 +153,7 @@ def getTenantProfileInfo(user, projectName):
             response["result"] = response["result"][0]["tenant_uid"]
         return response
     elif projectName == "MYSPACE":
-        encrypt_flag = True
+        
         response = {}
         conn = connect('space_prod')
         query = """

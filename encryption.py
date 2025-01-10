@@ -191,7 +191,7 @@ def handle_after_request(response, project_name, full_encryption_projects, postm
         project_name (str): Name of the current project
         full_encryption_projects (list): List of projects requiring encryption
         postman_secret (str): Secret key for Postman requests
-        encrypt_flag (bool): Whether encryption is currently enabled
+        
         
     Returns:
         Response: Processed Flask response

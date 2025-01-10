@@ -232,7 +232,6 @@ def sendEmail(recipient, subject, body):
 #             return result['result'][0]
 
 def createUser(firstName, lastName, phoneNumber, email, password, role=None, email_validated=None, google_auth_token=None, google_refresh_token=None, social_id=None, access_expires_in=None, projectName=None):
-    global encrypt_flag 
     if projectName == 'PM':
         conn = connect('pm')
         query = ["CALL pm.new_user_id;"]
@@ -276,7 +275,7 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
         # print("After PM Create User: ", response)
         return newUser
     elif projectName == 'MYSPACE-DEV':
-        encrypt_flag = True
+        
         conn = connect('space_dev')
         query = ["CALL space_dev.new_user_uid;"]
         NewIDresponse = execute(query[0], "get", conn)
@@ -320,7 +319,7 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
         # print("MYSPACE response code: ", response['code'])
         return (newUser, response['code'])
     elif projectName == 'MYSPACE':
-        encrypt_flag = True
+        
         conn = connect('space_prod')
         query = ["CALL space_prod.new_user_uid;"]
         NewIDresponse = execute(query[0], "get", conn)
@@ -364,7 +363,7 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
         # print("MYSPACE response code: ", response['code'])
         return (newUser, response['code'])
     elif projectName == 'EVERY-CIRCLE':
-        encrypt_flag = False
+        
         conn = connect('every_circle')
         query = ["CALL every_circle.new_user_uid;"]
         NewIDresponse = execute(query[0], "get", conn)
@@ -515,7 +514,7 @@ class GetUsers(Resource):
 
     def get(self, projectName):
         response = {}
-        global encrypt_flag 
+        # global encrypt_flag 
         items = {}
         # Business Code sent in as a parameter from frontend
         print("business: ", projectName)
@@ -535,7 +534,7 @@ class GetUsers(Resource):
             finally:
                 disconnect(conn)
         elif projectName == "MYSPACE-DEV": 
-            encrypt_flag = True
+            
             try:
 
                 conn = connect('space_dev')
@@ -551,7 +550,7 @@ class GetUsers(Resource):
             finally:
                 disconnect(conn)
         elif projectName == "MYSPACE": 
-            encrypt_flag = True
+            
             try:
 
                 conn = connect('space_prod')
@@ -637,7 +636,7 @@ class SetTempPassword(Resource):
 
     def post(self, projectName):
         response = {}
-        global encrypt_flag 
+         
         items = {}
         user_lookup = {}
         data = request.get_json(force=True)
@@ -680,7 +679,7 @@ class SetTempPassword(Resource):
             response['message'] = "A temporary password has been sent"
 
         elif projectName == "MYSPACE-DEV":
-            encrypt_flag = True
+            
             conn = connect('space_dev')
             # get user
             # user_lookup_query = ("""
@@ -720,7 +719,7 @@ class SetTempPassword(Resource):
             response['message'] = "A temporary password has been sent"
         
         elif projectName == "MYSPACE":
-            encrypt_flag = True
+            
             conn = connect('space_prod')
             # get user
             # user_lookup_query = ("""
@@ -951,7 +950,7 @@ class SetTempPassword(Resource):
 class UpdateEmailPassword(Resource):
     def post(self, projectName):
         response = {}
-        global encrypt_flag 
+        
         data = request.get_json(force=True)
         user_uid = data['user_uid']
         if projectName == "PM":
@@ -984,7 +983,7 @@ class UpdateEmailPassword(Resource):
             response['message'] = 'User email and password updated successfully'
 
         elif projectName == "MYSPACE-DEV":
-            encrypt_flag = True
+            
             conn = connect('space_dev')
             # get user
             # user_lookup_query = ("""
@@ -1016,7 +1015,7 @@ class UpdateEmailPassword(Resource):
             response['message'] = 'User email and password updated successfully'
 
         elif projectName == "MYSPACE":
-            encrypt_flag = True
+            
             conn = connect('space_prod')
             # get user
             # user_lookup_query = ("""
@@ -1194,7 +1193,7 @@ class AccountSalt(Resource):
     def post(self, projectName):
         print("In Account Salt POST")
         response = {}
-        global encrypt_flag 
+        
         items = {}
         data = request.get_json(force=True)
         if "encrypted_data" in data:
@@ -1229,7 +1228,7 @@ class AccountSalt(Resource):
                 disconnect(conn)
         elif projectName == 'MYSPACE-DEV':
             print("In Myspace Account Salt")
-            encrypt_flag = True
+            
             conn = connect('space_dev')
             try:
                 query = ("""
@@ -1256,7 +1255,7 @@ class AccountSalt(Resource):
                 disconnect(conn)
         elif projectName == 'MYSPACE':
             print("In Myspace Account Salt")
-            encrypt_flag = True
+            
             conn = connect('space_prod')
             try:
                 query = ("""
@@ -1283,7 +1282,7 @@ class AccountSalt(Resource):
                 disconnect(conn)
         elif projectName == 'EVERY-CIRCLE':
             print("In Every-Circle Account Salt")
-            encrypt_flag = False
+            
             conn = connect('every_circle')
             try:
                 query = ("""
@@ -1445,7 +1444,7 @@ class AccountSalt(Resource):
 class Login(Resource):
     def post(self, projectName):
         response = {}
-        global encrypt_flag 
+        
         data = request.get_json(force=True)
         if "encrypted_data" in data:
             encrypted_data = data["encrypted_data"]
@@ -1470,7 +1469,7 @@ class Login(Resource):
                 response['code'] = 404
 
         elif projectName == 'MYSPACE-DEV':
-            encrypt_flag = True
+            
             user = user_lookup_query(email, projectName)
             if user:
                 if password == user['password_hash']:
@@ -1486,7 +1485,7 @@ class Login(Resource):
 
         elif projectName == 'MYSPACE':
             print("In Login MYSPACE")
-            encrypt_flag = True
+            
             user = user_lookup_query(email, projectName)
             if user:
                 if password == user['password_hash']:
@@ -1502,7 +1501,7 @@ class Login(Resource):
 
         elif projectName == 'EVERY-CIRCLE':
             print("In Login Every-Circle")
-            encrypt_flag = True
+            
             # user = getUserByEmail(email, projectName)
             user = user_lookup_query(email, projectName)
             if user:
@@ -1639,7 +1638,7 @@ class CreateAccount(Resource):
     def post(self, projectName):
         print("In Create Account POST")
         response = {}
-        global encrypt_flag 
+        
         if projectName == 'PM':
             conn = connect('pm')
             data = request.get_json()
@@ -1660,7 +1659,7 @@ class CreateAccount(Resource):
                 response['result'] = createTokens(user, projectName)
             return response
         elif projectName == 'MYSPACE-DEV':
-            encrypt_flag = True
+            
             print("In MySpace")
             data = request.get_json()
             firstName = data.get('first_name')
@@ -1689,7 +1688,7 @@ class CreateAccount(Resource):
                 response['result'] = createTokens(user[0], projectName)
             return response
         elif projectName == 'MYSPACE':
-            encrypt_flag = True
+            
             print("In MySpace")
             data = request.get_json()
             firstName = data.get('first_name')
@@ -1718,7 +1717,7 @@ class CreateAccount(Resource):
                 response['result'] = createTokens(user[0], projectName)
             return response
         elif projectName == 'EVERY-CIRCLE':
-            encrypt_flag = False
+            
             print("In EveryCircle")
             data = request.get_json()
             # firstName = data.get('first_name')
@@ -2243,9 +2242,9 @@ class CreateAccount(Resource):
     def put(self, projectName):
         print(" In createAccount - PUT")
         response = {}
-        global encrypt_flag 
+        
         if projectName == 'MYSPACE-DEV':
-            encrypt_flag = True
+            
             conn = connect('space_dev')            
             data = request.get_json()            
 
@@ -2304,7 +2303,7 @@ class CreateAccount(Resource):
             
 
         elif projectName == 'MYSPACE':
-            encrypt_flag = True
+            
             conn = connect('space_prod')            
             data = request.get_json()            
 
@@ -2461,10 +2460,10 @@ class UpdateUser(Resource):
 class UpdateUserByUID(Resource):
     def put(self, projectName):
         response = {}
-        global encrypt_flag 
+        
         try:
             if projectName == 'MYSPACE-DEV':
-                encrypt_flag = True
+                
                 conn = connect('space_dev')
                 data = request.get_json()
                 if data.get('user_uid') is None:
@@ -2480,7 +2479,7 @@ class UpdateUserByUID(Resource):
                     " WHERE user_uid = \'" + user_uid + "\';"
                 response = execute(query, "post", conn)
             elif projectName == 'MYSPACE':
-                encrypt_flag = True
+                
                 conn = connect('space_prod')
                 data = request.get_json()
                 if data.get('user_uid') is None:
@@ -2505,7 +2504,7 @@ class UpdateAccessToken(Resource):
     def post(self, projectName, user_id,):
         print("In UpdateAccessToken")
         response = {}
-        global encrypt_flag 
+        
         items = {}
         data = request.get_json(force=True)
         google_auth_token = data["google_auth_token"]
@@ -2519,7 +2518,7 @@ class UpdateAccessToken(Resource):
 
             return response, 200
         elif projectName == 'MYSPACE-DEV':
-            encrypt_flag = True
+            
             conn = connect('space_dev')
 
             query = """
@@ -2530,7 +2529,7 @@ class UpdateAccessToken(Resource):
 
             return response, 200
         elif projectName == 'MYSPACE':
-            encrypt_flag = True
+            
             conn = connect('space_prod')
 
             query = """
@@ -2579,7 +2578,7 @@ class UserToken(Resource):
     def get(self, projectName, user_email_id):
         print("In usertoken")
         response = {}
-        global encrypt_flag 
+   
         items = {}
         if projectName == 'PM':
             conn = connect('pm')
@@ -2597,7 +2596,7 @@ class UserToken(Resource):
 
             return response, 200
         elif projectName == 'MYSPACE-DEV':
-            encrypt_flag = True
+         
             conn = connect('space_dev')
             query = ("""
                 SELECT user_uid
@@ -2612,7 +2611,7 @@ class UserToken(Resource):
 
             return response, 200
         elif projectName == 'MYSPACE':
-            encrypt_flag = True
+       
             conn = connect('space_prod')
             query = ("""
                 SELECT user_uid
@@ -2733,7 +2732,7 @@ class UserDetails(Resource):
     def get(self, projectName, user_id):
         print("In userDetails")
         response = {}
-        global encrypt_flag 
+      
         items = {}
         if projectName == 'PM':
             conn = connect('pm')
@@ -2776,7 +2775,7 @@ class UserDetails(Resource):
                 response = execute(query, 'get', conn)
             return response
         elif projectName == 'MYSPACE-DEV':
-            encrypt_flag = True
+      
             conn = connect('space_dev')
             if user_id[0] == '1':
                 query = """
@@ -2829,7 +2828,7 @@ class UserDetails(Resource):
                 response = execute(query, 'get', conn)
             return response
         elif projectName == 'MYSPACE':
-            encrypt_flag = True
+          
             conn = connect('space_prod')
             if user_id[0] == '1':
                 query = """
@@ -3037,7 +3036,7 @@ class UserSocialSignUp(Resource):
     def post(self, projectName):
         print("In UserSocialSignUp - POST")
         response = {}
-        global encrypt_flag 
+    
         items = {}
         if projectName == 'PM':
             conn = connect('pm')
@@ -3064,7 +3063,7 @@ class UserSocialSignUp(Resource):
                 response['result'] = createTokens(user, projectName)
             return response
         elif projectName == 'MYSPACE-DEV':
-            encrypt_flag = True
+    
             data = request.get_json(force=True)
 
             email = data.get('email')
@@ -3088,7 +3087,7 @@ class UserSocialSignUp(Resource):
                 response['result'] = createTokens(user[0], projectName)
             return response
         elif projectName == 'MYSPACE':
-            encrypt_flag = True
+          
             data = request.get_json(force=True)
 
             email = data.get('email')
@@ -3339,11 +3338,11 @@ class UserSocialSignUp(Resource):
     def put(self, projectName):
         print("In UserSocialSignUp - PUT")
         response = {}
-        global encrypt_flag 
+      
         items = {}
         
         if projectName == 'MYSPACE-DEV':
-            encrypt_flag = True
+         
             data = request.get_json(force=True)
 
             if not ("user_uid" in data):
@@ -3408,7 +3407,7 @@ class UserSocialSignUp(Resource):
             return response
         
         elif projectName == 'MYSPACE':
-            encrypt_flag = True
+        
             data = request.get_json(force=True)
 
             if not ("user_uid" in data):
