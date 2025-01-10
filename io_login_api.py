@@ -557,8 +557,7 @@ class SetTempPassword(Resource):
 
         if not user_lookup:
                 print("In not user_lookup")
-                user_lookup['message'] = 'No such email exists'
-                return user_lookup
+                return "User email does not exists"
         user_uid = user_lookup['user_uid']
         print(user_uid)
         # create password salt and hash
@@ -898,396 +897,450 @@ class SetTempPassword(Resource):
 
 class UpdateEmailPassword(Resource):
     def post(self, projectName):
+        print("In UpdateEmailPassword")
         response = {}
         
         data = request.get_json(force=True)
         user_uid = data['user_uid']
-        if projectName == "PM":
-            conn = connect('pm')
-            # get user
-            # user_lookup_query = ("""
-            # SELECT * FROM pm.users
-            # WHERE user_uid = \'""" + data['id'] + """\';""")
-            # user_lookup = execute(user_lookup_query, "get", conn)
-            user_lookup = user_lookup_query(user_uid, projectName)
 
-            if not user_lookup['result']:
-                user_lookup['message'] = "User UID doesn't exists"
-                user_lookup['result'] = user_lookup['result']
-                user_lookup['code'] = 404
-                return user_lookup
-            user_uid = user_lookup['result'][0]['user_uid']
-            # create password salt and hash
-            salt = createSalt()
-            password = createHash(data['password'], salt)
-            # update table
-            query_update = """
-            UPDATE pm.users 
+        db = db_lookup(projectName)
+        conn = connect(db)
+        user_lookup = user_lookup_query(user_uid, projectName)
+        print(db, user_lookup)
+
+        if not user_lookup:
+                print("In not user_lookup")
+                return "User UID does not exists"
+        user_uid = user_lookup['user_uid']
+        # create password salt and hash
+        salt = createSalt()
+        password = createHash(data['password'], salt)
+        # update table
+        query_update = f"""
+            UPDATE {db}.users 
                 SET 
                 password_salt = \'""" + salt + """\',
                 password_hash =  \'""" + password + """\'
-            WHERE user_uid = \'""" + user_uid + """\' """
+            WHERE user_uid = \'""" + user_uid + """\' 
+            """
 
-            items = execute(query_update, "post", conn)
-            response['message'] = 'User email and password updated successfully'
+        items = execute(query_update, "post", conn)
+        response['message'] = 'User email and password updated successfully'
 
-        elif projectName == "MYSPACE-DEV":
-            
-            conn = connect('space_dev')
-            # get user
-            # user_lookup_query = ("""
-            #     SELECT * 
-            #     FROM space_dev.users
-            #     WHERE user_uid = \'""" + data['id'] + """\';
-            #     """)
-            # user_lookup = execute(user_lookup_query, "get", conn)
-            user_lookup = user_lookup_query(user_uid, projectName)
-
-            if not user_lookup['result']:
-                user_lookup['message'] = "User UID doesn't exists"
-                user_lookup['result'] = user_lookup['result']
-                user_lookup['code'] = 404
-                return user_lookup
-            user_uid = user_lookup['result'][0]['user_uid']
-            # create password salt and hash
-            salt = createSalt()
-            password = createHash(data['password'], salt)
-            # update table
-            query_update = """
-            UPDATE space_dev.users 
-                SET 
-                password_salt = \'""" + salt + """\',
-                password_hash =  \'""" + password + """\'
-            WHERE user_uid = \'""" + user_uid + """\' """
-
-            items = execute(query_update, "post", conn)
-            response['message'] = 'User email and password updated successfully'
-
-        elif projectName == "MYSPACE":
-            
-            conn = connect('space_prod')
-            # get user
-            # user_lookup_query = ("""
-            #     SELECT * 
-            #     FROM space_prod.users
-            #     WHERE user_uid = \'""" + data['id'] + """\';
-            #     """)
-            # user_lookup = execute(user_lookup_query, "get", conn)
-            user_lookup = user_lookup_query(user_uid, projectName)
-
-            if not user_lookup['result']:
-                user_lookup['message'] = "User UID doesn't exists"
-                user_lookup['result'] = user_lookup['result']
-                user_lookup['code'] = 404
-                return user_lookup
-            user_uid = user_lookup['result'][0]['user_uid']
-            # create password salt and hash
-            salt = createSalt()
-            password = createHash(data['password'], salt)
-            # update table
-            query_update = """
-            UPDATE space_prod.users 
-                SET 
-                password_salt = \'""" + salt + """\',
-                password_hash =  \'""" + password + """\'
-            WHERE user_uid = \'""" + user_uid + """\' """
-
-            items = execute(query_update, "post", conn)
-            response['message'] = 'User email and password updated successfully'
-
-        elif projectName == "NITYA":
-            conn = connect('nitya')
-            # get user
-            # user_lookup_query = ("""
-            # SELECT * FROM nitya.customers
-            # WHERE customer_uid = \'""" + data['id'] + """\';""")
-            # user_lookup = execute(user_lookup_query, "get", conn)
-            user_lookup = user_lookup_query(user_uid, projectName)
-
-            if not user_lookup['result']:
-                user_lookup['message'] = 'No such email exists'
-                return user_lookup
-            user_uid = user_lookup['result'][0]['customer_uid']
-
-            # create password salt and hash
-            pass_temp = self.get_random_string()
-            passwordSalt = createSalt()
-            passwordHash = createHash(pass_temp, passwordSalt)
-            # update table
-            query_update = """
-            UPDATE nitya.customers 
-                SET 
-                password_salt = \'""" + salt + """\',
-                password_hashed =  \'""" + password + """\'
-            WHERE customer_uid = \'""" + user_uid + """\' """
-
-            items = execute(query_update, "post", conn)
-            response['message'] = 'User email and password updated successfully'
-
-        elif projectName == "EVERY-CIRCLE":
-            conn = connect('every_circle')
-            # get user
-            # user_lookup_query = ("""
-            # SELECT * FROM every_circle.users
-            # WHERE user_unique_id = \'""" + data['id'] + """\';""")
-            # user_lookup = execute(user_lookup_query, "get", conn)
-            user_lookup = user_lookup_query(user_uid, projectName)
-
-            if not user_lookup['result']:
-                user_lookup['message'] = 'No such email exists'
-                return user_lookup
-            user_uid = user_lookup['result'][0]['user_unique_id']
-            # create password salt and hash
-            pass_temp = self.get_random_string()
-            passwordSalt = createSalt()
-            passwordHash = createHash(pass_temp, passwordSalt)
-            # update table
-            query_update = """
-            UPDATE every_circle.users 
-                SET 
-                password_salt = \'""" + salt + """\',
-                password_hashed =  \'""" + password + """\'
-            WHERE user_unique_id = \'""" + user_uid + """\' """
-
-            items = execute(query_update, "post", conn)
-            response['message'] = 'User email and password updated successfully'
-
-        elif projectName == "SKEDUL":
-            conn = connect('skedul')
-            # get user
-            # user_lookup_query = ("""
-            # SELECT * FROM skedul.users
-            # WHERE user_unique_id = \'""" + data['id'] + """\';""")
-            # user_lookup = execute(user_lookup_query, "get", conn)
-            user_lookup = user_lookup_query(user_uid, projectName)
-
-            if not user_lookup['result']:
-                user_lookup['message'] = 'No such email exists'
-                return user_lookup
-            user_uid = user_lookup['result'][0]['user_unique_id']
-            # create password salt and hash
-            pass_temp = self.get_random_string()
-            passwordSalt = createSalt()
-            passwordHash = createHash(pass_temp, passwordSalt)
-            # update table
-            query_update = """
-            UPDATE skedul.users 
-                SET 
-                password_salt = \'""" + salt + """\',
-                password_hashed =  \'""" + password + """\'
-            WHERE user_unique_id = \'""" + user_uid + """\' """
-
-            items = execute(query_update, "post", conn)
-            response['message'] = 'User email and password updated successfully'
-
-        elif projectName == "FINDME":
-            conn = connect('find_me')
-            # get user
-            # user_lookup_query = ("""
-            # SELECT * FROM find_me.users
-            # WHERE user_uid = \'""" + data['id'] + """\';""")
-            # user_lookup = execute(user_lookup_query, "get", conn)
-            user_lookup = user_lookup_query(user_uid, projectName)
-
-            if not user_lookup['result']:
-                user_lookup['message'] = 'No such email exists'
-                return user_lookup
-            user_uid = user_lookup['result'][0]['user_uid']
-            # create password salt and hash
-            pass_temp = self.get_random_string()
-            passwordSalt = createSalt()
-            passwordHash = createHash(pass_temp, passwordSalt)
-            # update table
-            query_update = """
-            UPDATE find_me.users 
-                SET 
-                password_salt = \'""" + passwordSalt + """\',
-                password_hash =  \'""" + passwordHash + """\'
-            WHERE user_uid = \'""" + user_uid + """\' """
-
-            items = execute(query_update, "post", conn)
-            response['message'] = 'User email and password updated successfully'
-
-        elif projectName == "MMU":
-            conn = connect('mmu')
-            # get user
-            # user_lookup_query = ("""
-            # SELECT * FROM mmu.users
-            # WHERE user_uid = \'""" + data['id'] + """\';""")
-            # user_lookup = execute(user_lookup_query, "get", conn)
-            user_lookup = user_lookup_query(user_uid, projectName)
-
-            if not user_lookup['result']:
-                user_lookup['message'] = 'No such email exists'
-                return user_lookup
-            user_uid = user_lookup['result'][0]['user_uid']
-            # create password salt and hash
-            pass_temp = self.get_random_string()
-            passwordSalt = createSalt()
-            passwordHash = createHash(pass_temp, passwordSalt)
-            # update table
-            query_update = """
-            UPDATE mmu.users 
-                SET 
-                password_salt = \'""" + passwordSalt + """\',
-                password_hash =  \'""" + passwordHash + """\'
-            WHERE user_uid = \'""" + user_uid + """\' """
-
-            items = execute(query_update, "post", conn)
-            response['message'] = 'User email and password updated successfully'
         return response
+
+        # if projectName == "PM":
+        #     conn = connect('pm')
+        #     # get user
+        #     # user_lookup_query = ("""
+        #     # SELECT * FROM pm.users
+        #     # WHERE user_uid = \'""" + data['id'] + """\';""")
+        #     # user_lookup = execute(user_lookup_query, "get", conn)
+        #     user_lookup = user_lookup_query(user_uid, projectName)
+
+        #     if not user_lookup['result']:
+        #         user_lookup['message'] = "User UID doesn't exists"
+        #         user_lookup['result'] = user_lookup['result']
+        #         user_lookup['code'] = 404
+        #         return user_lookup
+        #     user_uid = user_lookup['result'][0]['user_uid']
+        #     # create password salt and hash
+        #     salt = createSalt()
+        #     password = createHash(data['password'], salt)
+        #     # update table
+        #     query_update = """
+        #     UPDATE pm.users 
+        #         SET 
+        #         password_salt = \'""" + salt + """\',
+        #         password_hash =  \'""" + password + """\'
+        #     WHERE user_uid = \'""" + user_uid + """\' """
+
+        #     items = execute(query_update, "post", conn)
+        #     response['message'] = 'User email and password updated successfully'
+
+        # elif projectName == "MYSPACE-DEV":
+            
+        #     conn = connect('space_dev')
+        #     # get user
+        #     # user_lookup_query = ("""
+        #     #     SELECT * 
+        #     #     FROM space_dev.users
+        #     #     WHERE user_uid = \'""" + data['id'] + """\';
+        #     #     """)
+        #     # user_lookup = execute(user_lookup_query, "get", conn)
+        #     user_lookup = user_lookup_query(user_uid, projectName)
+
+        #     if not user_lookup['result']:
+        #         user_lookup['message'] = "User UID doesn't exists"
+        #         user_lookup['result'] = user_lookup['result']
+        #         user_lookup['code'] = 404
+        #         return user_lookup
+        #     user_uid = user_lookup['result'][0]['user_uid']
+        #     # create password salt and hash
+        #     salt = createSalt()
+        #     password = createHash(data['password'], salt)
+        #     # update table
+        #     query_update = """
+        #     UPDATE space_dev.users 
+        #         SET 
+        #         password_salt = \'""" + salt + """\',
+        #         password_hash =  \'""" + password + """\'
+        #     WHERE user_uid = \'""" + user_uid + """\' """
+
+        #     items = execute(query_update, "post", conn)
+        #     response['message'] = 'User email and password updated successfully'
+
+        # elif projectName == "MYSPACE":
+            
+        #     conn = connect('space_prod')
+        #     # get user
+        #     # user_lookup_query = ("""
+        #     #     SELECT * 
+        #     #     FROM space_prod.users
+        #     #     WHERE user_uid = \'""" + data['id'] + """\';
+        #     #     """)
+        #     # user_lookup = execute(user_lookup_query, "get", conn)
+        #     user_lookup = user_lookup_query(user_uid, projectName)
+
+        #     if not user_lookup['result']:
+        #         user_lookup['message'] = "User UID doesn't exists"
+        #         user_lookup['result'] = user_lookup['result']
+        #         user_lookup['code'] = 404
+        #         return user_lookup
+        #     user_uid = user_lookup['result'][0]['user_uid']
+        #     # create password salt and hash
+        #     salt = createSalt()
+        #     password = createHash(data['password'], salt)
+        #     # update table
+        #     query_update = """
+        #     UPDATE space_prod.users 
+        #         SET 
+        #         password_salt = \'""" + salt + """\',
+        #         password_hash =  \'""" + password + """\'
+        #     WHERE user_uid = \'""" + user_uid + """\' """
+
+        #     items = execute(query_update, "post", conn)
+        #     response['message'] = 'User email and password updated successfully'
+
+        # elif projectName == "NITYA":
+        #     conn = connect('nitya')
+        #     # get user
+        #     # user_lookup_query = ("""
+        #     # SELECT * FROM nitya.customers
+        #     # WHERE customer_uid = \'""" + data['id'] + """\';""")
+        #     # user_lookup = execute(user_lookup_query, "get", conn)
+        #     user_lookup = user_lookup_query(user_uid, projectName)
+
+        #     if not user_lookup['result']:
+        #         user_lookup['message'] = 'No such email exists'
+        #         return user_lookup
+        #     user_uid = user_lookup['result'][0]['customer_uid']
+
+        #     # create password salt and hash
+        #     pass_temp = self.get_random_string()
+        #     passwordSalt = createSalt()
+        #     passwordHash = createHash(pass_temp, passwordSalt)
+        #     # update table
+        #     query_update = """
+        #     UPDATE nitya.customers 
+        #         SET 
+        #         password_salt = \'""" + salt + """\',
+        #         password_hashed =  \'""" + password + """\'
+        #     WHERE customer_uid = \'""" + user_uid + """\' """
+
+        #     items = execute(query_update, "post", conn)
+        #     response['message'] = 'User email and password updated successfully'
+
+        # elif projectName == "EVERY-CIRCLE":
+        #     conn = connect('every_circle')
+        #     # get user
+        #     # user_lookup_query = ("""
+        #     # SELECT * FROM every_circle.users
+        #     # WHERE user_unique_id = \'""" + data['id'] + """\';""")
+        #     # user_lookup = execute(user_lookup_query, "get", conn)
+        #     user_lookup = user_lookup_query(user_uid, projectName)
+
+        #     if not user_lookup['result']:
+        #         user_lookup['message'] = 'No such email exists'
+        #         return user_lookup
+        #     user_uid = user_lookup['result'][0]['user_unique_id']
+        #     # create password salt and hash
+        #     pass_temp = self.get_random_string()
+        #     passwordSalt = createSalt()
+        #     passwordHash = createHash(pass_temp, passwordSalt)
+        #     # update table
+        #     query_update = """
+        #     UPDATE every_circle.users 
+        #         SET 
+        #         password_salt = \'""" + salt + """\',
+        #         password_hashed =  \'""" + password + """\'
+        #     WHERE user_unique_id = \'""" + user_uid + """\' """
+
+        #     items = execute(query_update, "post", conn)
+        #     response['message'] = 'User email and password updated successfully'
+
+        # elif projectName == "SKEDUL":
+        #     conn = connect('skedul')
+        #     # get user
+        #     # user_lookup_query = ("""
+        #     # SELECT * FROM skedul.users
+        #     # WHERE user_unique_id = \'""" + data['id'] + """\';""")
+        #     # user_lookup = execute(user_lookup_query, "get", conn)
+        #     user_lookup = user_lookup_query(user_uid, projectName)
+
+        #     if not user_lookup['result']:
+        #         user_lookup['message'] = 'No such email exists'
+        #         return user_lookup
+        #     user_uid = user_lookup['result'][0]['user_unique_id']
+        #     # create password salt and hash
+        #     pass_temp = self.get_random_string()
+        #     passwordSalt = createSalt()
+        #     passwordHash = createHash(pass_temp, passwordSalt)
+        #     # update table
+        #     query_update = """
+        #     UPDATE skedul.users 
+        #         SET 
+        #         password_salt = \'""" + salt + """\',
+        #         password_hashed =  \'""" + password + """\'
+        #     WHERE user_unique_id = \'""" + user_uid + """\' """
+
+        #     items = execute(query_update, "post", conn)
+        #     response['message'] = 'User email and password updated successfully'
+
+        # elif projectName == "FINDME":
+        #     conn = connect('find_me')
+        #     # get user
+        #     # user_lookup_query = ("""
+        #     # SELECT * FROM find_me.users
+        #     # WHERE user_uid = \'""" + data['id'] + """\';""")
+        #     # user_lookup = execute(user_lookup_query, "get", conn)
+        #     user_lookup = user_lookup_query(user_uid, projectName)
+
+        #     if not user_lookup['result']:
+        #         user_lookup['message'] = 'No such email exists'
+        #         return user_lookup
+        #     user_uid = user_lookup['result'][0]['user_uid']
+        #     # create password salt and hash
+        #     pass_temp = self.get_random_string()
+        #     passwordSalt = createSalt()
+        #     passwordHash = createHash(pass_temp, passwordSalt)
+        #     # update table
+        #     query_update = """
+        #     UPDATE find_me.users 
+        #         SET 
+        #         password_salt = \'""" + passwordSalt + """\',
+        #         password_hash =  \'""" + passwordHash + """\'
+        #     WHERE user_uid = \'""" + user_uid + """\' """
+
+        #     items = execute(query_update, "post", conn)
+        #     response['message'] = 'User email and password updated successfully'
+
+        # elif projectName == "MMU":
+        #     conn = connect('mmu')
+        #     # get user
+        #     # user_lookup_query = ("""
+        #     # SELECT * FROM mmu.users
+        #     # WHERE user_uid = \'""" + data['id'] + """\';""")
+        #     # user_lookup = execute(user_lookup_query, "get", conn)
+        #     user_lookup = user_lookup_query(user_uid, projectName)
+
+        #     if not user_lookup['result']:
+        #         user_lookup['message'] = 'No such email exists'
+        #         return user_lookup
+        #     user_uid = user_lookup['result'][0]['user_uid']
+        #     # create password salt and hash
+        #     pass_temp = self.get_random_string()
+        #     passwordSalt = createSalt()
+        #     passwordHash = createHash(pass_temp, passwordSalt)
+        #     # update table
+        #     query_update = """
+        #     UPDATE mmu.users 
+        #         SET 
+        #         password_salt = \'""" + passwordSalt + """\',
+        #         password_hash =  \'""" + passwordHash + """\'
+        #     WHERE user_uid = \'""" + user_uid + """\' """
+
+        #     items = execute(query_update, "post", conn)
+        #     response['message'] = 'User email and password updated successfully'
+        # return response
 
 
 class AccountSalt(Resource):
     def post(self, projectName):
         print("In Account Salt POST")
         response = {}
-        
         items = {}
+
         data = request.get_json(force=True)
         if "encrypted_data" in data:
             encrypted_data = data["encrypted_data"]
             data = decrypt_dict(encrypted_data)
 
-        # print("data: ", data)
+        print("data: ", data)
         email = data["email"]
 
-        if projectName == 'PM':
-            conn = connect('pm')
-            try:
-                query = ("""
-                SELECT * FROM pm.users WHERE email = \'""" + email + """\';
-                    """)
-                items = execute(query, "get", conn)
+        db = db_lookup(projectName)
+        conn = connect(db)
+        user_lookup = user_lookup_query(email, projectName)
+        print("In Account Salt POST: ", db, user_lookup)
 
-                if not items["result"]:
-                    items["message"] = "Email doesn't exists"
-                    items["code"] = 404
-                    return items
-                items['result'] = [{
+        if not user_lookup:
+                print("In not user_lookup")
+                return "User email does not exists"
+        user_uid = user_lookup['user_uid']
+        print(user_uid)
+
+        if projectName == 'MMU':
+            user_lookup['result'] = [{
+                        "password_algorithm": "SHA256",
+                        "password_salt": user_lookup['user_password_salt'],
+                    }]
+        else:
+            user_lookup['result'] = [{
                     "password_algorithm": "SHA256",
-                    "password_salt": items['result'][0]['password_salt'],
-                }]
-                items["message"] = "SALT sent successfully"
-                items["code"] = 200
-                return items
-            except:
-                raise BadRequest("Request failed, please try again later.")
-            finally:
-                disconnect(conn)
-        elif projectName == 'MYSPACE-DEV':
-            print("In Myspace Account Salt")
+                    "password_salt": user_lookup['password_salt'],
+                    }]
+        user_lookup["message"] = "SALT sent successfully"
+        user_lookup["code"] = 200
+        return user_lookup
+
+
+        # if projectName == 'PM':
+        #     conn = connect('pm')
+        #     try:
+        #         query = ("""
+        #         SELECT * FROM pm.users WHERE email = \'""" + email + """\';
+        #             """)
+        #         items = execute(query, "get", conn)
+
+        #         if not items["result"]:
+        #             items["message"] = "Email doesn't exists"
+        #             items["code"] = 404
+        #             return items
+        #         items['result'] = [{
+        #             "password_algorithm": "SHA256",
+        #             "password_salt": items['result'][0]['password_salt'],
+        #         }]
+        #         items["message"] = "SALT sent successfully"
+        #         items["code"] = 200
+        #         return items
+        #     except:
+        #         raise BadRequest("Request failed, please try again later.")
+        #     finally:
+        #         disconnect(conn)
+        # elif projectName == 'MYSPACE-DEV':
+        #     print("In Myspace Account Salt")
             
-            conn = connect('space_dev')
-            try:
-                query = ("""
-                    SELECT * 
-                    FROM space_dev.users 
-                    WHERE email = \'""" + email + """\';
-                    """)
-                items = execute(query, "get", conn)
+        #     conn = connect('space_dev')
+        #     try:
+        #         query = ("""
+        #             SELECT * 
+        #             FROM space_dev.users 
+        #             WHERE email = \'""" + email + """\';
+        #             """)
+        #         items = execute(query, "get", conn)
 
-                if not items["result"]:
-                    items["message"] = "Email doesn't exists"
-                    items["code"] = 404
-                    return items
-                items['result'] = [{
-                    "password_algorithm": "SHA256",
-                    "password_salt": items['result'][0]['password_salt'],
-                }]
-                items["message"] = "SALT sent successfully"
-                items["code"] = 200
-                return items
-            except:
-                raise BadRequest("Request failed, please try again later.")
-            finally:
-                disconnect(conn)
-        elif projectName == 'MYSPACE':
-            print("In Myspace Account Salt")
+        #         if not items["result"]:
+        #             items["message"] = "Email doesn't exists"
+        #             items["code"] = 404
+        #             return items
+        #         items['result'] = [{
+        #             "password_algorithm": "SHA256",
+        #             "password_salt": items['result'][0]['password_salt'],
+        #         }]
+        #         items["message"] = "SALT sent successfully"
+        #         items["code"] = 200
+        #         return items
+        #     except:
+        #         raise BadRequest("Request failed, please try again later.")
+        #     finally:
+        #         disconnect(conn)
+        # elif projectName == 'MYSPACE':
+        #     print("In Myspace Account Salt")
             
-            conn = connect('space_prod')
-            try:
-                query = ("""
-                    SELECT * 
-                    FROM space_prod.users 
-                    WHERE email = \'""" + email + """\';
-                    """)
-                items = execute(query, "get", conn)
+        #     conn = connect('space_prod')
+        #     try:
+        #         query = ("""
+        #             SELECT * 
+        #             FROM space_prod.users 
+        #             WHERE email = \'""" + email + """\';
+        #             """)
+        #         items = execute(query, "get", conn)
 
-                if not items["result"]:
-                    items["message"] = "Email doesn't exists"
-                    items["code"] = 404
-                    return items
-                items['result'] = [{
-                    "password_algorithm": "SHA256",
-                    "password_salt": items['result'][0]['password_salt'],
-                }]
-                items["message"] = "SALT sent successfully"
-                items["code"] = 200
-                return items
-            except:
-                raise BadRequest("Request failed, please try again later.")
-            finally:
-                disconnect(conn)
-        elif projectName == 'EVERY-CIRCLE':
-            print("In Every-Circle Account Salt")
+        #         if not items["result"]:
+        #             items["message"] = "Email doesn't exists"
+        #             items["code"] = 404
+        #             return items
+        #         items['result'] = [{
+        #             "password_algorithm": "SHA256",
+        #             "password_salt": items['result'][0]['password_salt'],
+        #         }]
+        #         items["message"] = "SALT sent successfully"
+        #         items["code"] = 200
+        #         return items
+        #     except:
+        #         raise BadRequest("Request failed, please try again later.")
+        #     finally:
+        #         disconnect(conn)
+        # elif projectName == 'EVERY-CIRCLE':
+        #     print("In Every-Circle Account Salt")
             
-            conn = connect('every_circle')
-            try:
-                query = ("""
-                    SELECT * 
-                    FROM every_circle.users 
-                    WHERE email = \'""" + email + """\';
-                    """)
-                items = execute(query, "get", conn)
+        #     conn = connect('every_circle')
+        #     try:
+        #         query = ("""
+        #             SELECT * 
+        #             FROM every_circle.users 
+        #             WHERE email = \'""" + email + """\';
+        #             """)
+        #         items = execute(query, "get", conn)
 
-                if not items["result"]:
-                    items["message"] = "Email doesn't exists"
-                    items["code"] = 404
-                    return items
-                items['result'] = [{
-                    "password_algorithm": "SHA256",
-                    "password_salt": items['result'][0]['password_salt'],
-                }]
-                items["message"] = "SALT sent successfully"
-                items["code"] = 200
-                return items
-            except:
-                raise BadRequest("Request failed, please try again later.")
-            finally:
-                disconnect(conn)
-        elif projectName == 'NITYA':
-            conn = connect('nitya')
-            try:
+        #         if not items["result"]:
+        #             items["message"] = "Email doesn't exists"
+        #             items["code"] = 404
+        #             return items
+        #         items['result'] = [{
+        #             "password_algorithm": "SHA256",
+        #             "password_salt": items['result'][0]['password_salt'],
+        #         }]
+        #         items["message"] = "SALT sent successfully"
+        #         items["code"] = 200
+        #         return items
+        #     except:
+        #         raise BadRequest("Request failed, please try again later.")
+        #     finally:
+        #         disconnect(conn)
+        # elif projectName == 'NITYA':
+        #     conn = connect('nitya')
+        #     try:
 
-                query = ("""
-                SELECT password_algorithm,
-                        password_salt,
-                        user_social_media
-                FROM nitya.customers cus WHERE customer_email = \'""" + email + """\';
-                    """)
-                items = execute(query, "get", conn)
+        #         query = ("""
+        #         SELECT password_algorithm,
+        #                 password_salt,
+        #                 user_social_media
+        #         FROM nitya.customers cus WHERE customer_email = \'""" + email + """\';
+        #             """)
+        #         items = execute(query, "get", conn)
 
-                if not items["result"]:
-                    items["message"] = "Email doesn't exists"
-                    items["code"] = 404
-                    return items
-                if items["result"][0]["user_social_media"] != "NULL":
-                    items["message"] = (
-                        """Social Signup exists. Use \'"""
-                        + items["result"][0]["user_social_media"]
-                        + """\' """
-                    )
-                    items["code"] = 401
-                    return items
-                items["message"] = "SALT sent successfully"
-                items["code"] = 200
-                return items
+        #         if not items["result"]:
+        #             items["message"] = "Email doesn't exists"
+        #             items["code"] = 404
+        #             return items
+        #         if items["result"][0]["user_social_media"] != "NULL":
+        #             items["message"] = (
+        #                 """Social Signup exists. Use \'"""
+        #                 + items["result"][0]["user_social_media"]
+        #                 + """\' """
+        #             )
+        #             items["code"] = 401
+        #             return items
+        #         items["message"] = "SALT sent successfully"
+        #         items["code"] = 200
+        #         return items
 
-            except:
-                raise BadRequest("Request failed, please try again later.")
-            finally:
-                disconnect(conn)
+        #     except:
+        #         raise BadRequest("Request failed, please try again later.")
+        #     finally:
+        #         disconnect(conn)
         
         # elif projectName == 'EVERY-CIRCLE':
         #     print("In Every Circle")
@@ -1318,76 +1371,76 @@ class AccountSalt(Resource):
         #     finally:
         #         disconnect(conn)
         
-        elif projectName == 'SKEDUL':
-            conn = connect('skedul')
-            try:
-                query = ("""
-                SELECT * FROM skedul.users WHERE user_email_id= \'""" + email + """\';
-                    """)
-                items = execute(query, "get", conn)
+        # elif projectName == 'SKEDUL':
+        #     conn = connect('skedul')
+        #     try:
+        #         query = ("""
+        #         SELECT * FROM skedul.users WHERE user_email_id= \'""" + email + """\';
+        #             """)
+        #         items = execute(query, "get", conn)
 
-                if not items["result"]:
-                    items["message"] = "Email doesn't exists"
-                    items["code"] = 404
-                    return items
-                items['result'] = [{
-                    "password_algorithm": "SHA256",
-                    "password_salt": str(datetime.now()),
-                }]
-                items["message"] = "SALT sent successfully"
-                items["code"] = 200
-                return items
-            except:
-                raise BadRequest("Request failed, please try again later.")
-            finally:
-                disconnect(conn)
-        elif projectName == 'FINDME':
-            conn = connect('find_me')
-            try:
-                query = ("""
-                SELECT * FROM find_me.users WHERE email = \'""" + email + """\';
-                    """)
-                items = execute(query, "get", conn)
+        #         if not items["result"]:
+        #             items["message"] = "Email doesn't exists"
+        #             items["code"] = 404
+        #             return items
+        #         items['result'] = [{
+        #             "password_algorithm": "SHA256",
+        #             "password_salt": str(datetime.now()),
+        #         }]
+        #         items["message"] = "SALT sent successfully"
+        #         items["code"] = 200
+        #         return items
+        #     except:
+        #         raise BadRequest("Request failed, please try again later.")
+        #     finally:
+        #         disconnect(conn)
+        # elif projectName == 'FINDME':
+        #     conn = connect('find_me')
+        #     try:
+        #         query = ("""
+        #         SELECT * FROM find_me.users WHERE email = \'""" + email + """\';
+        #             """)
+        #         items = execute(query, "get", conn)
 
-                if not items["result"]:
-                    items["message"] = "Email doesn't exist"
-                    items["code"] = 404
-                    return items
-                items['result'] = [{
-                    "password_algorithm": "SHA256",
-                    "password_salt": items['result'][0]['password_salt'],
-                }]
-                items["message"] = "SALT sent successfully"
-                items["code"] = 200
-                return items
-            except:
-                raise BadRequest("Request failed, please try again later.")
-            finally:
-                disconnect(conn)
-        elif projectName == 'MMU':
-            conn = connect('mmu')
-            try:
-                query = ("""
-                SELECT * FROM mmu.users WHERE user_email_id = \'""" + email + """\';
-                    """)
-                items = execute(query, "get", conn)
+        #         if not items["result"]:
+        #             items["message"] = "Email doesn't exist"
+        #             items["code"] = 404
+        #             return items
+        #         items['result'] = [{
+        #             "password_algorithm": "SHA256",
+        #             "password_salt": items['result'][0]['password_salt'],
+        #         }]
+        #         items["message"] = "SALT sent successfully"
+        #         items["code"] = 200
+        #         return items
+        #     except:
+        #         raise BadRequest("Request failed, please try again later.")
+        #     finally:
+        #         disconnect(conn)
+        # elif projectName == 'MMU':
+        #     conn = connect('mmu')
+        #     try:
+        #         query = ("""
+        #         SELECT * FROM mmu.users WHERE user_email_id = \'""" + email + """\';
+        #             """)
+        #         items = execute(query, "get", conn)
 
-                if not items["result"]:
-                    items["message"] = "Email doesn't exist"
-                    items["code"] = 404
-                    return items
-                items['result'] = [{
-                    "password_algorithm": "SHA256",
-                    "password_salt": items['result'][0]['user_password_salt'],
-                }]
-                items["message"] = "SALT sent successfully"
-                items["code"] = 200
-                return items
-            except:
-                raise BadRequest("Request failed, please try again later.")
-            finally:
-                disconnect(conn)
-        return items
+        #         if not items["result"]:
+        #             items["message"] = "Email doesn't exist"
+        #             items["code"] = 404
+        #             return items
+        #         items['result'] = [{
+        #             "password_algorithm": "SHA256",
+        #             "password_salt": items['result'][0]['user_password_salt'],
+        #         }]
+        #         items["message"] = "SALT sent successfully"
+        #         items["code"] = 200
+        #         return items
+        #     except:
+        #         raise BadRequest("Request failed, please try again later.")
+        #     finally:
+        #         disconnect(conn)
+        # return items
 
 
 class Login(Resource):

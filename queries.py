@@ -30,27 +30,14 @@ def user_lookup_query(param, project):
 
     # Determine the column based on the parameter
     if "@" in param:
-        column = 'email'
+        if project == 'MMU':
+            column = 'user_email_id'
+        else: 
+            column = 'email'
     elif "-" in param:
         column = 'user_uid'
     else:
         raise ValueError("Invalid parameter format. Expected an email or user_uid.")
-
-    # Determine the database based on the project
-    # db_mapping = {
-    #     "PM": "pm",
-    #     "MYSPACE-DEV": "space_dev",
-    #     "MYSPACE": "space_prod",
-    #     "EVERY-CIRCLE": "every_circle",
-    #     "NITYA": "nitya",
-    #     "SKEDUL": "skedul",
-    #     "FINDME": "find_me",
-    #     "MMU": "mmu"
-    # }
-    
-    # db = db_mapping.get(project)
-    # if not db:
-    #     raise ValueError(f"Invalid project: {project}")
 
     db = db_lookup(project)
 
@@ -60,19 +47,12 @@ def user_lookup_query(param, project):
         FROM {db}.users
         WHERE {column} = \'""" + param + """\';
     """
+    print(query)
 
-    # Debugging the generated query (without sensitive params)
-    # print("Generated Query (with placeholders):")
-    # print(query)
-
-    # Establish a connection
     conn = connect(db)
-
-    # Execute the query safely
     result = execute(query, "get", conn)
-    # print("Query Result: ", result)
+    print("Query Result: ", result)
 
-    # Return the result if records are found
     if result and 'result' in result and len(result['result']) > 0:
         return result['result'][0]
     else:
