@@ -41,10 +41,11 @@ import json
 import base64
 
 from data import connect, disconnect, serializeResponse, execute
-from profile import getBusinessProfileInfo, getTenantProfileInfo, getOwnerProfileInfo
+from getProfile import getBusinessProfileInfo, getTenantProfileInfo, getOwnerProfileInfo
 from encryption import (
     encrypt_dict, decrypt_dict, handle_encrypted_request, create_json_override,
-    encrypt_response, handle_before_request, handle_after_request, get_project_name_from_request
+    encrypt_response, handle_before_request, handle_after_request, get_project_name_from_request,
+    decrypt_request
 )
 
 
@@ -3673,21 +3674,6 @@ api.add_resource(CheckEmailValidationCode, "/api/v2/CheckEmailValidationCode/<st
 
 
 # Middleware for decrypting incoming request data
-def decrypt_request():
-    decrypted_data = handle_encrypted_request(request)
-    if decrypted_data:
-        request.get_json = create_json_override(decrypted_data)
-    elif request.is_json and request.get_json().get('data_type') == False:
-        print("Data issue")
-
-# Middleware to encrypt response data
-def encrypt_response(data):
-    encrypted_data = encrypt_dict(data)
-    return jsonify({'encrypted_data': encrypted_data})
-
-
-
-# Actual middleware.  Commands before request (check JWT and then decrypt data) and after request (encrypt response before passing to FrontEnd)
 @app.before_request 
 def before_request():
     global encrypt_flag

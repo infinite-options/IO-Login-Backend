@@ -154,6 +154,16 @@ def encrypt_response(data):
     encrypted_data = encrypt_dict(data)
     return jsonify({'encrypted_data': encrypted_data})
 
+def decrypt_request():
+    """
+    Middleware function to decrypt incoming request data.
+    """
+    decrypted_data = handle_encrypted_request(request)
+    if decrypted_data:
+        request.get_json = create_json_override(decrypted_data)
+    elif request.is_json and request.get_json().get('data_type') == False:
+        print("Data issue")
+
 def handle_before_request(project_name, full_encryption_projects, postman_secret):
     """
     Handles request preprocessing, including decryption if needed.
