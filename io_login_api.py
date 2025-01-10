@@ -47,6 +47,7 @@ from encryption import (
     encrypt_response, handle_before_request, handle_after_request, get_project_name_from_request,
     decrypt_request
 )
+from auth import createTokens, createSalt, createHash, getHash
 
 
 
@@ -108,53 +109,6 @@ def sendEmail(recipient, subject, body):
             body=str(body)
         )
         mail.send(msg)
-
-def getHash(value):
-    base = str(value).encode()
-    return sha256(base).hexdigest()
-
-def createSalt():
-    return getHash(datetime.now())
-
-def createHash(password, salt):
-    return getHash(password+salt)
-
-def createTokens(user, projectName):
-    print('IN CREATETOKENS')
-
-    businesses = getBusinessProfileInfo(user, projectName)['result']
-    print("1")
-    tenant_id = getTenantProfileInfo(user, projectName)['result']
-    print("2")
-    owner_id = getOwnerProfileInfo(user, projectName)['result']
-    print("3")
-
-
-    if not user.get('notifications'): user['notifications'] = "true"
-    if not user.get('dark_mode'): user['dark_mode'] = "false"
-    if not user.get('cookies'): user['cookies'] = "true"
-
-    userInfo = {
-        'user_uid': user['user_uid'],
-        'first_name': user['first_name'],
-        'last_name': user['last_name'],
-        'phone_number': user['phone_number'],
-        'email': user['email'],
-        'role': user['role'],
-        'google_auth_token': user['google_auth_token'],
-        'businesses': businesses,
-        'tenant_id': tenant_id,
-        'owner_id': owner_id,
-        'notifications': user['notifications'],
-        'dark_mode': user['dark_mode'],
-        'cookies': user['cookies'],
-    }
-
-    return {
-        'access_token': create_access_token(userInfo),
-        'refresh_token': create_refresh_token(userInfo),
-        'user': userInfo
-    }
 
 def getUserByUID(uid, projectName):
     global encrypt_flag 
