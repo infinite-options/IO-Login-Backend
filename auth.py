@@ -53,11 +53,11 @@ def createTokens(user, projectName):
     print('IN CREATETOKENS')
 
     businesses = getBusinessProfileInfo(user, projectName)['result']
-    print("1")
+    # print("1")
     tenant_id = getTenantProfileInfo(user, projectName)['result']
-    print("2")
+    # print("2")
     owner_id = getOwnerProfileInfo(user, projectName)['result']
-    print("3")
+    # print("3")
 
     if not user.get('notifications'): user['notifications'] = "true"
     if not user.get('dark_mode'): user['dark_mode'] = "false"

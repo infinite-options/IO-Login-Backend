@@ -10,6 +10,8 @@
 # README:  if there are errors, make sure you have all requirements are loaded
 # pip3 install -r requirements.txt
 
+print("-------------------- New Program Run --------------------")
+
 
 import json
 import os
@@ -48,6 +50,7 @@ from encryption import (
     decrypt_request
 )
 from auth import createTokens, createSalt, createHash, getHash
+from queries import user_lookup_query
 
 
 
@@ -57,7 +60,7 @@ from auth import createTokens, createSalt, createHash, getHash
 
 load_dotenv()
 POSTMAN_SECRET = os.getenv('POSTMAN_SECRET')
-print("POSTMAN_SECRET: ", POSTMAN_SECRET)
+# print("POSTMAN_SECRET: ", POSTMAN_SECRET)
 full_encryption_projects = ["MYSPACE", "MYSPACE-DEV"]
 
 encrypt_flag = False
@@ -110,132 +113,123 @@ def sendEmail(recipient, subject, body):
         )
         mail.send(msg)
 
-def getUserByUID(uid, projectName):
-    global encrypt_flag 
-    if projectName == "MYSPACE-DEV":
-        encrypt_flag = True
-        conn = connect('space_dev')
-        # get user
-        user_lookup_query = ("""
-            SELECT * 
-            FROM space_dev.users
-            WHERE user_uid = \'""" + uid + """\';
-            """)
-        result = execute(user_lookup_query, "get", conn)
-        if len(result['result']) > 0:
-            return result['result'][0]
-    if projectName == "MYSPACE":
-        encrypt_flag = True
-        conn = connect('space_prod')
-        # get user
-        user_lookup_query = ("""
-            SELECT * 
-            FROM space_prod.users
-            WHERE user_uid = \'""" + uid + """\';
-            """)
-        result = execute(user_lookup_query, "get", conn)
-        if len(result['result']) > 0:
-            return result['result'][0]
+# def getUserByUID(uid, projectName):
+#     global encrypt_flag 
+#     if projectName == "MYSPACE-DEV":
+#         encrypt_flag = True
+#         conn = connect('space_dev')
+#         # get user
+#         user_lookup_query = ("""
+#             SELECT * 
+#             FROM space_dev.users
+#             WHERE user_uid = \'""" + uid + """\';
+#             """)
+#         result = execute(user_lookup_query, "get", conn)
+#         if len(result['result']) > 0:
+#             return result['result'][0]
+#     if projectName == "MYSPACE":
+#         encrypt_flag = True
+#         conn = connect('space_prod')
+#         # get user
+#         user_lookup_query = ("""
+#             SELECT * 
+#             FROM space_prod.users
+#             WHERE user_uid = \'""" + uid + """\';
+#             """)
+#         result = execute(user_lookup_query, "get", conn)
+#         if len(result['result']) > 0:
+#             return result['result'][0]
 
-def getUserByEmail(email, projectName):
-    print("In getUserByEmail")
-    global encrypt_flag 
-    if projectName == "PM":
-        conn = connect('pm')
-        # get user
-        user_lookup_query = ("""
-        SELECT * FROM pm.users
-        WHERE email = \'""" + email + """\';""")
-        result = execute(user_lookup_query, "get", conn)
-        if len(result['result']) > 0:
-            return result['result'][0]
-    elif projectName == "MYSPACE-DEV":
-        encrypt_flag = True
-        conn = connect('space_dev')
-        # get user
-        user_lookup_query = ("""
-            SELECT * 
-            FROM space_dev.users
-            WHERE email = \'""" + email + """\';
-            """)
-        result = execute(user_lookup_query, "get", conn)
-        if len(result['result']) > 0:
-            return result['result'][0]
-    elif projectName == "MYSPACE":
-        encrypt_flag = True
-        conn = connect('space_prod')
-        # get user
-        user_lookup_query = ("""
-            SELECT * 
-            FROM space_prod.users
-            WHERE email = \'""" + email + """\';
-            """)
-        result = execute(user_lookup_query, "get", conn)
-        print(result)
-        if len(result['result']) > 0:
-            return result['result'][0]
-    elif projectName == "EVERY-CIRCLE":
-        # print("In EveryCircle")
-        encrypt_flag = False
-        conn = connect('every_circle')
-        # get user
-        user_lookup_query = ("""
-            SELECT * 
-            FROM every_circle.users
-            WHERE email = \'""" + email + """\';
-            """)
-        # print(user_lookup_query)
-        result = execute(user_lookup_query, "get", conn)
-        # print(result)
-        if len(result['result']) > 0:
-            return result['result'][0]
-    elif projectName == "NITYA":
-        conn = connect('nitya')
-        # get user
-        user_lookup_query = ("""
-        SELECT * FROM nitya.customers
-        WHERE customer_email =\'""" + email + """\';""")
-        result = execute(user_lookup_query, "get", conn)
-        if len(result['result']) > 0:
-            return result['result'][0]
-    # elif projectName == "EVERY_CIRCLE":
-    #     conn = connect('every_circle')
-    #     # get user
-    #     user_lookup_query = ("""
-    #     SELECT * FROM every_circle.users
-    #     WHERE customer_email =\'""" + email + """\';""")
-    #     result = execute(user_lookup_query, "get", conn)
-    #     if len(result['result']) > 0:
-    #         return result['result'][0]
-    elif projectName == "SKEDUL":
-        conn = connect('skedul')
-        # get user
-        user_lookup_query = ("""
-        SELECT * FROM skedul.users
-        WHERE user_email_id = \'""" + email + """\';""")
-        result = execute(user_lookup_query, "get", conn)
-        if len(result['result']) > 0:
-            return result['result'][0]
-    elif projectName == "FINDME":
-        conn = connect('find_me')
-        # get user
-        user_lookup_query = ("""
-        SELECT * FROM find_me.users
-        WHERE email = \'""" + email + """\';""")
-        result = execute(user_lookup_query, "get", conn)
-        if len(result['result']) > 0:
-            return result['result'][0]
-    elif projectName == "MMU":
-        conn = connect('mmu')
-        # get user
-        user_lookup_query = ("""
-        SELECT * FROM mmu.users
-        WHERE user_email_id = \'""" + email + """\';""")
-        result = execute(user_lookup_query, "get", conn)
-        # print("MMU result: ", result)
-        if len(result['result']) > 0:
-            # print("Before return: ", result['result'][0] )
-            return result['result'][0]
+# def getUserByEmail(email, projectName):
+#     print("In getUserByEmail")
+#     global encrypt_flag 
+#     if projectName == "PM":
+#         conn = connect('pm')
+#         # get user
+#         user_lookup_query = ("""
+#         SELECT * FROM pm.users
+#         WHERE email = \'""" + email + """\';""")
+#         result = execute(user_lookup_query, "get", conn)
+#         if len(result['result']) > 0:
+#             return result['result'][0]
+#     elif projectName == "MYSPACE-DEV":
+#         encrypt_flag = True
+#         conn = connect('space_dev')
+#         # get user
+#         user_lookup_query = ("""
+#             SELECT * 
+#             FROM space_dev.users
+#             WHERE email = \'""" + email + """\';
+#             """)
+#         result = execute(user_lookup_query, "get", conn)
+#         if len(result['result']) > 0:
+#             return result['result'][0]
+#     elif projectName == "MYSPACE":
+#         encrypt_flag = True
+#         conn = connect('space_prod')
+#         # get user
+#         user_lookup_query = ("""
+#             SELECT * 
+#             FROM space_prod.users
+#             WHERE email = \'""" + email + """\';
+#             """)
+#         result = execute(user_lookup_query, "get", conn)
+#         print(result)
+#         if len(result['result']) > 0:
+#             return result['result'][0]
+#     elif projectName == "EVERY-CIRCLE":
+#         # print("In EveryCircle")
+#         encrypt_flag = False
+#         conn = connect('every_circle')
+#         # get user
+#         user_lookup_query = ("""
+#             SELECT * 
+#             FROM every_circle.users
+#             WHERE email = \'""" + email + """\';
+#             """)
+#         # print(user_lookup_query)
+#         result = execute(user_lookup_query, "get", conn)
+#         # print(result)
+#         if len(result['result']) > 0:
+#             return result['result'][0]
+#     elif projectName == "NITYA":
+#         conn = connect('nitya')
+#         # get user
+#         user_lookup_query = ("""
+#         SELECT * FROM nitya.customers
+#         WHERE customer_email =\'""" + email + """\';""")
+#         result = execute(user_lookup_query, "get", conn)
+#         if len(result['result']) > 0:
+#             return result['result'][0]
+#     elif projectName == "SKEDUL":
+#         conn = connect('skedul')
+#         # get user
+#         user_lookup_query = ("""
+#         SELECT * FROM skedul.users
+#         WHERE user_email_id = \'""" + email + """\';""")
+#         result = execute(user_lookup_query, "get", conn)
+#         if len(result['result']) > 0:
+#             return result['result'][0]
+#     elif projectName == "FINDME":
+#         conn = connect('find_me')
+#         # get user
+#         user_lookup_query = ("""
+#         SELECT * FROM find_me.users
+#         WHERE email = \'""" + email + """\';""")
+#         result = execute(user_lookup_query, "get", conn)
+#         if len(result['result']) > 0:
+#             return result['result'][0]
+#     elif projectName == "MMU":
+#         conn = connect('mmu')
+#         # get user
+#         user_lookup_query = ("""
+#         SELECT * FROM mmu.users
+#         WHERE user_email_id = \'""" + email + """\';""")
+#         result = execute(user_lookup_query, "get", conn)
+#         # print("MMU result: ", result)
+#         if len(result['result']) > 0:
+#             # print("Before return: ", result['result'][0] )
+#             return result['result'][0]
 
 def createUser(firstName, lastName, phoneNumber, email, password, role=None, email_validated=None, google_auth_token=None, google_refresh_token=None, social_id=None, access_expires_in=None, projectName=None):
     global encrypt_flag 
@@ -651,10 +645,11 @@ class SetTempPassword(Resource):
         if projectName == "PM":
             conn = connect('pm')
             # get user
-            user_lookup_query = ("""
-            SELECT * FROM pm.users
-            WHERE email = \'""" + email + """\';""")
-            user_lookup = execute(user_lookup_query, "get", conn)
+            # user_lookup_query = ("""
+            # SELECT * FROM pm.users
+            # WHERE email = \'""" + email + """\';""")
+            # user_lookup = execute(user_lookup_query, "get", conn)
+            user_lookup = user_lookup_query(email, projectName)
 
             if not user_lookup['result']:
                 user_lookup['message'] = 'No such email exists'
@@ -688,12 +683,13 @@ class SetTempPassword(Resource):
             encrypt_flag = True
             conn = connect('space_dev')
             # get user
-            user_lookup_query = ("""
-                SELECT * 
-                FROM space_dev.users
-                WHERE email = \'""" + email + """\';
-                """)
-            user_lookup = execute(user_lookup_query, "get", conn)
+            # user_lookup_query = ("""
+            #     SELECT * 
+            #     FROM space_dev.users
+            #     WHERE email = \'""" + email + """\';
+            #     """)
+            # user_lookup = execute(user_lookup_query, "get", conn)
+            user_lookup = user_lookup_query(email, projectName)
 
             if not user_lookup['result']:
                 user_lookup['message'] = 'No such email exists'
@@ -727,12 +723,13 @@ class SetTempPassword(Resource):
             encrypt_flag = True
             conn = connect('space_prod')
             # get user
-            user_lookup_query = ("""
-                SELECT * 
-                FROM space_prod.users
-                WHERE email = \'""" + email + """\';
-                """)
-            user_lookup = execute(user_lookup_query, "get", conn)
+            # user_lookup_query = ("""
+            #     SELECT * 
+            #     FROM space_prod.users
+            #     WHERE email = \'""" + email + """\';
+            #     """)
+            # user_lookup = execute(user_lookup_query, "get", conn)
+            user_lookup = user_lookup_query(email, projectName)
 
             if not user_lookup['result']:
                 user_lookup['message'] = 'No such email exists'
@@ -765,10 +762,11 @@ class SetTempPassword(Resource):
         elif projectName == "NITYA":
             conn = connect('nitya')
             # get user
-            user_lookup_query = ("""
-            SELECT * FROM nitya.customers
-            WHERE customer_email =\'""" + email + """\';""")
-            user_lookup = execute(user_lookup_query, "get", conn)
+            # user_lookup_query = ("""
+            # SELECT * FROM nitya.customers
+            # WHERE customer_email =\'""" + email + """\';""")
+            # user_lookup = execute(user_lookup_query, "get", conn)
+            user_lookup = user_lookup_query(email, projectName)
 
             if not user_lookup['result']:
                 user_lookup['message'] = 'No such email exists'
@@ -802,10 +800,11 @@ class SetTempPassword(Resource):
         elif projectName == "EVERY-CIRCLE":
             conn = connect('every_circle')
             # get user
-            user_lookup_query = ("""
-            SELECT * FROM every_circle.users
-            WHERE user_email_id = \'""" + email + """\';""")
-            user_lookup = execute(user_lookup_query, "get", conn)
+            # user_lookup_query = ("""
+            # SELECT * FROM every_circle.users
+            # WHERE user_email_id = \'""" + email + """\';""")
+            # user_lookup = execute(user_lookup_query, "get", conn)
+            user_lookup = user_lookup_query(email, projectName)
 
             if not user_lookup['result']:
                 user_lookup['message'] = 'No such email exists'
@@ -837,10 +836,11 @@ class SetTempPassword(Resource):
         elif projectName == "SKEDUL":
             conn = connect('skedul')
             # get user
-            user_lookup_query = ("""
-            SELECT * FROM skedul.users
-            WHERE user_email_id = \'""" + email + """\';""")
-            user_lookup = execute(user_lookup_query, "get", conn)
+            # user_lookup_query = ("""
+            # SELECT * FROM skedul.users
+            # WHERE user_email_id = \'""" + email + """\';""")
+            # user_lookup = execute(user_lookup_query, "get", conn)
+            user_lookup = user_lookup_query(email, projectName)
 
             if not user_lookup['result']:
                 user_lookup['message'] = 'No such email exists'
@@ -872,10 +872,11 @@ class SetTempPassword(Resource):
         elif projectName == "FINDME":
             conn = connect('find_me')
             # get user
-            user_lookup_query = ("""
-            SELECT * FROM find_me.users
-            WHERE email = \'""" + email + """\';""")
-            user_lookup = execute(user_lookup_query, "get", conn)
+            # user_lookup_query = ("""
+            # SELECT * FROM find_me.users
+            # WHERE email = \'""" + email + """\';""")
+            # user_lookup = execute(user_lookup_query, "get", conn)
+            user_lookup = user_lookup_query(email, projectName)
 
             if not user_lookup['result']:
                 user_lookup['message'] = 'No such email exists'
@@ -907,10 +908,11 @@ class SetTempPassword(Resource):
         elif projectName == "MMU":
             conn = connect('mmu')
             # get user
-            user_lookup_query = ("""
-            SELECT * FROM mmu.users
-            WHERE user_email_id = \'""" + email + """\';""")
-            user_lookup = execute(user_lookup_query, "get", conn)
+            # user_lookup_query = ("""
+            # SELECT * FROM mmu.users
+            # WHERE user_email_id = \'""" + email + """\';""")
+            # user_lookup = execute(user_lookup_query, "get", conn)
+            user_lookup = user_lookup_query(email, projectName)
 
             if not user_lookup['result']:
                 user_lookup['message'] = 'No such email exists'
@@ -955,10 +957,11 @@ class UpdateEmailPassword(Resource):
         if projectName == "PM":
             conn = connect('pm')
             # get user
-            user_lookup_query = ("""
-            SELECT * FROM pm.users
-            WHERE user_uid = \'""" + data['id'] + """\';""")
-            user_lookup = execute(user_lookup_query, "get", conn)
+            # user_lookup_query = ("""
+            # SELECT * FROM pm.users
+            # WHERE user_uid = \'""" + data['id'] + """\';""")
+            # user_lookup = execute(user_lookup_query, "get", conn)
+            user_lookup = user_lookup_query(user_uid, projectName)
 
             if not user_lookup['result']:
                 user_lookup['message'] = "User UID doesn't exists"
@@ -984,12 +987,13 @@ class UpdateEmailPassword(Resource):
             encrypt_flag = True
             conn = connect('space_dev')
             # get user
-            user_lookup_query = ("""
-                SELECT * 
-                FROM space_dev.users
-                WHERE user_uid = \'""" + data['id'] + """\';
-                """)
-            user_lookup = execute(user_lookup_query, "get", conn)
+            # user_lookup_query = ("""
+            #     SELECT * 
+            #     FROM space_dev.users
+            #     WHERE user_uid = \'""" + data['id'] + """\';
+            #     """)
+            # user_lookup = execute(user_lookup_query, "get", conn)
+            user_lookup = user_lookup_query(user_uid, projectName)
 
             if not user_lookup['result']:
                 user_lookup['message'] = "User UID doesn't exists"
@@ -1015,12 +1019,13 @@ class UpdateEmailPassword(Resource):
             encrypt_flag = True
             conn = connect('space_prod')
             # get user
-            user_lookup_query = ("""
-                SELECT * 
-                FROM space_prod.users
-                WHERE user_uid = \'""" + data['id'] + """\';
-                """)
-            user_lookup = execute(user_lookup_query, "get", conn)
+            # user_lookup_query = ("""
+            #     SELECT * 
+            #     FROM space_prod.users
+            #     WHERE user_uid = \'""" + data['id'] + """\';
+            #     """)
+            # user_lookup = execute(user_lookup_query, "get", conn)
+            user_lookup = user_lookup_query(user_uid, projectName)
 
             if not user_lookup['result']:
                 user_lookup['message'] = "User UID doesn't exists"
@@ -1045,10 +1050,11 @@ class UpdateEmailPassword(Resource):
         elif projectName == "NITYA":
             conn = connect('nitya')
             # get user
-            user_lookup_query = ("""
-            SELECT * FROM nitya.customers
-            WHERE customer_uid = \'""" + data['id'] + """\';""")
-            user_lookup = execute(user_lookup_query, "get", conn)
+            # user_lookup_query = ("""
+            # SELECT * FROM nitya.customers
+            # WHERE customer_uid = \'""" + data['id'] + """\';""")
+            # user_lookup = execute(user_lookup_query, "get", conn)
+            user_lookup = user_lookup_query(user_uid, projectName)
 
             if not user_lookup['result']:
                 user_lookup['message'] = 'No such email exists'
@@ -1073,10 +1079,11 @@ class UpdateEmailPassword(Resource):
         elif projectName == "EVERY-CIRCLE":
             conn = connect('every_circle')
             # get user
-            user_lookup_query = ("""
-            SELECT * FROM every_circle.users
-            WHERE user_unique_id = \'""" + data['id'] + """\';""")
-            user_lookup = execute(user_lookup_query, "get", conn)
+            # user_lookup_query = ("""
+            # SELECT * FROM every_circle.users
+            # WHERE user_unique_id = \'""" + data['id'] + """\';""")
+            # user_lookup = execute(user_lookup_query, "get", conn)
+            user_lookup = user_lookup_query(user_uid, projectName)
 
             if not user_lookup['result']:
                 user_lookup['message'] = 'No such email exists'
@@ -1100,10 +1107,11 @@ class UpdateEmailPassword(Resource):
         elif projectName == "SKEDUL":
             conn = connect('skedul')
             # get user
-            user_lookup_query = ("""
-            SELECT * FROM skedul.users
-            WHERE user_unique_id = \'""" + data['id'] + """\';""")
-            user_lookup = execute(user_lookup_query, "get", conn)
+            # user_lookup_query = ("""
+            # SELECT * FROM skedul.users
+            # WHERE user_unique_id = \'""" + data['id'] + """\';""")
+            # user_lookup = execute(user_lookup_query, "get", conn)
+            user_lookup = user_lookup_query(user_uid, projectName)
 
             if not user_lookup['result']:
                 user_lookup['message'] = 'No such email exists'
@@ -1127,10 +1135,11 @@ class UpdateEmailPassword(Resource):
         elif projectName == "FINDME":
             conn = connect('find_me')
             # get user
-            user_lookup_query = ("""
-            SELECT * FROM find_me.users
-            WHERE user_uid = \'""" + data['id'] + """\';""")
-            user_lookup = execute(user_lookup_query, "get", conn)
+            # user_lookup_query = ("""
+            # SELECT * FROM find_me.users
+            # WHERE user_uid = \'""" + data['id'] + """\';""")
+            # user_lookup = execute(user_lookup_query, "get", conn)
+            user_lookup = user_lookup_query(user_uid, projectName)
 
             if not user_lookup['result']:
                 user_lookup['message'] = 'No such email exists'
@@ -1154,10 +1163,11 @@ class UpdateEmailPassword(Resource):
         elif projectName == "MMU":
             conn = connect('mmu')
             # get user
-            user_lookup_query = ("""
-            SELECT * FROM mmu.users
-            WHERE user_uid = \'""" + data['id'] + """\';""")
-            user_lookup = execute(user_lookup_query, "get", conn)
+            # user_lookup_query = ("""
+            # SELECT * FROM mmu.users
+            # WHERE user_uid = \'""" + data['id'] + """\';""")
+            # user_lookup = execute(user_lookup_query, "get", conn)
+            user_lookup = user_lookup_query(user_uid, projectName)
 
             if not user_lookup['result']:
                 user_lookup['message'] = 'No such email exists'
@@ -1446,7 +1456,7 @@ class Login(Resource):
 
         if projectName == 'PM':
             conn = connect('pm')
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             if user:
                 if password == user['password_hash']:
                     response['message'] = 'Login successful'
@@ -1461,7 +1471,7 @@ class Login(Resource):
 
         elif projectName == 'MYSPACE-DEV':
             encrypt_flag = True
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             if user:
                 if password == user['password_hash']:
                     response['message'] = 'Login successful'
@@ -1477,7 +1487,7 @@ class Login(Resource):
         elif projectName == 'MYSPACE':
             print("In Login MYSPACE")
             encrypt_flag = True
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             if user:
                 if password == user['password_hash']:
                     response['message'] = 'Login successful'
@@ -1493,7 +1503,8 @@ class Login(Resource):
         elif projectName == 'EVERY-CIRCLE':
             print("In Login Every-Circle")
             encrypt_flag = True
-            user = getUserByEmail(email, projectName)
+            # user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             if user:
                 if password == user['password_hash']:
                     response['message'] = 'Login successful'
@@ -1509,7 +1520,7 @@ class Login(Resource):
 
         elif projectName == 'NITYA':
             conn = connect('nitya')
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             if not user:
                 response['message'] = 'Email not found'
                 response['code'] = 404
@@ -1569,24 +1580,10 @@ class Login(Resource):
                 items["message"] = "Authenticated successfully."
                 items["code"] = 200
                 return items
-
-        # elif projectName == 'EVERY-CIRCLE':
-        #     conn = connect('every_circle')
-        #     user = getUserByEmail(email, projectName)
-        #     if user:
-        #         if password == user['password_hashed']:
-        #             response['message'] = 'Login successful'
-        #             response['code'] = 200
-        #         else:
-        #             response['message'] = 'Incorrect password'
-        #             response['code'] = 401
-        #     else:
-        #         response['message'] = 'Email not found'
-        #         response['code'] = 404
         
         elif projectName == 'SKEDUL':
             conn = connect('skedul')
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             if user:
                 if password == user['password_hashed']:
                     response['message'] = 'Login successful'
@@ -1600,7 +1597,7 @@ class Login(Resource):
 
         elif projectName == 'FINDME':
             conn = connect('find_me')
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             if user:
                 if password == user['password_hash']:
                     response['message'] = 'Login successful'
@@ -1617,7 +1614,7 @@ class Login(Resource):
             # print("In MMU: ", projectName)
             # print("Email: ", email, password)
             conn = connect('mmu')
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             # print("\n",user['user_password_hash'])
             if user:
                 if password == user['user_password_hash']:
@@ -1652,7 +1649,7 @@ class CreateAccount(Resource):
             email = data.get('email')
             password = data.get('password')
             role = data.get('role')
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             if user:
                 response['message'] = 'User already exists'
             else:
@@ -1672,7 +1669,7 @@ class CreateAccount(Resource):
             email = data.get('email')
             password = data.get('password')
             role = data.get('role')
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             if user:
                 print("In Myspace User: ", user)
                 print("In Myspace User ID: ", user['user_uid'])
@@ -1701,7 +1698,7 @@ class CreateAccount(Resource):
             email = data.get('email')
             password = data.get('password')
             role = data.get('role')
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             if user:
                 print("In Myspace User: ", user)
                 print("In Myspace User ID: ", user['user_uid'])
@@ -1730,7 +1727,7 @@ class CreateAccount(Resource):
             email = data.get('email')
             password = data.get('password')
             # role = data.get('role')
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             if user:
                 print("In EveryCircle User: ", user)
                 print("In EveryCircle User ID: ", user['user_uid'])
@@ -2205,7 +2202,7 @@ class CreateAccount(Resource):
             email = data.get('email')
             password = data.get('password')
             role = data.get('role')
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             email_validated = str(randint(100, 999))
             if user:
                 response['message'] = 'User already exists'
@@ -2229,7 +2226,7 @@ class CreateAccount(Resource):
             email = data.get('email')
             password = data.get('password')
             # role = data.get('role')
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             # email_validated = str(randint(100, 999))
             if user:
                 response['message'] = 'User already exists'
@@ -3056,7 +3053,7 @@ class UserSocialSignUp(Resource):
             social_id = data.get('social_id')
             access_expires_in = data.get('access_expires_in')
             password = data.get('password')
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             if user:
                 response['message'] = 'User already exists'
             else:
@@ -3080,7 +3077,7 @@ class UserSocialSignUp(Resource):
             social_id = data.get('social_id')
             access_expires_in = data.get('access_expires_in')
             password = data.get('password')
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             if user:
                 response['message'] = 'User already exists'
             else:
@@ -3104,7 +3101,7 @@ class UserSocialSignUp(Resource):
             social_id = data.get('social_id')
             access_expires_in = data.get('access_expires_in')
             password = data.get('password')
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             if user:
                 response['message'] = 'User already exists'
             else:
@@ -3298,7 +3295,7 @@ class UserSocialSignUp(Resource):
             social_id = data.get('social_id')
             access_expires_in = data.get('access_expires_in')
             password = data.get('password')
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             email_validated = str(randint(100, 999))
             if user:
                 response['message'] = 'User already exists'
@@ -3326,7 +3323,7 @@ class UserSocialSignUp(Resource):
             social_id = data.get('social_id')
             access_expires_in = data.get('access_expires_in')
             password = data.get('password')
-            user = getUserByEmail(email, projectName)
+            user = user_lookup_query(email, projectName)
             email_validated = str(randint(100, 999))
             if user:
                 response['message'] = 'User already exists'
@@ -3368,7 +3365,8 @@ class UserSocialSignUp(Resource):
             passwordSalt = createSalt()
             passwordHash = createHash(password, passwordSalt)            
 
-            user = getUserByUID(userUID, projectName)
+            # user = getUserByUID(userUID, projectName)
+            user = user_lookup_query(userUID, projectName)
             if not user:
                 response['message'] = 'User does not exist'
                 response['code'] = 404
@@ -3483,7 +3481,7 @@ class UserSocialLogin(Resource):
         items = {}
         if projectName == 'PM':
             conn = connect('pm')
-            user = getUserByEmail(email_id, projectName)
+            user = user_lookup_query(email_id, projectName)
             if user:
                 user_unique_id = user.get('user_uid')
                 google_auth_token = user.get('google_auth_token')
@@ -3495,7 +3493,7 @@ class UserSocialLogin(Resource):
             return response
         elif projectName == 'MYSPACE' or projectName == 'MYSPACE-DEV' :
             encrypt_flag = True
-            user = getUserByEmail(email_id, projectName)
+            user = user_lookup_query(email_id, projectName)
             if user:
                 if user['social_id'] == '':
                     response['message'] = 'Login with email'
@@ -3512,7 +3510,7 @@ class UserSocialLogin(Resource):
         elif projectName == 'NITYA':
             conn = connect('nitya')
 
-            user = getUserByEmail(email_id, projectName)
+            user = user_lookup_query(email_id, projectName)
             if user:
                 user_unique_id = user.get('customer_uid')
                 google_auth_token = user.get('user_access_token')
@@ -3524,7 +3522,7 @@ class UserSocialLogin(Resource):
             return response
         elif projectName == 'EVERY-CIRCLE':
             conn = connect('every_circle')
-            user = getUserByEmail(email_id, projectName)
+            user = user_lookup_query(email_id, projectName)
             if user:
                 user_unique_id = user.get('user_unique_uid')
                 google_auth_token = user.get('google_auth_token')
@@ -3536,7 +3534,7 @@ class UserSocialLogin(Resource):
             return response
         elif projectName == 'SKEDUL':
             conn = connect('skedul')
-            user = getUserByEmail(email_id, projectName)
+            user = user_lookup_query(email_id, projectName)
             if user:
                 user_unique_id = user.get('user_unique_uid')
                 google_auth_token = user.get('google_auth_token')
@@ -3548,7 +3546,7 @@ class UserSocialLogin(Resource):
             return response
         elif projectName == 'FINDME':
             conn = connect('find_me')
-            user = getUserByEmail(email_id, projectName)
+            user = user_lookup_query(email_id, projectName)
             if user:
                 print(user)
                 if user['social_id'] == '':
@@ -3565,7 +3563,7 @@ class UserSocialLogin(Resource):
             return response
         elif projectName == 'MMU':
             conn = connect('mmu')
-            user = getUserByEmail(email_id, projectName)
+            user = user_lookup_query(email_id, projectName)
             if user:
                 print(user)
                 if user['user_social_id'] == '':
@@ -3633,7 +3631,7 @@ def before_request():
     global encrypt_flag
     global project_name
     project_name = get_project_name_from_request()
-    print("Postman Secret: ", request.headers.get("Postman-Secret"))
+    # print("Postman Secret: ", request.headers.get("Postman-Secret"))
     encrypt_flag = handle_before_request(project_name, full_encryption_projects, POSTMAN_SECRET)
 
 @app.after_request

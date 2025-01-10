@@ -22,7 +22,7 @@ def connect(RDS_DB):
     global RDS_PORT
     global RDS_USER
 
-    print("Trying to connect to RDS (API v2)...")
+    # print("Trying to connect to RDS (API v2)...")
     try:
         conn = pymysql.connect(
             host=os.getenv('RDS_HOST'),
@@ -42,7 +42,7 @@ def connect(RDS_DB):
     #         db=RDS_DB,
     #         cursorclass=pymysql.cursors.DictCursor,
     #     )
-        print("Successfully connected to RDS. (API v2)")
+        # print("Successfully connected to RDS. (API v2)")
         return conn
     except:
         print("Could not connect to RDS. (API v2)")
@@ -110,5 +110,5 @@ def execute(sql, cmd, conn, skipSerialization=False):
         # Return status code of 490 for unsuccessful HTTP request
         response["code"] = 490
     finally:
-        response["sql"] = sql
+        # response["sql"] = sql
         return response
