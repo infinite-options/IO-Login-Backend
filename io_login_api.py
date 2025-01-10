@@ -1446,14 +1446,47 @@ class AccountSalt(Resource):
 class Login(Resource):
     def post(self, projectName):
         response = {}
-        
+        user_lookup = {}
+
         data = request.get_json(force=True)
         if "encrypted_data" in data:
             encrypted_data = data["encrypted_data"]
             data = decrypt_dict(encrypted_data)
 
         email = data["email"]
-        password = data.get("password")
+        password = data["password"]
+        # password = data.get("password")
+        print(email, password)
+
+        db = db_lookup(projectName)
+        conn = connect(db)
+        user_lookup = user_lookup_query(email, projectName)
+        print("In Account Salt POST: ", db, user_lookup)
+
+        if not user_lookup:
+                print("In not user_lookup")
+                return "User email does not exists"
+        user_uid = user_lookup['user_uid']
+        print(user_uid)
+
+        if projectName == 'MMU':
+            if password == user_lookup['user_password_hash']:
+                    response['message'] = 'Login successful'
+                    response['code'] = 200
+                    response['result'] = user_lookup
+            else:
+                response['message'] = 'Incorrect password'
+                response['code'] = 401
+        else:
+            user_lookup['result'] = [{
+                    "password_algorithm": "SHA256",
+                    "password_salt": user_lookup['password_salt'],
+                    }]
+        user_lookup["message"] = "SALT sent successfully"
+        user_lookup["code"] = 200
+        return user_lookup
+
+
 
         if projectName == 'PM':
             conn = connect('pm')
