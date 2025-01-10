@@ -511,122 +511,148 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
 
 # Get the correct users for a project
 class GetUsers(Resource):
-
     def get(self, projectName):
+        print("In GetUsers ", projectName)
         response = {}
-        # global encrypt_flag 
         items = {}
-        # Business Code sent in as a parameter from frontend
-        print("business: ", projectName)
-        if projectName == "PM":
-            try:
 
-                conn = connect('pm')
-                query = ("""SELECT * FROM pm.users;""")
-                items = execute(query, "get", conn)
-                response["message"] = "Users from PM"
-                response["result"] = items["result"]
+        db = db_lookup(projectName)
 
-            except:
-                raise BadRequest(
-                    "Request failed, please try again later."
-                )
-            finally:
-                disconnect(conn)
-        elif projectName == "MYSPACE-DEV": 
-            
-            try:
+        try:
+            conn = connect(db)
+            print(conn)
+            query = (f"""SELECT * FROM {db}.users;""")
+            print(query)
+            items = execute(query, "get", conn)
+            response["message"] = "Users from PM"
+            response["result"] = items["result"]
 
-                conn = connect('space_dev')
-                query = ("""SELECT * FROM space_dev.users;""")
-                items = execute(query, "get", conn)
-                response["message"] = "Users from MYSPACE"
-                response["result"] = items["result"]
+        except:
+            raise BadRequest(
+                "Request failed, please try again later."
+            )
+        finally:
+            disconnect(conn)
 
-            except:
-                raise BadRequest(
-                    "Request failed, please try again later."
-                )
-            finally:
-                disconnect(conn)
-        elif projectName == "MYSPACE": 
-            
-            try:
-
-                conn = connect('space_prod')
-                query = ("""SELECT * FROM space_prod.users;""")
-                items = execute(query, "get", conn)
-                response["message"] = "Users from MYSPACE"
-                response["result"] = items["result"]
-
-            except:
-                raise BadRequest(
-                    "Request failed, please try again later."
-                )
-            finally:
-                disconnect(conn)
-        elif projectName == "NITYA":
-            try:
-
-                conn = connect('nitya')
-                query = ("""SELECT * FROM nitya.customers;""")
-                items = execute(query, "get", conn)
-                response["message"] = "Customers from Nitya"
-                response["result"] = items["result"]
-
-            except:
-                raise BadRequest(
-                    "Request failed, please try again later."
-                )
-            finally:
-                disconnect(conn)
-        elif projectName == "EVERY-CIRCLE":
-            print("In Every Circle")
-            try:
-
-                conn = connect('every_circle')
-                query = ("""SELECT * FROM every_circle.users;""")
-                items = execute(query, "get", conn)
-                response["message"] = "Users from EVERY-CIRCLE"
-                response["result"] = items["result"]
-
-            except:
-                raise BadRequest(
-                    "Request failed, please try again later."
-                )
-            finally:
-                disconnect(conn)
-        elif projectName == "SKEDUL":
-            try:
-
-                conn = connect('skedul')
-                query = ("""SELECT * FROM skedul.users;""")
-                items = execute(query, "get", conn)
-                response["message"] = "Users from SKEDUL"
-                response["result"] = items["result"]
-
-            except:
-                raise BadRequest(
-                    "Request failed, please try again later."
-                )
-            finally:
-                disconnect(conn)
-        elif projectName == "FINDME":
-            try:
-
-                conn = connect('find_me')
-                query = ("""SELECT * FROM find_me.users;""")
-                items = execute(query, "get", conn)
-                response["message"] = "Users from FIND ME"
-                response["result"] = items["result"]
-
-            except:
-                raise BadRequest(
-                    "Request failed, please try again later."
-                )
-            finally:
-                disconnect(conn)
         return response
+
+
+
+    # def get(self, projectName):
+    #     response = {}
+    #     # global encrypt_flag 
+    #     items = {}
+    #     # Business Code sent in as a parameter from frontend
+    #     print("business: ", projectName)
+    #     if projectName == "PM":
+    #         try:
+
+    #             conn = connect('pm')
+    #             query = ("""SELECT * FROM pm.users;""")
+    #             items = execute(query, "get", conn)
+    #             response["message"] = "Users from PM"
+    #             response["result"] = items["result"]
+
+    #         except:
+    #             raise BadRequest(
+    #                 "Request failed, please try again later."
+    #             )
+    #         finally:
+    #             disconnect(conn)
+    #     elif projectName == "MYSPACE-DEV": 
+            
+    #         try:
+
+    #             conn = connect('space_dev')
+    #             query = ("""SELECT * FROM space_dev.users;""")
+    #             items = execute(query, "get", conn)
+    #             response["message"] = "Users from MYSPACE"
+    #             response["result"] = items["result"]
+
+    #         except:
+    #             raise BadRequest(
+    #                 "Request failed, please try again later."
+    #             )
+    #         finally:
+    #             disconnect(conn)
+    #     elif projectName == "MYSPACE": 
+            
+    #         try:
+
+    #             conn = connect('space_prod')
+    #             query = ("""SELECT * FROM space_prod.users;""")
+    #             items = execute(query, "get", conn)
+    #             response["message"] = "Users from MYSPACE"
+    #             response["result"] = items["result"]
+
+    #         except:
+    #             raise BadRequest(
+    #                 "Request failed, please try again later."
+    #             )
+    #         finally:
+    #             disconnect(conn)
+    #     elif projectName == "NITYA":
+    #         try:
+
+    #             conn = connect('nitya')
+    #             query = ("""SELECT * FROM nitya.customers;""")
+    #             items = execute(query, "get", conn)
+    #             response["message"] = "Customers from Nitya"
+    #             response["result"] = items["result"]
+
+    #         except:
+    #             raise BadRequest(
+    #                 "Request failed, please try again later."
+    #             )
+    #         finally:
+    #             disconnect(conn)
+    #     elif projectName == "EVERY-CIRCLE":
+    #         print("In Every Circle")
+    #         try:
+
+    #             conn = connect('every_circle')
+    #             query = ("""SELECT * FROM every_circle.users;""")
+    #             items = execute(query, "get", conn)
+    #             response["message"] = "Users from EVERY-CIRCLE"
+    #             response["result"] = items["result"]
+
+    #         except:
+    #             raise BadRequest(
+    #                 "Request failed, please try again later."
+    #             )
+    #         finally:
+    #             disconnect(conn)
+    #     elif projectName == "SKEDUL":
+    #         try:
+
+    #             conn = connect('skedul')
+    #             query = ("""SELECT * FROM skedul.users;""")
+    #             items = execute(query, "get", conn)
+    #             response["message"] = "Users from SKEDUL"
+    #             response["result"] = items["result"]
+
+    #         except:
+    #             raise BadRequest(
+    #                 "Request failed, please try again later."
+    #             )
+    #         finally:
+    #             disconnect(conn)
+    #     elif projectName == "FINDME":
+    #         try:
+
+    #             conn = connect('find_me')
+    #             query = ("""SELECT * FROM find_me.users;""")
+    #             items = execute(query, "get", conn)
+    #             response["message"] = "Users from FIND ME"
+    #             response["result"] = items["result"]
+
+    #         except:
+    #             raise BadRequest(
+    #                 "Request failed, please try again later."
+    #             )
+    #         finally:
+    #             disconnect(conn)
+    #     return response
 
 
 class SetTempPassword(Resource):
