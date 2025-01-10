@@ -557,7 +557,10 @@ class SetTempPassword(Resource):
 
         if not user_lookup:
                 print("In not user_lookup")
-                return "User email does not exists"
+                response["message"] = "User email does not exists"
+                response["code"] = 404
+                return response
+        
         user_uid = user_lookup['user_uid']
         print(user_uid)
         # create password salt and hash
@@ -910,7 +913,10 @@ class UpdateEmailPassword(Resource):
 
         if not user_lookup:
                 print("In not user_lookup")
-                return "User UID does not exists"
+                response["message"] = "User email does not exists"
+                response["code"] = 404
+                return response
+        
         user_uid = user_lookup['user_uid']
         # create password salt and hash
         salt = createSalt()
@@ -925,6 +931,8 @@ class UpdateEmailPassword(Resource):
             """
 
         items = execute(query_update, "post", conn)
+        print(items)
+        # PM Todo: Need conditional statement to confirm successful update
         response['message'] = 'User email and password updated successfully'
 
         return response
@@ -1186,23 +1194,26 @@ class AccountSalt(Resource):
 
         if not user_lookup:
                 print("In not user_lookup")
-                return "User email does not exists"
+                response["message"] = "User email does not exists"
+                response["code"] = 404
+                return response
+        
         user_uid = user_lookup['user_uid']
         print(user_uid)
 
         if projectName == 'MMU':
-            user_lookup['result'] = [{
+            response['result'] = [{
                         "password_algorithm": "SHA256",
                         "password_salt": user_lookup['user_password_salt'],
                     }]
         else:
-            user_lookup['result'] = [{
+            response['result'] = [{
                     "password_algorithm": "SHA256",
                     "password_salt": user_lookup['password_salt'],
                     }]
-        user_lookup["message"] = "SALT sent successfully"
-        user_lookup["code"] = 200
-        return user_lookup
+        response["message"] = "SALT sent successfully"
+        response["code"] = 200
+        return response
 
 
         # if projectName == 'PM':
@@ -1461,11 +1472,14 @@ class Login(Resource):
         db = db_lookup(projectName)
         conn = connect(db)
         user_lookup = user_lookup_query(email, projectName)
-        print("In Account Salt POST: ", db, user_lookup)
+        print("In Login POST: ", db, user_lookup)
 
         if not user_lookup:
                 print("In not user_lookup")
-                return "User email does not exists"
+                response["message"] = "User email does not exists"
+                response["code"] = 404
+                return response
+        
         user_uid = user_lookup['user_uid']
         print(user_uid)
 
@@ -1478,195 +1492,196 @@ class Login(Resource):
                 response['message'] = 'Incorrect password'
                 response['code'] = 401
         else:
-            user_lookup['result'] = [{
-                    "password_algorithm": "SHA256",
-                    "password_salt": user_lookup['password_salt'],
-                    }]
-        user_lookup["message"] = "SALT sent successfully"
-        user_lookup["code"] = 200
-        return user_lookup
-
-
-
-        if projectName == 'PM':
-            conn = connect('pm')
-            user = user_lookup_query(email, projectName)
-            if user:
-                if password == user['password_hash']:
+            if password == user_lookup['password_hash']:
                     response['message'] = 'Login successful'
                     response['code'] = 200
-                    response['result'] = createTokens(user, projectName)
-                else:
-                    response['message'] = 'Incorrect password'
-                    response['code'] = 401
+                    response['result'] = user_lookup
             else:
-                response['message'] = 'Email not found'
-                response['code'] = 404
-
-        elif projectName == 'MYSPACE-DEV':
-            
-            user = user_lookup_query(email, projectName)
-            if user:
-                if password == user['password_hash']:
-                    response['message'] = 'Login successful'
-                    response['code'] = 200
-                    response['result'] = createTokens(user, projectName)
-                else:
-                    response['message'] = 'Incorrect password'
-                    response['code'] = 401
-            else:
-                response['message'] = 'Email not found'
-                response['code'] = 404
-
-        elif projectName == 'MYSPACE':
-            print("In Login MYSPACE")
-            
-            user = user_lookup_query(email, projectName)
-            if user:
-                if password == user['password_hash']:
-                    response['message'] = 'Login successful'
-                    response['code'] = 200
-                    response['result'] = createTokens(user, projectName)
-                else:
-                    response['message'] = 'Incorrect password'
-                    response['code'] = 401
-            else:
-                response['message'] = 'Email not found'
-                response['code'] = 404
-
-        elif projectName == 'EVERY-CIRCLE':
-            print("In Login Every-Circle")
-            
-            # user = getUserByEmail(email, projectName)
-            user = user_lookup_query(email, projectName)
-            if user:
-                if password == user['password_hash']:
-                    response['message'] = 'Login successful'
-                    response['code'] = 200
-                    response['user_uid'] = user['user_uid']
-                    # response['result'] = createTokens(user, projectName)
-                else:
-                    response['message'] = 'Incorrect password'
-                    response['code'] = 401
-            else:
-                response['message'] = 'Email not found'
-                response['code'] = 404
-
-        elif projectName == 'NITYA':
-            conn = connect('nitya')
-            user = user_lookup_query(email, projectName)
-            if not user:
-                response['message'] = 'Email not found'
-                response['code'] = 404
-
-            else:
-                # checks if login was by social media
-                if (
-                    password
-                    and user["user_social_media"] != "NULL"
-                    and user["user_social_media"] != None
-                ):
-                    response["message"] = "Need to login by Social Media"
-                    response["code"] = 401
-                    return response
-
-                # nothing to check
-                elif (password is None
-                      and user["user_social_media"] == "NULL"
-                      ):
-                    response["message"] = "Enter password else login from social media"
-                    response["code"] = 405
-                    return response
-
-                # compare passwords if user_social_media is false
-                elif (
-                    user["user_social_media"] == "NULL"
-                    or user["user_social_media"] == None
-                ) and password is not None:
-
-                    if user["password_hashed"] != password:
-                        user["message"] = "Wrong password"
-                        user["result"] = ""
-                        user["code"] = 406
-                        return user
-
-                    if ((user["email_verified"]) == "0") or (
-                        user["email_verified"] == "FALSE"
-                    ):
-                        response["message"] = "Account need to be verified by email."
-                        response["code"] = 407
-                        return response
-                else:
-                    string = " Cannot compare the password or social_id while log in. "
-
-                    response["message"] = string
-                    response["code"] = 500
-                    return response
-                del user["password_hashed"]
-                del user["email_verified"]
-
-                query = (
-                    "SELECT * from nitya.customers WHERE customer_email = '"
-                    + email
-                    + "';"
-                )
-                items = execute(query, "get", conn)
-                items["message"] = "Authenticated successfully."
-                items["code"] = 200
-                return items
-        
-        elif projectName == 'SKEDUL':
-            conn = connect('skedul')
-            user = user_lookup_query(email, projectName)
-            if user:
-                if password == user['password_hashed']:
-                    response['message'] = 'Login successful'
-                    response['code'] = 200
-                else:
-                    response['message'] = 'Incorrect password'
-                    response['code'] = 401
-            else:
-                response['message'] = 'Email not found'
-                response['code'] = 404
-
-        elif projectName == 'FINDME':
-            conn = connect('find_me')
-            user = user_lookup_query(email, projectName)
-            if user:
-                if password == user['password_hash']:
-                    response['message'] = 'Login successful'
-                    response['code'] = 200
-                    response['result'] = user
-                else:
-                    response['message'] = 'Incorrect password'
-                    response['code'] = 401
-            else:
-                response['message'] = 'Email not found'
-                response['code'] = 404
-
-        elif projectName == 'MMU':
-            # print("In MMU: ", projectName)
-            # print("Email: ", email, password)
-            conn = connect('mmu')
-            user = user_lookup_query(email, projectName)
-            # print("\n",user['user_password_hash'])
-            if user:
-                if password == user['user_password_hash']:
-                    response['message'] = 'Login successful'
-                    response['code'] = 200
-                    response['result'] = user
-                else:
-                    response['message'] = 'Incorrect password'
-                    response['code'] = 401
-            else:
-                response['message'] = 'Email not found'
-                response['code'] = 404
-            
-        else:
-            response['message'] = 'Project not found'
-
-
+                response['message'] = 'Incorrect password'
+                response['code'] = 401
         return response
+
+
+
+        # if projectName == 'PM':
+        #     conn = connect('pm')
+        #     user = user_lookup_query(email, projectName)
+        #     if user:
+        #         if password == user['password_hash']:
+        #             response['message'] = 'Login successful'
+        #             response['code'] = 200
+        #             response['result'] = createTokens(user, projectName)
+        #         else:
+        #             response['message'] = 'Incorrect password'
+        #             response['code'] = 401
+        #     else:
+        #         response['message'] = 'Email not found'
+        #         response['code'] = 404
+
+        # elif projectName == 'MYSPACE-DEV':
+            
+        #     user = user_lookup_query(email, projectName)
+        #     if user:
+        #         if password == user['password_hash']:
+        #             response['message'] = 'Login successful'
+        #             response['code'] = 200
+        #             response['result'] = createTokens(user, projectName)
+        #         else:
+        #             response['message'] = 'Incorrect password'
+        #             response['code'] = 401
+        #     else:
+        #         response['message'] = 'Email not found'
+        #         response['code'] = 404
+
+        # elif projectName == 'MYSPACE':
+        #     print("In Login MYSPACE")
+            
+        #     user = user_lookup_query(email, projectName)
+        #     if user:
+        #         if password == user['password_hash']:
+        #             response['message'] = 'Login successful'
+        #             response['code'] = 200
+        #             response['result'] = createTokens(user, projectName)
+        #         else:
+        #             response['message'] = 'Incorrect password'
+        #             response['code'] = 401
+        #     else:
+        #         response['message'] = 'Email not found'
+        #         response['code'] = 404
+
+        # elif projectName == 'EVERY-CIRCLE':
+        #     print("In Login Every-Circle")
+            
+        #     # user = getUserByEmail(email, projectName)
+        #     user = user_lookup_query(email, projectName)
+        #     if user:
+        #         if password == user['password_hash']:
+        #             response['message'] = 'Login successful'
+        #             response['code'] = 200
+        #             response['user_uid'] = user['user_uid']
+        #             # response['result'] = createTokens(user, projectName)
+        #         else:
+        #             response['message'] = 'Incorrect password'
+        #             response['code'] = 401
+        #     else:
+        #         response['message'] = 'Email not found'
+        #         response['code'] = 404
+
+        # elif projectName == 'NITYA':
+        #     conn = connect('nitya')
+        #     user = user_lookup_query(email, projectName)
+        #     if not user:
+        #         response['message'] = 'Email not found'
+        #         response['code'] = 404
+
+        #     else:
+        #         # checks if login was by social media
+        #         if (
+        #             password
+        #             and user["user_social_media"] != "NULL"
+        #             and user["user_social_media"] != None
+        #         ):
+        #             response["message"] = "Need to login by Social Media"
+        #             response["code"] = 401
+        #             return response
+
+        #         # nothing to check
+        #         elif (password is None
+        #               and user["user_social_media"] == "NULL"
+        #               ):
+        #             response["message"] = "Enter password else login from social media"
+        #             response["code"] = 405
+        #             return response
+
+        #         # compare passwords if user_social_media is false
+        #         elif (
+        #             user["user_social_media"] == "NULL"
+        #             or user["user_social_media"] == None
+        #         ) and password is not None:
+
+        #             if user["password_hashed"] != password:
+        #                 user["message"] = "Wrong password"
+        #                 user["result"] = ""
+        #                 user["code"] = 406
+        #                 return user
+
+        #             if ((user["email_verified"]) == "0") or (
+        #                 user["email_verified"] == "FALSE"
+        #             ):
+        #                 response["message"] = "Account need to be verified by email."
+        #                 response["code"] = 407
+        #                 return response
+        #         else:
+        #             string = " Cannot compare the password or social_id while log in. "
+
+        #             response["message"] = string
+        #             response["code"] = 500
+        #             return response
+        #         del user["password_hashed"]
+        #         del user["email_verified"]
+
+        #         query = (
+        #             "SELECT * from nitya.customers WHERE customer_email = '"
+        #             + email
+        #             + "';"
+        #         )
+        #         items = execute(query, "get", conn)
+        #         items["message"] = "Authenticated successfully."
+        #         items["code"] = 200
+        #         return items
+        
+        # elif projectName == 'SKEDUL':
+        #     conn = connect('skedul')
+        #     user = user_lookup_query(email, projectName)
+        #     if user:
+        #         if password == user['password_hashed']:
+        #             response['message'] = 'Login successful'
+        #             response['code'] = 200
+        #         else:
+        #             response['message'] = 'Incorrect password'
+        #             response['code'] = 401
+        #     else:
+        #         response['message'] = 'Email not found'
+        #         response['code'] = 404
+
+        # elif projectName == 'FINDME':
+        #     conn = connect('find_me')
+        #     user = user_lookup_query(email, projectName)
+        #     if user:
+        #         if password == user['password_hash']:
+        #             response['message'] = 'Login successful'
+        #             response['code'] = 200
+        #             response['result'] = user
+        #         else:
+        #             response['message'] = 'Incorrect password'
+        #             response['code'] = 401
+        #     else:
+        #         response['message'] = 'Email not found'
+        #         response['code'] = 404
+
+        # elif projectName == 'MMU':
+        #     # print("In MMU: ", projectName)
+        #     # print("Email: ", email, password)
+        #     conn = connect('mmu')
+        #     user = user_lookup_query(email, projectName)
+        #     # print("\n",user['user_password_hash'])
+        #     if user:
+        #         if password == user['user_password_hash']:
+        #             response['message'] = 'Login successful'
+        #             response['code'] = 200
+        #             response['result'] = user
+        #         else:
+        #             response['message'] = 'Incorrect password'
+        #             response['code'] = 401
+        #     else:
+        #         response['message'] = 'Email not found'
+        #         response['code'] = 404
+            
+        # else:
+        #     response['message'] = 'Project not found'
+
+
+        # return response
 
 
 class CreateAccount(Resource):
