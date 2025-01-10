@@ -50,7 +50,7 @@ from encryption import (
     decrypt_request
 )
 from auth import createTokens, createSalt, createHash, getHash
-from queries import user_lookup_query
+from queries import db_lookup, user_lookup_query
 
 
 
@@ -3430,7 +3430,8 @@ class UserSocialSignUp(Resource):
             passwordSalt = createSalt()
             passwordHash = createHash(password, passwordSalt)            
 
-            user = getUserByUID(userUID, projectName)
+            # user = getUserByUID(userUID, projectName)
+            user = user_lookup_query(userUID, projectName)
             if not user:
                 response['message'] = 'User does not exist'
                 response['code'] = 404
@@ -3477,107 +3478,139 @@ class UserSocialLogin(Resource):
     def get(self, projectName, email_id):
         print("In UserSocialLogin")
         response = {}
-        global encrypt_flag 
         items = {}
-        if projectName == 'PM':
-            conn = connect('pm')
-            user = user_lookup_query(email_id, projectName)
-            if user:
+
+        # global encrypt_flag 
+
+        # db = db_lookup(projectName)
+
+        # conn = connect(db)
+        # print(conn)
+        
+        user = user_lookup_query(email_id, projectName)
+
+        if user:
+            if projectName == 'MYSPACE' or projectName == 'MYSPACE-DEV' :
+                if user['social_id'] == '':
+                    response['message'] = 'Login with email'
+                    response['result'] = False
+
+                else:
+                    response['message'] = 'Login successful'
+                    response['code'] = 200
+                    response['result'] = createTokens(user, projectName) 
+            else:
                 user_unique_id = user.get('user_uid')
                 google_auth_token = user.get('google_auth_token')
                 response['result'] = user_unique_id, google_auth_token
                 response['message'] = 'Correct Email'
-            else:
-                response['result'] = False
-                response['message'] = 'Email ID doesnt exist'
-            return response
-        elif projectName == 'MYSPACE' or projectName == 'MYSPACE-DEV' :
-            encrypt_flag = True
-            user = user_lookup_query(email_id, projectName)
-            if user:
-                if user['social_id'] == '':
-                    response['message'] = 'Login with email'
-                    response['result'] = False
 
-                else:
-                    response['message'] = 'Login successful'
-                    response['code'] = 200
-                    response['result'] = createTokens(user, projectName)
-            else:
-                response['result'] = False
-                response['message'] = 'Email ID doesnt exist'
-            return response
-        elif projectName == 'NITYA':
-            conn = connect('nitya')
+        else:
+            response['result'] = False
+            response['message'] = 'Email ID does not exist'
+        return response
 
-            user = user_lookup_query(email_id, projectName)
-            if user:
-                user_unique_id = user.get('customer_uid')
-                google_auth_token = user.get('user_access_token')
-                response['result'] = user_unique_id, google_auth_token
-                response['message'] = 'Correct Email'
-            else:
-                response['result'] = False
-                response['message'] = 'Email ID doesnt exist'
-            return response
-        elif projectName == 'EVERY-CIRCLE':
-            conn = connect('every_circle')
-            user = user_lookup_query(email_id, projectName)
-            if user:
-                user_unique_id = user.get('user_unique_uid')
-                google_auth_token = user.get('google_auth_token')
-                response['result'] = user_unique_id, google_auth_token
-                response['message'] = 'Correct Email'
-            else:
-                response['result'] = False
-                response['message'] = 'Email ID doesnt exist'
-            return response
-        elif projectName == 'SKEDUL':
-            conn = connect('skedul')
-            user = user_lookup_query(email_id, projectName)
-            if user:
-                user_unique_id = user.get('user_unique_uid')
-                google_auth_token = user.get('google_auth_token')
-                response['result'] = user_unique_id, google_auth_token
-                response['message'] = 'Correct Email'
-            else:
-                response['result'] = False
-                response['message'] = 'Email ID doesnt exist'
-            return response
-        elif projectName == 'FINDME':
-            conn = connect('find_me')
-            user = user_lookup_query(email_id, projectName)
-            if user:
-                print(user)
-                if user['social_id'] == '':
-                    response['message'] = 'Login with email'
-                    response['result'] = False
 
-                else:
-                    response['message'] = 'Login successful'
-                    response['code'] = 200
-                    response['result'] = user
-            else:
-                response['result'] = False
-                response['message'] = 'Email ID doesnt exist'
-            return response
-        elif projectName == 'MMU':
-            conn = connect('mmu')
-            user = user_lookup_query(email_id, projectName)
-            if user:
-                print(user)
-                if user['user_social_id'] == '':
-                    response['message'] = 'Login with email'
-                    response['result'] = False
 
-                else:
-                    response['message'] = 'Login successful'
-                    response['code'] = 200
-                    response['result'] = user
-            else:
-                response['result'] = False
-                response['message'] = 'Email ID doesnt exist'
-            return response
+        # if projectName == 'PM':
+        #     conn = connect('pm')
+        #     user = user_lookup_query(email_id, projectName)
+        #     if user:
+        #         user_unique_id = user.get('user_uid')
+        #         google_auth_token = user.get('google_auth_token')
+        #         response['result'] = user_unique_id, google_auth_token
+        #         response['message'] = 'Correct Email'
+        #     else:
+        #         response['result'] = False
+        #         response['message'] = 'Email ID doesnt exist'
+        #     return response
+        # elif projectName == 'MYSPACE' or projectName == 'MYSPACE-DEV' :
+        #     encrypt_flag = True
+        #     user = user_lookup_query(email_id, projectName)
+        #     if user:
+        #         if user['social_id'] == '':
+        #             response['message'] = 'Login with email'
+        #             response['result'] = False
+
+        #         else:
+        #             response['message'] = 'Login successful'
+        #             response['code'] = 200
+        #             response['result'] = createTokens(user, projectName)
+        #     else:
+        #         response['result'] = False
+        #         response['message'] = 'Email ID doesnt exist'
+        #     return response
+        # elif projectName == 'NITYA':
+        #     conn = connect('nitya')
+
+        #     user = user_lookup_query(email_id, projectName)
+        #     if user:
+        #         user_unique_id = user.get('customer_uid')
+        #         google_auth_token = user.get('user_access_token')
+        #         response['result'] = user_unique_id, google_auth_token
+        #         response['message'] = 'Correct Email'
+        #     else:
+        #         response['result'] = False
+        #         response['message'] = 'Email ID doesnt exist'
+        #     return response
+        # elif projectName == 'EVERY-CIRCLE':
+        #     conn = connect('every_circle')
+        #     user = user_lookup_query(email_id, projectName)
+        #     if user:
+        #         user_unique_id = user.get('user_unique_uid')
+        #         google_auth_token = user.get('google_auth_token')
+        #         response['result'] = user_unique_id, google_auth_token
+        #         response['message'] = 'Correct Email'
+        #     else:
+        #         response['result'] = False
+        #         response['message'] = 'Email ID doesnt exist'
+        #     return response
+        # elif projectName == 'SKEDUL':
+        #     conn = connect('skedul')
+        #     user = user_lookup_query(email_id, projectName)
+        #     if user:
+        #         user_unique_id = user.get('user_unique_uid')
+        #         google_auth_token = user.get('google_auth_token')
+        #         response['result'] = user_unique_id, google_auth_token
+        #         response['message'] = 'Correct Email'
+        #     else:
+        #         response['result'] = False
+        #         response['message'] = 'Email ID doesnt exist'
+        #     return response
+        # elif projectName == 'FINDME':
+        #     conn = connect('find_me')
+        #     user = user_lookup_query(email_id, projectName)
+        #     if user:
+        #         print(user)
+        #         if user['social_id'] == '':
+        #             response['message'] = 'Login with email'
+        #             response['result'] = False
+
+        #         else:
+        #             response['message'] = 'Login successful'
+        #             response['code'] = 200
+        #             response['result'] = user
+        #     else:
+        #         response['result'] = False
+        #         response['message'] = 'Email ID doesnt exist'
+        #     return response
+        # elif projectName == 'MMU':
+        #     conn = connect('mmu')
+        #     user = user_lookup_query(email_id, projectName)
+        #     if user:
+        #         print(user)
+        #         if user['user_social_id'] == '':
+        #             response['message'] = 'Login with email'
+        #             response['result'] = False
+
+        #         else:
+        #             response['message'] = 'Login successful'
+        #             response['code'] = 200
+        #             response['result'] = user
+        #     else:
+        #         response['result'] = False
+        #         response['message'] = 'Email ID doesnt exist'
+        #     return response
 
 
 # SEND EMAIL
