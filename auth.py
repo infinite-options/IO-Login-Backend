@@ -7,7 +7,7 @@ from getProfile import getBusinessProfileInfo, getTenantProfileInfo, getOwnerPro
 
 def getHash(value):
     """
-    Creates a hash of the given value using SHA512.
+    Creates a hash of the given value using SHA256.
     
     Args:
         value: The value to hash
@@ -15,16 +15,17 @@ def getHash(value):
     Returns:
         str: The hexadecimal representation of the hash
     """
-    return sha512(str(value).encode("utf-8")).hexdigest()
+    base = str(value).encode()
+    return sha256(base).hexdigest()
 
 def createSalt():
     """
     Creates a random salt for password hashing.
     
     Returns:
-        str: A hashed random value
+        str: A hashed random value based on current timestamp
     """
-    return getHash(os.urandom(16))
+    return getHash(datetime.now())
 
 def createHash(password, salt):
     """
