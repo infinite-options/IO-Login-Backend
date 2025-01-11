@@ -1495,7 +1495,7 @@ class Login(Resource):
             if password == user_lookup['password_hash']:
                     response['message'] = 'Login successful'
                     response['code'] = 200
-                    response['result'] = user_lookup
+                    response['result'] = createTokens(user_lookup, projectName)
             else:
                 response['message'] = 'Incorrect password'
                 response['code'] = 401
