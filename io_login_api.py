@@ -1483,7 +1483,7 @@ class Login(Resource):
         user_uid = user_lookup['user_uid']
         print(user_uid)
 
-        if projectName == 'MMU':
+        if projectName in ['MMU']:
             if password == user_lookup['user_password_hash']:
                     response['message'] = 'Login successful'
                     response['code'] = 200
@@ -1491,11 +1491,19 @@ class Login(Resource):
             else:
                 response['message'] = 'Incorrect password'
                 response['code'] = 401
-        else:
+        elif projectName in ['MYSPACE-DEV', 'MYSPACE']:
             if password == user_lookup['password_hash']:
                     response['message'] = 'Login successful'
                     response['code'] = 200
                     response['result'] = createTokens(user_lookup, projectName)
+            else:
+                response['message'] = 'Incorrect password'
+                response['code'] = 401
+        else:
+            if password == user_lookup['password_hash']:
+                    response['message'] = 'Login successful'
+                    response['code'] = 200
+                    response['result'] = user_lookup
             else:
                 response['message'] = 'Incorrect password'
                 response['code'] = 401
