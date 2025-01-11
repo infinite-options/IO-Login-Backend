@@ -49,7 +49,7 @@ def createTokens(user, projectName):
         projectName (str): Name of the project
         
     Returns:
-        tuple: (access_token, refresh_token) containing user profile information
+        dict: Dictionary containing access_token, refresh_token, and user information
     """
     print('IN CREATETOKENS')
 
@@ -84,4 +84,8 @@ def createTokens(user, projectName):
     access_token = create_access_token(identity=userInfo)
     refresh_token = create_refresh_token(identity=userInfo)
 
-    return access_token, refresh_token 
+    return {
+        'access_token': access_token,
+        'refresh_token': refresh_token,
+        'user': userInfo
+    } 
