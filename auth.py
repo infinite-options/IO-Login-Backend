@@ -52,35 +52,37 @@ def createTokens(user, database):
     Returns:
         dict: Dictionary containing access_token, refresh_token, and user information
     """
-    print('IN CREATETOKENS ', database, user)
+    print('\nIN CREATETOKENS ', database, user)
 
     businesses = getBusinessProfileInfo(user, database)['result']
-    # print("1")
+    # print("auth 1")
     tenant_id = getTenantProfileInfo(user, database)['result']
-    # print("2")
+    # print("auth 2")
     owner_id = getOwnerProfileInfo(user, database)['result']
-    # print("3")
+    # print("auth 3")
 
     if not user.get('notifications'): user['notifications'] = "true"
     if not user.get('dark_mode'): user['dark_mode'] = "false"
     if not user.get('cookies'): user['cookies'] = "true"
-    print('4')
+    print('auth 4')
 
-    # userInfo = {
-    #     'user_uid': user['user_uid'],
-    #     # 'first_name': user['first_name'],
-    #     # 'last_name': user['last_name'],
-    #     'phone_number': user['phone_number'],
-    #     'email': user['email'],
-    #     'role': user['role'],
-    #     'google_auth_token': user['google_auth_token'],
-    #     'businesses': businesses,
-    #     'tenant_id': tenant_id,
-    #     'owner_id': owner_id,
-    #     'notifications': user['notifications'],
-    #     'dark_mode': user['dark_mode'],
-    #     'cookies': user['cookies']
-    # }
+    print(user)
+
+    userInfo = {
+        'user_uid': user['user_uid'],
+        'first_name': user['first_name'],
+        'last_name': user['last_name'],
+        'phone_number': user['phone_number'],
+        'email': user['email'],
+        'role': user['role'],
+        'google_auth_token': user['google_auth_token'],
+        'businesses': businesses,
+        'tenant_id': tenant_id,
+        'owner_id': owner_id,
+        'notifications': user['notifications'],
+        'dark_mode': user['dark_mode'],
+        'cookies': user['cookies']
+    }
 
     # Create tokens with the full user info
     # access_token = create_access_token(identity=userInfo)
@@ -92,6 +94,6 @@ def createTokens(user, database):
 
     return {
         'access_token': access_token,
-        'refresh_token': refresh_token
-        # 'user': userInfo
+        'refresh_token': refresh_token,
+        'user': userInfo
     } 

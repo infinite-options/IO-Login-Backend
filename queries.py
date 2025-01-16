@@ -27,7 +27,7 @@ def db_lookup(project):
 
 
 def user_lookup_query(param, project):
-    print("In user_lookup_query ", project, param)
+    print("\nIn user_lookup_query ", project, param)
 
     # Determine the column based on the parameter
     if "@" in param:

@@ -20,7 +20,7 @@ def getBusinessProfileInfo(user, database):
         return response
     
     else:
-        query == """
+        query = """
             SELECT business_uid, business_type, employee_uid, employee_role 
             FROM employees
             LEFT JOIN businessProfileInfo ON employee_business_id = business_uid
@@ -111,6 +111,7 @@ def getTenantProfileInfo(user, database):
             FROM tenantProfileInfo 
             WHERE tenant_user_id = \'""" + user['user_uid'] + """\'
             """
+        print(query)
         response = execute(query, "get", conn)
         print(response)
 

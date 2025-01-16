@@ -1177,7 +1177,7 @@ class UpdateEmailPassword(Resource):
 
 class AccountSalt(Resource):
     def post(self, projectName):
-        print("In Account Salt POST")
+        print("\nIn Account Salt POST")
         response = {}
         items = {}
 
@@ -1192,7 +1192,7 @@ class AccountSalt(Resource):
         db = db_lookup(projectName)
         conn = connect(db)
         user_lookup = user_lookup_query(email, projectName)
-        print("In Account Salt POST: ", db, user_lookup)
+        print("\nBack in Account Salt POST: ", db, user_lookup)
 
         if not user_lookup:
                 print("In not user_lookup")
@@ -1203,7 +1203,7 @@ class AccountSalt(Resource):
         user_uid = user_lookup['user_uid']
         print(user_uid)
 
-        if projectName == 'MMU':
+        if projectName in ['MMU', 'EVERY-CIRCLE']:
             response['result'] = [{
                         "password_algorithm": "SHA256",
                         "password_salt": user_lookup['user_password_salt'],
@@ -1458,6 +1458,7 @@ class AccountSalt(Resource):
 
 class Login(Resource):
     def post(self, projectName):
+        print("\nIn Login POST ", projectName)
         response = {}
         user_lookup = {}
 
@@ -1474,7 +1475,7 @@ class Login(Resource):
         db = db_lookup(projectName)
         conn = connect(db)
         user_lookup = user_lookup_query(email, projectName)
-        print("In Login POST: ", db, user_lookup)
+        print("\nBack in Login POST: ", db, user_lookup)
 
         if not user_lookup:
                 print("In not user_lookup")
@@ -1485,7 +1486,7 @@ class Login(Resource):
         user_uid = user_lookup['user_uid']
         print(user_uid)
 
-        if projectName in ['MMU']:
+        if projectName in ['MMU', 'EVERY-CIRCLE']:
             if password == user_lookup['user_password_hash']:
                     response['message'] = 'Login successful'
                     response['code'] = 200
@@ -1750,9 +1751,17 @@ class CreateAccount(Resource):
                         """    
                 print(query)
                 response = execute(query, "post", conn)
-                print(response)  
-                user = {}
-                user['user_uid'] =  newUserID    
+                print(response)
+
+                query = f"""
+                    SELECT * 
+                    FROM {db}.users
+                    WHERE user_uid = '{newUserID}';
+                    """
+                print(query)
+                user = execute(query, "get", conn)['result'][0]
+                print(user)
+   
                 response['result'] = createTokens(user, db)
                 response['message'] = 'Signup success'
                 response['code'] = 200
