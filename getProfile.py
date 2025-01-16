@@ -3,7 +3,7 @@ from data import connect, disconnect, serializeResponse, execute
 
 
 def getBusinessProfileInfo(user, projectName):
-    print("In Business Profile Info")
+    print("In Business Profile Info ", projectName, user)
     # print(projectName, user)
 
     if projectName == 'PM':
@@ -25,8 +25,11 @@ def getBusinessProfileInfo(user, projectName):
             LEFT JOIN space_dev.businessProfileInfo ON employee_business_id = business_uid
             WHERE employee_user_id = \'""" + user['user_uid'] + """\'
             """
+        print(query)
+
         response = execute(query, "get", conn)
-        # print(response)
+        print(response)
+
         if "result" not in response:
             response["result"] = None
         else:
@@ -45,9 +48,9 @@ def getBusinessProfileInfo(user, projectName):
                 }
             }
             for record in response["result"]:
-                # print(record)
+                print(record)
                 role_key = key_map[record['business_type']][record['employee_role']]
-                # print("Role Key: ", role_key)
+                print("Role Key: ", role_key)
                 businesses[record['business_type']].update({
                     role_key: record['employee_uid'],
                     'business_uid': record['business_uid']
@@ -56,7 +59,7 @@ def getBusinessProfileInfo(user, projectName):
         return response
     
     elif projectName == "MYSPACE":
-        
+        print("in Myspace")
         response = {}
         conn = connect('space_prod')
         query = """
@@ -65,7 +68,11 @@ def getBusinessProfileInfo(user, projectName):
             LEFT JOIN space_prod.businessProfileInfo ON employee_business_id = business_uid
             WHERE employee_user_id = \'""" + user['user_uid'] + """\'
             """
+        
+        print(query)
         response = execute(query, "get", conn)
+        print(response)
+
         if "result" not in response:
             response["result"] = None
         else:
@@ -93,7 +100,7 @@ def getBusinessProfileInfo(user, projectName):
         return response
 
 def getOwnerProfileInfo(user, projectName):
-    print("In Owner Profile Info")
+    print("In Owner Profile Info ", projectName, user)
     
     if projectName == 'MYSPACE-DEV':
         
@@ -104,7 +111,10 @@ def getOwnerProfileInfo(user, projectName):
             FROM space_dev.ownerProfileInfo 
             WHERE owner_user_id = \'""" + user['user_uid'] + """\'
             """
+        print(query)
         response = execute(query, "get", conn)
+        print(response)
+
         if "result" not in response or len(response["result"]) == 0:
             response["result"] = ""
         else:
@@ -114,20 +124,26 @@ def getOwnerProfileInfo(user, projectName):
         
         response = {}
         conn = connect('space_prod')
+    
         query = """
             SELECT owner_uid 
             FROM space_prod.ownerProfileInfo 
             WHERE owner_user_id = \'""" + user['user_uid'] + """\'
             """
+        
+        print(query)
         response = execute(query, "get", conn)
+        print(response)
+
         if "result" not in response or len(response["result"]) == 0:
             response["result"] = ""
         else:
             response["result"] = response["result"][0]["owner_uid"]
+        print("Owner response: ", response)
         return response
 
 def getTenantProfileInfo(user, projectName):
-    print("In Tenant Profile Info")
+    print("In Tenant Profile Info ", projectName, user)
     
     if projectName == 'PM':
         response = {}
@@ -135,6 +151,7 @@ def getTenantProfileInfo(user, projectName):
         query = """ SELECT tenant_id FROM tenantProfileInfo
                 WHERE tenant_user_id = \'""" + user['user_uid'] + """\'"""
 
+        print(query)
         response = execute(query, "get", conn)
         return response
     elif projectName == "MYSPACE-DEV":
@@ -147,6 +164,8 @@ def getTenantProfileInfo(user, projectName):
             WHERE tenant_user_id = \'""" + user['user_uid'] + """\'
             """
         response = execute(query, "get", conn)
+        print(response)
+
         if "result" not in response or len(response["result"]) == 0:
             response["result"] = ""
         else:

@@ -274,8 +274,8 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
         response = execute(query, "post", conn)
         # print("After PM Create User: ", response)
         return newUser
+    
     elif projectName == 'MYSPACE-DEV':
-        
         conn = connect('space_dev')
         query = ["CALL space_dev.new_user_uid;"]
         NewIDresponse = execute(query[0], "get", conn)
@@ -318,8 +318,8 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
         # print("MYSPACE response: ", response)
         # print("MYSPACE response code: ", response['code'])
         return (newUser, response['code'])
+    
     elif projectName == 'MYSPACE':
-        
         conn = connect('space_prod')
         query = ["CALL space_prod.new_user_uid;"]
         NewIDresponse = execute(query[0], "get", conn)
@@ -362,11 +362,11 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
         # print("MYSPACE response: ", response)
         # print("MYSPACE response code: ", response['code'])
         return (newUser, response['code'])
+    
     elif projectName == 'EVERY-CIRCLE':
-        
         conn = connect('every_circle')
-        query = ["CALL every_circle.new_user_uid;"]
-        NewIDresponse = execute(query[0], "get", conn)
+        query = "CALL every_circle.new_user_uid;"
+        NewIDresponse = execute(query, "get", conn)
 
         newUserID = NewIDresponse["result"][0]["new_id"]
         print("Every Circle userID: ", newUserID)
@@ -392,20 +392,21 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
                 -- first_name = \'""" + firstName + """\',
                 -- last_name = \'""" + lastName + """\',
                 -- phone_number = \'""" + phoneNumber + """\',
-                email = \'""" + email + """\',
-                password_salt = \'""" + passwordSalt + """\',
-                password_hash = \'""" + passwordHash + """\',
+                user_email_id = \'""" + email + """\',
+                user_password_salt = \'""" + passwordSalt + """\',
+                user_password_hash = \'""" + passwordHash + """\',
                 -- role = \'""" + role + """\',
-                google_auth_token = \'""" + google_auth_token + """\',
-                google_refresh_token = \'""" + google_refresh_token + """\',
-                social_id = \'""" + social_id + """\',
-                access_expires_in = \'""" + access_expires_in + """\';
+                user_google_auth_token = \'""" + google_auth_token + """\',
+                user_google_refresh_token = \'""" + google_refresh_token + """\',
+                user_social_id = \'""" + social_id + """\',
+                user_access_expires_in = \'""" + access_expires_in + """\';
                 """)
         # print("EVERYCIRCLE Query: ", query)
         response = execute(query, "post", conn)
         # print("EVERYCIRCLE response: ", response)
         # print("EVERYCIRCLE response code: ", response['code'])
         return (newUser, response['code'])
+    
     elif projectName == 'FINDME':
         conn = connect('find_me')
         query = ["CALL find_me.new_user_id;"]
@@ -462,6 +463,7 @@ def createUser(firstName, lastName, phoneNumber, email, password, role=None, ema
         sendEmail(email, subject, message)
 
         return newUser
+    
     elif projectName == 'MMU':
         conn = connect('mmu')
         query = ["CALL mmu.new_user_uid;"]
@@ -1692,499 +1694,702 @@ class Login(Resource):
         # return response
 
 
+# CreateAccount is identical to UserSocialSignUp(
 class CreateAccount(Resource):
     def post(self, projectName):
-        print("In Create Account POST")
+        print("In Create Account POST ", projectName)
         response = {}
+
+        db = db_lookup(projectName)
+        conn = connect(db)
+                
+        data = request.get_json(force=True)
+        print("Input Data: ", data)
+
+        email = data.get('email')
+        phone = data.get('phone_number')
+        firstName = data.get('first_name')
+        lastName = data.get('last_name')
+        role = data.get('role')
+        google_auth_token = data.get('google_auth_token')
+        google_refresh_token = data.get('google_refresh_token')
+        social_id = data.get('social_id')
+        access_expires_in = data.get('access_expires_in')
+        password = data.get('password')
+
+        user = user_lookup_query(email, projectName)    
+        print(user)
+
+        if user:
+            response['message'] = 'User already exists'
         
-        if projectName == 'PM':
-            conn = connect('pm')
-            data = request.get_json()
-            firstName = data.get('first_name')
-            lastName = data.get('last_name')
-            phoneNumber = data.get('phone_number')
-            email = data.get('email')
-            password = data.get('password')
-            role = data.get('role')
-            user = user_lookup_query(email, projectName)
-            if user:
-                response['message'] = 'User already exists'
-            else:
-                user = createUser(firstName, lastName, phoneNumber,
-                                  email, password, role, '', '', '', '', '', 'PM')
+        else:
+            user_id_response = execute("CAll new_user_uid;", "get", conn)
+            newUserID = user_id_response["result"][0]["new_id"]
+            print("newUserID: ", newUserID)
+
+            passwordSalt = createSalt()
+            passwordHash = createHash(password, passwordSalt)
+
+            if projectName in ('PM','MYSPACE','MYSPACE-DEV') :  
+                query = f"""
+                    INSERT INTO {db}.users 
+                    SET
+                        user_uid = '{newUserID}',
+                        first_name = '{firstName}',
+                        last_name = '{lastName}',
+                        phone_number = '{phone}',
+                        email = '{email}',
+                        password_salt = '{passwordSalt}',
+                        password_hash = '{passwordHash}',
+                        role = '{role}',
+                        google_auth_token = '{google_auth_token}',
+                        google_refresh_token = '{google_refresh_token}',
+                        social_id = '{social_id}',
+                        access_expires_in = '{access_expires_in}';
+                        """    
+                print(query)
+                response = execute(query, "post", conn)
+                print(response)  
+                user = {}
+                user['user_uid'] =  newUserID    
+                response['result'] = createTokens(user, projectName)
                 response['message'] = 'Signup success'
                 response['code'] = 200
-                response['result'] = createTokens(user, projectName)
-            return response
-        elif projectName == 'MYSPACE-DEV':
-            
-            print("In MySpace")
-            data = request.get_json()
-            firstName = data.get('first_name')
-            lastName = data.get('last_name')
-            phoneNumber = data.get('phone_number')
-            email = data.get('email')
-            password = data.get('password')
-            role = data.get('role')
-            user = user_lookup_query(email, projectName)
-            if user:
-                print("In Myspace User: ", user)
-                print("In Myspace User ID: ", user['user_uid'])
-                print("In Myspace User ID: ", user['role'])
-                response['message'] = 'User already exists'
-                response['user_uid'] = user['user_uid']
-                response['user_roles'] = user['role']
+
             else:
-                user = createUser(firstName, lastName, phoneNumber,
-                                  email, password, role, '', '', '', '', '', 'MYSPACE-DEV')
-                # response['user'] = user[0]
-                # print("In MySpace: ", user)
-                response['message'] = 'Signup success'
-                # print("User 0: ", user[0])
-                # print("User 1: ", user[1])
-                response['code'] = user[1]
-                response['result'] = createTokens(user[0], projectName)
-            return response
-        elif projectName == 'MYSPACE':
-            
-            print("In MySpace")
-            data = request.get_json()
-            firstName = data.get('first_name')
-            lastName = data.get('last_name')
-            phoneNumber = data.get('phone_number')
-            email = data.get('email')
-            password = data.get('password')
-            role = data.get('role')
-            user = user_lookup_query(email, projectName)
-            if user:
-                print("In Myspace User: ", user)
-                print("In Myspace User ID: ", user['user_uid'])
-                print("In Myspace User ID: ", user['role'])
-                response['message'] = 'User already exists'
-                response['user_uid'] = user['user_uid']
-                response['user_roles'] = user['role']
-            else:
-                user = createUser(firstName, lastName, phoneNumber,
-                                  email, password, role, '', '', '', '', '', 'MYSPACE')
-                # response['user'] = user[0]
-                # print("In MySpace: ", user)
-                response['message'] = 'Signup success'
-                # print("User 0: ", user[0])
-                # print("User 1: ", user[1])
-                response['code'] = user[1]
-                response['result'] = createTokens(user[0], projectName)
-            return response
-        elif projectName == 'EVERY-CIRCLE':
-            
-            print("In EveryCircle")
-            data = request.get_json()
-            # firstName = data.get('first_name')
-            # lastName = data.get('last_name')
-            # phoneNumber = data.get('phone_number')
-            email = data.get('email')
-            password = data.get('password')
-            # role = data.get('role')
-            user = user_lookup_query(email, projectName)
-            if user:
-                print("In EveryCircle User: ", user)
-                print("In EveryCircle User ID: ", user['user_uid'])
-                # print("In EveryCircle User ID: ", user['role'])
-                response['message'] = 'User already exists'
-                response['user_uid'] = user['user_uid']
-                # response['user_roles'] = user['role']
-            else:
-                user = createUser('', '', '', email, password, '' , '', '', '', '', '', 'EVERY-CIRCLE')
-                # response['user'] = user[0]
-                # print("New User In EveryCircle: ", user)
-                response['user_uid'] = user[0]['user_uid']
-                response['message'] = 'Signup success'
-                # print("User : ", user[0])
-                # print("User Response Code: ", user[1])
-                response['code'] = user[1]
-                # response['result'] = createTokens(user[0], projectName)
-            return response
-        elif projectName == 'NITYA':
-            conn = connect('nitya')
-            items = []
-            try:
-                data = request.get_json(force=True)
-                email = data["email"]
-                firstName = data["first_name"]
-                lastName = data["last_name"]
-                phone = data["phone_number"]
-                address = data["address"]
-                unit = data["unit"] if data.get("unit") is not None else "NULL"
-                social_id = (
-                    data["social_id"] if data.get(
-                        "social_id") is not None else "NULL"
-                )
-                city = data["city"]
-                state = data["state"]
-                zip_code = data["zip_code"]
-                latitude = data["latitude"]
-                longitude = data["longitude"]
-                referral = data["referral_source"]
-                role = data["role"]
-                cust_id = data["cust_id"] if data.get(
-                    "cust_id") is not None else "NULL"
-
-                if (
-                    data.get("social") is None
-                    or data.get("social") == "FALSE"
-                    or data.get("social") == False
-                    or data.get("social") == "NULL"
-                ):
-                    social_signup = False
-                else:
-                    social_signup = True
-
-                get_user_id_query = "CALL new_customer_uid();"
-                NewUserIDresponse = execute(get_user_id_query, "get", conn)
-
-                if NewUserIDresponse["code"] == 490:
-                    string = " Cannot get new User id. "
-                    response["message"] = "Internal Server Error."
-                    return response, 500
-                NewUserID = NewUserIDresponse["result"][0]["new_id"]
-
-                if social_signup == False:
-
-                    salt = (datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
-
-                    password = sha512(
-                        (data["password"] + salt).encode()).hexdigest()
-                    algorithm = "SHA512"
-                    mobile_access_token = "NULL"
-                    mobile_refresh_token = "NULL"
-                    user_access_token = "NULL"
-                    user_refresh_token = "NULL"
-                    user_social_signup = "NULL"
-                else:
-
-                    mobile_access_token = data["mobile_access_token"]
-                    mobile_refresh_token = data["mobile_refresh_token"]
-                    user_access_token = data["user_access_token"]
-                    user_refresh_token = data["user_refresh_token"]
-                    salt = "NULL"
-                    password = "NULL"
-                    algorithm = "NULL"
-                    user_social_signup = data["social"]
-
-                if cust_id != "NULL" and cust_id:
-
-                    NewUserID = cust_id
-
-                    query = (
+                query = f"""
+                    INSERT INTO {db}.users 
+                    SET
+                        user_uid = '{newUserID}',
+                        first_name = '{firstName}',
+                        last_name = '{lastName}',
+                        phone_number = '{phone}',
+                        user_email_id = '{email}',
+                        user_password_salt = '{passwordSalt}',
+                        user_password_hash = '{passwordHash}',
+                        role = '{role}',
+                        user_google_auth_token = '{google_auth_token}',
+                        user_google_refresh_token = '{google_refresh_token}',
+                        user_social_id = '{social_id}',
+                        user_access_expires_in = '{access_expires_in}';
                         """
-                            SELECT user_access_token, user_refresh_token, mobile_access_token, mobile_refresh_token
-                            FROM nitya.customers
-                            WHERE customer_uid = \'"""
-                        + cust_id
-                        + """\';
-                        """
-                    )
-                    it = execute(query, "get", conn)
+                print(query)
+                response = execute(query, "post", conn)
+                print(response)
 
-                    if it["result"][0]["user_access_token"] != "FALSE":
-                        user_access_token = it["result"][0]["user_access_token"]
+        
+        return response
 
-                    if it["result"][0]["user_refresh_token"] != "FALSE":
-                        user_refresh_token = it["result"][0]["user_refresh_token"]
 
-                    if it["result"][0]["mobile_access_token"] != "FALSE":
-                        mobile_access_token = it["result"][0]["mobile_access_token"]
 
-                    if it["result"][0]["mobile_refresh_token"] != "FALSE":
-                        mobile_refresh_token = it["result"][0]["mobile_refresh_token"]
-
-                    customer_insert_query = [
-                        """
-                            UPDATE nitya.customers
-                            SET
-                            customer_created_at = \'"""
-                        + (datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
-                        + """\',
-                            customer_first_name = \'"""
-                        + firstName
-                        + """\',
-                            customer_last_name = \'"""
-                        + lastName
-                        + """\',
-                            customer_phone_num = \'"""
-                        + phone
-                        + """\',
-                            customer_address = \'"""
-                        + address
-                        + """\',
-                            customer_unit = \'"""
-                        + unit
-                        + """\',
-                            customer_city = \'"""
-                        + city
-                        + """\',
-                            customer_state = \'"""
-                        + state
-                        + """\',
-                            customer_zip = \'"""
-                        + zip_code
-                        + """\',
-                            customer_lat = \'"""
-                        + latitude
-                        + """\',
-                            customer_long = \'"""
-                        + longitude
-                        + """\',
-                            password_salt = \'"""
-                        + salt
-                        + """\',
-                            password_hashed = \'"""
-                        + password
-                        + """\',
-                            password_algorithm = \'"""
-                        + algorithm
-                        + """\',
-                            referral_source = \'"""
-                        + referral
-                        + """\',
-                            role = \'"""
-                        + role
-                        + """\',
-                            user_social_media = \'"""
-                        + user_social_signup
-                        + """\',
-                            social_timestamp  =  DATE_ADD(now() , INTERVAL 14 DAY)
-                            WHERE customer_uid = \'"""
-                        + cust_id
-                        + """\';
-                        """
-                    ]
-
-                else:
-
-                    # check if there is a same customer_id existing
-                    query = (
-                        """
-                            SELECT customer_email FROM nitya.customers
-                            WHERE customer_email = \'"""
-                        + email
-                        + "';"
-                    )
-
-                    items = execute(query, "get", conn)
-                    if items["result"]:
-
-                        items["result"] = ""
-                        items["code"] = 409
-                        items["message"] = "Email address has already been taken."
-
-                        return items
-
-                    if items["code"] == 480:
-
-                        items["result"] = ""
-                        items["code"] = 480
-                        items["message"] = "Internal Server Error."
-                        return items
-
-                    # write everything to database
-                    customer_insert_query = [
-                        """
-                            INSERT INTO nitya.customers
-                            (
-                                customer_uid,
-                                customer_created_at,
-                                customer_first_name,
-                                customer_last_name,
-                                customer_phone_num,
-                                customer_email,
-                                customer_address,
-                                customer_unit,
-                                customer_city,
-                                customer_state,
-                                customer_zip,
-                                customer_lat,
-                                customer_long,
-                                password_salt,
-                                password_hashed,
-                                password_algorithm,
-                                referral_source,
-                                role,
-                                user_social_media,
-                                user_access_token,
-                                social_timestamp,
-                                user_refresh_token,
-                                mobile_access_token,
-                                mobile_refresh_token,
-                                social_id
-                            )
-                            VALUES
-                            (
-
-                                \'"""
-                        + NewUserID
-                        + """\',
-                                \'"""
-                        + (datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
-                        + """\',
-                                \'"""
-                        + firstName
-                        + """\',
-                                \'"""
-                        + lastName
-                        + """\',
-                                \'"""
-                        + phone
-                        + """\',
-                                \'"""
-                        + email
-                        + """\',
-                                \'"""
-                        + address
-                        + """\',
-                                \'"""
-                        + unit
-                        + """\',
-                                \'"""
-                        + city
-                        + """\',
-                                \'"""
-                        + state
-                        + """\',
-                                \'"""
-                        + zip_code
-                        + """\',
-                                \'"""
-                        + latitude
-                        + """\',
-                                \'"""
-                        + longitude
-                        + """\',
-                                \'"""
-                        + salt
-                        + """\',
-                                \'"""
-                        + password
-                        + """\',
-                                \'"""
-                        + algorithm
-                        + """\',
-                                \'"""
-                        + referral
-                        + """\',
-                                \'"""
-                        + role
-                        + """\',
-                                \'"""
-                        + user_social_signup
-                        + """\',
-                                \'"""
-                        + user_access_token
-                        + """\',
-                                DATE_ADD(now() , INTERVAL 14 DAY),
-                                \'"""
-                        + user_refresh_token
-                        + """\',
-                                \'"""
-                        + mobile_access_token
-                        + """\',
-                                \'"""
-                        + mobile_refresh_token
-                        + """\',
-                                \'"""
-                        + social_id
-                        + """\');"""
-                    ]
-                items = execute(customer_insert_query[0], "post", conn)
-
-                if items["code"] != 281:
-                    items["result"] = ""
-                    items["code"] = 480
-                    items["message"] = "Error while inserting values in database"
-
-                    return items
-
-                items["result"] = {
-                    "first_name": firstName,
-                    "last_name": lastName,
-                    "customer_uid": NewUserID,
-                    "access_token": user_access_token,
-                    "refresh_token": user_refresh_token,
-                    "access_token": mobile_access_token,
-                    "refresh_token": mobile_refresh_token,
-                    "social_id": social_id,
-                }
-                items["message"] = "Signup successful"
-                items["code"] = 200
-
-            except:
-                if "NewUserID" in locals():
-                    execute(
-                        """DELETE FROM customers WHERE customer_uid = '"""
-                        + NewUserID
-                        + """';""",
-                        "post",
-                        conn,
-                    )
-                raise BadRequest("Request failed, please try again later.")
-            finally:
-                disconnect(conn)
+        
+        # if projectName == 'PM':
+        #     print("In PM")
+        #     conn = connect('pm')
+        #     data = request.get_json()
+        #     firstName = data.get('first_name')
+        #     lastName = data.get('last_name')
+        #     phoneNumber = data.get('phone_number')
+        #     email = data.get('email')
+        #     password = data.get('password')
+        #     role = data.get('role')
+        #     user = user_lookup_query(email, projectName)
+        #     if user:
+        #         response['message'] = 'User already exists'
+        #     else:
+        #         user = createUser(firstName, lastName, phoneNumber,
+        #                           email, password, role, '', '', '', '', '', 'PM')
+        #         response['message'] = 'Signup success'
+        #         response['code'] = 200
+        #         response['result'] = createTokens(user, projectName)
+        #     return response
+        
+        # elif projectName == 'MYSPACE-DEV':
+        #     print("In MySpace")
+        #     data = request.get_json()
+        #     firstName = data.get('first_name')
+        #     lastName = data.get('last_name')
+        #     phoneNumber = data.get('phone_number')
+        #     email = data.get('email')
+        #     password = data.get('password')
+        #     role = data.get('role')
+        #     user = user_lookup_query(email, projectName)
+        #     if user:
+        #         print("In Myspace User: ", user)
+        #         print("In Myspace User ID: ", user['user_uid'])
+        #         print("In Myspace User ID: ", user['role'])
+        #         response['message'] = 'User already exists'
+        #         response['user_uid'] = user['user_uid']
+        #         response['user_roles'] = user['role']
+        #     else:
+        #         user = createUser(firstName, lastName, phoneNumber,
+        #                           email, password, role, '', '', '', '', '', 'MYSPACE-DEV')
+        #         # response['user'] = user[0]
+        #         # print("In MySpace: ", user)
+        #         response['message'] = 'Signup success'
+        #         # print("User 0: ", user[0])
+        #         # print("User 1: ", user[1])
+        #         response['code'] = user[1]
+        #         response['result'] = createTokens(user[0], projectName)
+        #     return response
+        
+        # elif projectName == 'MYSPACE':
+        #     print("In MySpace")
+        #     data = request.get_json()
+        #     firstName = data.get('first_name')
+        #     lastName = data.get('last_name')
+        #     phoneNumber = data.get('phone_number')
+        #     email = data.get('email')
+        #     password = data.get('password')
+        #     role = data.get('role')
+        #     user = user_lookup_query(email, projectName)
+        #     if user:
+        #         print("In Myspace User: ", user)
+        #         print("In Myspace User ID: ", user['user_uid'])
+        #         print("In Myspace User ID: ", user['role'])
+        #         response['message'] = 'User already exists'
+        #         response['user_uid'] = user['user_uid']
+        #         response['user_roles'] = user['role']
+        #     else:
+        #         user = createUser(firstName, lastName, phoneNumber,
+        #                           email, password, role, '', '', '', '', '', 'MYSPACE')
+        #         # response['user'] = user[0]
+        #         # print("In MySpace: ", user)
+        #         response['message'] = 'Signup success'
+        #         # print("User 0: ", user[0])
+        #         # print("User 1: ", user[1])
+        #         response['code'] = user[1]
+        #         response['result'] = createTokens(user[0], projectName)
+        #     return response
+        
         # elif projectName == 'EVERY-CIRCLE':
-        #     print("In Every-Circle")
-        #     conn = connect('every_circle')
+        #     print("In EveryCircle")
+        #     data = request.get_json()
+        #     # firstName = data.get('first_name')
+        #     # lastName = data.get('last_name')
+        #     # phoneNumber = data.get('phone_number')
+        #     email = data.get('email')
+        #     password = data.get('password')
+        #     # role = data.get('role')
+        #     user = user_lookup_query(email, projectName)
+        #     if user:
+        #         print("In EveryCircle User: ", user)
+        #         print("In EveryCircle User ID: ", user['user_uid'])
+        #         # print("In EveryCircle User ID: ", user['role'])
+        #         response['message'] = 'User already exists'
+        #         response['user_uid'] = user['user_uid']
+        #         # response['user_roles'] = user['role']
+        #     else:
+        #         user = createUser('', '', '', email, password, '' , '', '', '', '', '', 'EVERY-CIRCLE')
+        #         # response['user'] = user[0]
+        #         # print("New User In EveryCircle: ", user)
+        #         response['user_uid'] = user[0]['user_uid']
+        #         response['message'] = 'Signup success'
+        #         # print("User : ", user[0])
+        #         # print("User Response Code: ", user[1])
+        #         response['code'] = user[1]
+        #         # response['result'] = createTokens(user[0], projectName)
+        #     return response
+        
+        # elif projectName == 'NITYA':
+        #     print("In Nitya")
+        #     conn = connect('nitya')
+        #     items = []
+        #     try:
+        #         data = request.get_json(force=True)
+        #         email = data["email"]
+        #         firstName = data["first_name"]
+        #         lastName = data["last_name"]
+        #         phone = data["phone_number"]
+        #         address = data["address"]
+        #         unit = data["unit"] if data.get("unit") is not None else "NULL"
+        #         social_id = (
+        #             data["social_id"] if data.get(
+        #                 "social_id") is not None else "NULL"
+        #         )
+        #         city = data["city"]
+        #         state = data["state"]
+        #         zip_code = data["zip_code"]
+        #         latitude = data["latitude"]
+        #         longitude = data["longitude"]
+        #         referral = data["referral_source"]
+        #         role = data["role"]
+        #         cust_id = data["cust_id"] if data.get(
+        #             "cust_id") is not None else "NULL"
+
+        #         if (
+        #             data.get("social") is None
+        #             or data.get("social") == "FALSE"
+        #             or data.get("social") == False
+        #             or data.get("social") == "NULL"
+        #         ):
+        #             social_signup = False
+        #         else:
+        #             social_signup = True
+
+        #         get_user_id_query = "CALL new_customer_uid();"
+        #         NewUserIDresponse = execute(get_user_id_query, "get", conn)
+
+        #         if NewUserIDresponse["code"] == 490:
+        #             string = " Cannot get new User id. "
+        #             response["message"] = "Internal Server Error."
+        #             return response, 500
+        #         NewUserID = NewUserIDresponse["result"][0]["new_id"]
+
+        #         if social_signup == False:
+
+        #             salt = (datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
+
+        #             password = sha512(
+        #                 (data["password"] + salt).encode()).hexdigest()
+        #             algorithm = "SHA512"
+        #             mobile_access_token = "NULL"
+        #             mobile_refresh_token = "NULL"
+        #             user_access_token = "NULL"
+        #             user_refresh_token = "NULL"
+        #             user_social_signup = "NULL"
+        #         else:
+
+        #             mobile_access_token = data["mobile_access_token"]
+        #             mobile_refresh_token = data["mobile_refresh_token"]
+        #             user_access_token = data["user_access_token"]
+        #             user_refresh_token = data["user_refresh_token"]
+        #             salt = "NULL"
+        #             password = "NULL"
+        #             algorithm = "NULL"
+        #             user_social_signup = data["social"]
+
+        #         if cust_id != "NULL" and cust_id:
+
+        #             NewUserID = cust_id
+
+        #             query = (
+        #                 """
+        #                     SELECT user_access_token, user_refresh_token, mobile_access_token, mobile_refresh_token
+        #                     FROM nitya.customers
+        #                     WHERE customer_uid = \'"""
+        #                 + cust_id
+        #                 + """\';
+        #                 """
+        #             )
+        #             it = execute(query, "get", conn)
+
+        #             if it["result"][0]["user_access_token"] != "FALSE":
+        #                 user_access_token = it["result"][0]["user_access_token"]
+
+        #             if it["result"][0]["user_refresh_token"] != "FALSE":
+        #                 user_refresh_token = it["result"][0]["user_refresh_token"]
+
+        #             if it["result"][0]["mobile_access_token"] != "FALSE":
+        #                 mobile_access_token = it["result"][0]["mobile_access_token"]
+
+        #             if it["result"][0]["mobile_refresh_token"] != "FALSE":
+        #                 mobile_refresh_token = it["result"][0]["mobile_refresh_token"]
+
+        #             customer_insert_query = [
+        #                 f"""
+        #                 UPDATE nitya.customers
+        #                 SET
+        #                     customer_created_at = '{(datetime.now()).strftime("%Y-%m-%d %H:%M:%S")}',
+        #                     customer_first_name = '{firstName}',
+        #                     customer_last_name = '{lastName}',
+        #                     customer_phone_num = '{phone}',
+        #                     customer_address = '{address}',
+        #                     customer_unit = '{unit}',
+        #                     customer_city = '{city}',
+        #                     customer_state = '{state}',
+        #                     customer_zip = '{zip_code}',
+        #                     customer_lat = '{latitude}',
+        #                     customer_long = '{longitude}',
+        #                     password_salt = '{salt}',
+        #                     password_hashed = '{password}',
+        #                     password_algorithm = '{algorithm}',
+        #                     referral_source = '{referral}',
+        #                     role = '{role}',
+        #                     user_social_media = '{user_social_signup}',
+        #                     social_timestamp = DATE_ADD(now(), INTERVAL 14 DAY)
+        #                 WHERE customer_uid = '{cust_id}';
+        #                 """
+        #             ]
+
+        #             # customer_insert_query = [
+        #             #     """
+        #             #         UPDATE nitya.customers
+        #             #         SET
+        #             #         customer_created_at = \'"""
+        #             #     + (datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
+        #             #     + """\',
+        #             #         customer_first_name = \'"""
+        #             #     + firstName
+        #             #     + """\',
+        #             #         customer_last_name = \'"""
+        #             #     + lastName
+        #             #     + """\',
+        #             #         customer_phone_num = \'"""
+        #             #     + phone
+        #             #     + """\',
+        #             #         customer_address = \'"""
+        #             #     + address
+        #             #     + """\',
+        #             #         customer_unit = \'"""
+        #             #     + unit
+        #             #     + """\',
+        #             #         customer_city = \'"""
+        #             #     + city
+        #             #     + """\',
+        #             #         customer_state = \'"""
+        #             #     + state
+        #             #     + """\',
+        #             #         customer_zip = \'"""
+        #             #     + zip_code
+        #             #     + """\',
+        #             #         customer_lat = \'"""
+        #             #     + latitude
+        #             #     + """\',
+        #             #         customer_long = \'"""
+        #             #     + longitude
+        #             #     + """\',
+        #             #         password_salt = \'"""
+        #             #     + salt
+        #             #     + """\',
+        #             #         password_hashed = \'"""
+        #             #     + password
+        #             #     + """\',
+        #             #         password_algorithm = \'"""
+        #             #     + algorithm
+        #             #     + """\',
+        #             #         referral_source = \'"""
+        #             #     + referral
+        #             #     + """\',
+        #             #         role = \'"""
+        #             #     + role
+        #             #     + """\',
+        #             #         user_social_media = \'"""
+        #             #     + user_social_signup
+        #             #     + """\',
+        #             #         social_timestamp  =  DATE_ADD(now() , INTERVAL 14 DAY)
+        #             #         WHERE customer_uid = \'"""
+        #             #     + cust_id
+        #             #     + """\';
+        #             #     """
+        #             # ]
+
+        #         else:
+
+        #             # check if there is a same customer_id existing
+        #             query = (
+        #                 """
+        #                     SELECT customer_email FROM nitya.customers
+        #                     WHERE customer_email = \'"""
+        #                 + email
+        #                 + "';"
+        #             )
+
+        #             items = execute(query, "get", conn)
+        #             if items["result"]:
+
+        #                 items["result"] = ""
+        #                 items["code"] = 409
+        #                 items["message"] = "Email address has already been taken."
+
+        #                 return items
+
+        #             if items["code"] == 480:
+
+        #                 items["result"] = ""
+        #                 items["code"] = 480
+        #                 items["message"] = "Internal Server Error."
+        #                 return items
+
+        #             # write everything to database
+        #             customer_insert_query = [
+        #                 f"""
+        #                 INSERT INTO nitya.customers
+        #                 SET
+        #                     customer_uid = '{NewUserID}',
+        #                     customer_created_at = '{(datetime.now()).strftime("%Y-%m-%d %H:%M:%S")}',
+        #                     customer_first_name = '{firstName}',
+        #                     customer_last_name = '{lastName}',
+        #                     customer_phone_num = '{phone}',
+        #                     customer_email = '{email}',
+        #                     customer_address = '{address}',
+        #                     customer_unit = '{unit}',
+        #                     customer_city = '{city}',
+        #                     customer_state = '{state}',
+        #                     customer_zip = '{zip_code}',
+        #                     customer_lat = '{latitude}',
+        #                     customer_long = '{longitude}',
+        #                     password_salt = '{salt}',
+        #                     password_hashed = '{password}',
+        #                     password_algorithm = '{algorithm}',
+        #                     referral_source = '{referral}',
+        #                     role = '{role}',
+        #                     user_social_media = '{user_social_signup}',
+        #                     user_access_token = '{user_access_token}',
+        #                     social_timestamp = DATE_ADD(now(), INTERVAL 14 DAY),
+        #                     user_refresh_token = '{user_refresh_token}',
+        #                     mobile_access_token = '{mobile_access_token}',
+        #                     mobile_refresh_token = '{mobile_refresh_token}',
+        #                     social_id = '{social_id}'
+        #                 """
+        #             ]
+
+        #             # customer_insert_query = [
+        #             #     """
+        #             #         INSERT INTO nitya.customers
+        #             #         (
+        #             #             customer_uid,
+        #             #             customer_created_at,
+        #             #             customer_first_name,
+        #             #             customer_last_name,
+        #             #             customer_phone_num,
+        #             #             customer_email,
+        #             #             customer_address,
+        #             #             customer_unit,
+        #             #             customer_city,
+        #             #             customer_state,
+        #             #             customer_zip,
+        #             #             customer_lat,
+        #             #             customer_long,
+        #             #             password_salt,
+        #             #             password_hashed,
+        #             #             password_algorithm,
+        #             #             referral_source,
+        #             #             role,
+        #             #             user_social_media,
+        #             #             user_access_token,
+        #             #             social_timestamp,
+        #             #             user_refresh_token,
+        #             #             mobile_access_token,
+        #             #             mobile_refresh_token,
+        #             #             social_id
+        #             #         )
+        #             #         VALUES
+        #             #         (
+
+        #             #             \'"""
+        #             #     + NewUserID
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + (datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + firstName
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + lastName
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + phone
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + email
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + address
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + unit
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + city
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + state
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + zip_code
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + latitude
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + longitude
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + salt
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + password
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + algorithm
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + referral
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + role
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + user_social_signup
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + user_access_token
+        #             #     + """\',
+        #             #             DATE_ADD(now() , INTERVAL 14 DAY),
+        #             #             \'"""
+        #             #     + user_refresh_token
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + mobile_access_token
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + mobile_refresh_token
+        #             #     + """\',
+        #             #             \'"""
+        #             #     + social_id
+        #             #     + """\');"""
+        #             # ]
+        #         items = execute(customer_insert_query[0], "post", conn)
+
+        #         if items["code"] != 281:
+        #             items["result"] = ""
+        #             items["code"] = 480
+        #             items["message"] = "Error while inserting values in database"
+
+        #             return items
+
+        #         items["result"] = {
+        #             "first_name": firstName,
+        #             "last_name": lastName,
+        #             "customer_uid": NewUserID,
+        #             "access_token": user_access_token,
+        #             "refresh_token": user_refresh_token,
+        #             "access_token": mobile_access_token,
+        #             "refresh_token": mobile_refresh_token,
+        #             "social_id": social_id,
+        #         }
+        #         items["message"] = "Signup successful"
+        #         items["code"] = 200
+
+        #     except:
+        #         if "NewUserID" in locals():
+        #             execute(
+        #                 """DELETE FROM customers WHERE customer_uid = '"""
+        #                 + NewUserID
+        #                 + """';""",
+        #                 "post",
+        #                 conn,
+        #             )
+        #         raise BadRequest("Request failed, please try again later.")
+        #     finally:
+        #         disconnect(conn)
+        # # elif projectName == 'EVERY-CIRCLE':
+        # #     print("In Every-Circle")
+        # #     conn = connect('every_circle')
+        # #     timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
+        # #     try:
+        # #         data = request.get_json(force=True)
+        # #         print(data)
+        # #         # firstName = data.get('first_name')
+        # #         # lastName = data.get('last_name')
+        # #         # phoneNumber = data.get('phone_number')
+        # #         email_id = data["email"]
+        # #         password = data["password"]
+        # #         print(email_id, password)
+
+        # #         user_id_response = execute(
+        # #             """
+        # #                 SELECT user_unique_id FROM users
+        # #                 WHERE user_email_id = \'""" + email_id+ """\';
+        # #             """,
+        # #             "get",
+        # #             conn,
+        # #         )
+        # #         print(user_id_response)
+
+        # #         if len(user_id_response["result"]) > 0:
+        # #             response["message"] = "User already exists"
+
+        # #         else:
+        # #             print("In else")
+        # #             salt = os.urandom(32)
+        # #             print(salt, type(salt))
+
+        # #             dk = hashlib.pbkdf2_hmac(
+        # #                 "sha256", password.encode("utf-8"), salt, 100000, dklen=128
+        # #             )
+        # #             key = (salt + dk).hex()
+        # #             print(key)
+
+        # #             user_id_response = execute(
+        # #                 "CAll get_user_id;", "get", conn)
+        # #             new_user_id = user_id_response["result"][0]["new_id"]
+        # #             print(new_user_id)
+
+        # #             execute(
+        # #                 """
+        # #                 INSERT INTO users
+        # #                 SET user_unique_id = \'""" + new_user_id + """\',
+        # #                     user_timestamp = \'""" + timestamp + """\',
+        # #                     user_email_id  = \'""" + email_id + """\',
+        # #                     password_salt = \'""" + salt + """\',
+        # #                     password_hashed = \'""" + key + """\';
+        # #                 """,
+        # #                 "post",
+        # #                 conn,
+        # #             )
+
+        # #             print(response)
+        # #             response["message"] = "successful"
+        # #             response["result"] = new_user_id
+
+        # #         return response, 200
+        # #     except:
+        # #         raise BadRequest("Request failed, please try again later.")
+        # #     finally:
+        # #         disconnect(conn)
+        # elif projectName == 'SKEDUL':
+        #     conn = connect('skedul')
         #     timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
         #     try:
         #         data = request.get_json(force=True)
-        #         print(data)
-        #         # firstName = data.get('first_name')
-        #         # lastName = data.get('last_name')
-        #         # phoneNumber = data.get('phone_number')
-        #         email_id = data["email"]
+        #         email_id = data["email_id"]
         #         password = data["password"]
-        #         print(email_id, password)
+        #         first_name = data["first_name"]
+        #         last_name = data["last_name"]
+        #         time_zone = data["time_zone"]
 
         #         user_id_response = execute(
-        #             """
-        #                 SELECT user_unique_id FROM users
-        #                 WHERE user_email_id = \'""" + email_id+ """\';
-        #             """,
+        #             """SELECT user_unique_id FROM users
+        #                                         WHERE user_email_id = \'"""
+        #             + email_id
+        #             + """\';""",
         #             "get",
         #             conn,
         #         )
-        #         print(user_id_response)
 
         #         if len(user_id_response["result"]) > 0:
         #             response["message"] = "User already exists"
 
         #         else:
-        #             print("In else")
+
         #             salt = os.urandom(32)
-        #             print(salt, type(salt))
 
         #             dk = hashlib.pbkdf2_hmac(
         #                 "sha256", password.encode("utf-8"), salt, 100000, dklen=128
         #             )
         #             key = (salt + dk).hex()
-        #             print(key)
 
         #             user_id_response = execute(
         #                 "CAll get_user_id;", "get", conn)
         #             new_user_id = user_id_response["result"][0]["new_id"]
-        #             print(new_user_id)
 
         #             execute(
-        #                 """
-        #                 INSERT INTO users
-        #                 SET user_unique_id = \'""" + new_user_id + """\',
-        #                     user_timestamp = \'""" + timestamp + """\',
-        #                     user_email_id  = \'""" + email_id + """\',
-        #                     password_salt = \'""" + salt + """\',
-        #                     password_hashed = \'""" + key + """\';
-        #                 """,
+        #                 """INSERT INTO users
+        #                     SET user_unique_id = \'""" + new_user_id + """\',
+        #                         user_timestamp = \'""" + timestamp + """\',
+        #                         user_email_id  = \'""" + email_id + """\',
+        #                         user_first_name = \'""" + first_name + """\',
+        #                         user_last_name = \'""" + last_name + """\',
+        #                         password_hashed = \'""" + key + """\',
+        #                         time_zone = \'""" + time_zone + """\';""",
         #                 "post",
         #                 conn,
         #             )
 
-        #             print(response)
         #             response["message"] = "successful"
         #             response["result"] = new_user_id
 
@@ -2193,109 +2398,52 @@ class CreateAccount(Resource):
         #         raise BadRequest("Request failed, please try again later.")
         #     finally:
         #         disconnect(conn)
-        elif projectName == 'SKEDUL':
-            conn = connect('skedul')
-            timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
-            try:
-                data = request.get_json(force=True)
-                email_id = data["email_id"]
-                password = data["password"]
-                first_name = data["first_name"]
-                last_name = data["last_name"]
-                time_zone = data["time_zone"]
+        # elif projectName == 'FINDME':
+        #     conn = connect('find_me')
+        #     data = request.get_json()
+        #     firstName = data.get('first_name')
+        #     lastName = data.get('last_name')
+        #     phoneNumber = data.get('phone_number')
+        #     email = data.get('email')
+        #     password = data.get('password')
+        #     role = data.get('role')
+        #     user = user_lookup_query(email, projectName)
+        #     email_validated = str(randint(100, 999))
+        #     if user:
+        #         response['message'] = 'User already exists'
+        #     else:
+        #         user = createUser(firstName, lastName, phoneNumber,
+        #                           email, password, role, email_validated, '', '', '', '', 'FINDME')
 
-                user_id_response = execute(
-                    """SELECT user_unique_id FROM users
-                                                WHERE user_email_id = \'"""
-                    + email_id
-                    + """\';""",
-                    "get",
-                    conn,
-                )
+        #         response['message'] = 'Signup success'
+        #         response['code'] = 200
+        #         response['result'] = user
+        #     return response
+        # elif projectName == 'MMU':
+        #     print("In MMU Create Account")
+        #     conn = connect('mmu')
+        #     data = request.get_json()
+        #     print("MMU json data: ", data)
+        #     firstName = "" # data.get('first_name')
+        #     lastName = "" # data.get('last_name')
+        #     # phoneNumber = data.get('phone_number')
+        #     phoneNumber = data.get('phone_number') if data.get('phone_number') else ""
+        #     email = data.get('email')
+        #     password = data.get('password')
+        #     # role = data.get('role')
+        #     user = user_lookup_query(email, projectName)
+        #     # email_validated = str(randint(100, 999))
+        #     if user:
+        #         response['message'] = 'User already exists'
+        #     else:
+        #         print(firstName, lastName, phoneNumber, email, password, '', '', '', '', '', '', 'MMU')
+        #         user = createUser(firstName, lastName, phoneNumber,
+        #                           email, password, '', '', '', '', '', '', 'MMU')
 
-                if len(user_id_response["result"]) > 0:
-                    response["message"] = "User already exists"
-
-                else:
-
-                    salt = os.urandom(32)
-
-                    dk = hashlib.pbkdf2_hmac(
-                        "sha256", password.encode("utf-8"), salt, 100000, dklen=128
-                    )
-                    key = (salt + dk).hex()
-
-                    user_id_response = execute(
-                        "CAll get_user_id;", "get", conn)
-                    new_user_id = user_id_response["result"][0]["new_id"]
-
-                    execute(
-                        """INSERT INTO users
-                            SET user_unique_id = \'""" + new_user_id + """\',
-                                user_timestamp = \'""" + timestamp + """\',
-                                user_email_id  = \'""" + email_id + """\',
-                                user_first_name = \'""" + first_name + """\',
-                                user_last_name = \'""" + last_name + """\',
-                                password_hashed = \'""" + key + """\',
-                                time_zone = \'""" + time_zone + """\';""",
-                        "post",
-                        conn,
-                    )
-
-                    response["message"] = "successful"
-                    response["result"] = new_user_id
-
-                return response, 200
-            except:
-                raise BadRequest("Request failed, please try again later.")
-            finally:
-                disconnect(conn)
-        elif projectName == 'FINDME':
-            conn = connect('find_me')
-            data = request.get_json()
-            firstName = data.get('first_name')
-            lastName = data.get('last_name')
-            phoneNumber = data.get('phone_number')
-            email = data.get('email')
-            password = data.get('password')
-            role = data.get('role')
-            user = user_lookup_query(email, projectName)
-            email_validated = str(randint(100, 999))
-            if user:
-                response['message'] = 'User already exists'
-            else:
-                user = createUser(firstName, lastName, phoneNumber,
-                                  email, password, role, email_validated, '', '', '', '', 'FINDME')
-
-                response['message'] = 'Signup success'
-                response['code'] = 200
-                response['result'] = user
-            return response
-        elif projectName == 'MMU':
-            print("In MMU Create Account")
-            conn = connect('mmu')
-            data = request.get_json()
-            print("MMU json data: ", data)
-            firstName = "" # data.get('first_name')
-            lastName = "" # data.get('last_name')
-            # phoneNumber = data.get('phone_number')
-            phoneNumber = data.get('phone_number') if data.get('phone_number') else ""
-            email = data.get('email')
-            password = data.get('password')
-            # role = data.get('role')
-            user = user_lookup_query(email, projectName)
-            # email_validated = str(randint(100, 999))
-            if user:
-                response['message'] = 'User already exists'
-            else:
-                print(firstName, lastName, phoneNumber, email, password, '', '', '', '', '', '', 'MMU')
-                user = createUser(firstName, lastName, phoneNumber,
-                                  email, password, '', '', '', '', '', '', 'MMU')
-
-                response['message'] = 'Signup success'
-                response['code'] = 200
-                response['result'] = user
-            return response
+        #         response['message'] = 'Signup success'
+        #         response['code'] = 200
+        #         response['result'] = user
+        #     return response
         
     def put(self, projectName):
         print(" In createAccount - PUT")
@@ -3092,306 +3240,380 @@ class GetEmailId(Resource):
 # creating new user social
 class UserSocialSignUp(Resource):
     def post(self, projectName):
-        print("In UserSocialSignUp - POST")
+        print("In UserSocialSignUp - POST ", projectName)
         response = {}
-    
-        items = {}
-        if projectName == 'PM':
-            conn = connect('pm')
-            data = request.get_json(force=True)
 
-            email = data.get('email')
-            phoneNumber = data.get('phone_number')
-            firstName = data.get('first_name')
-            lastName = data.get('last_name')
-            role = data.get('role')
-            google_auth_token = data.get('google_auth_token')
-            google_refresh_token = data.get('google_refresh_token')
-            social_id = data.get('social_id')
-            access_expires_in = data.get('access_expires_in')
-            password = data.get('password')
-            user = user_lookup_query(email, projectName)
-            if user:
-                response['message'] = 'User already exists'
-            else:
-                user = createUser(firstName, lastName, phoneNumber, email, password, role, '',
-                                  google_auth_token, google_refresh_token, social_id, access_expires_in, 'PM')
-                response['message'] = 'Signup success'
-                response['code'] = 200
+        db = db_lookup(projectName)
+        conn = connect(db)
+                
+        data = request.get_json(force=True)
+        print("Input Data: ", data)
+
+        email = data.get('email')
+        phone = data.get('phone_number')
+        firstName = data.get('first_name')
+        lastName = data.get('last_name')
+        role = data.get('role')
+        google_auth_token = data.get('google_auth_token')
+        google_refresh_token = data.get('google_refresh_token')
+        social_id = data.get('social_id')
+        access_expires_in = data.get('access_expires_in')
+        password = data.get('password')
+
+        user = user_lookup_query(email, projectName)    
+
+        if user:
+            response['message'] = 'User already exists'
+        
+        else:
+            user_id_response = execute("CAll new_user_id;", "get", conn)
+            newUserID = user_id_response["result"][0]["new_id"]
+            print("newUserID: ", newUserID)
+
+            passwordSalt = createSalt()
+            passwordHash = createHash(password, passwordSalt)
+
+            query = f"""
+                    INSERT INTO {db}.users 
+                    SET
+                        user_uid = '{newUserID}',
+                        first_name = '{firstName}',
+                        last_name = '{lastName}',
+                        phone_number = '{phone}',
+                        user_email_id = '{email}',
+                        user_password_salt = '{passwordSalt}',
+                        user_password_hash = '{passwordHash}',
+                        role = '{role}',
+                        user_google_auth_token = '{google_auth_token}',
+                        user_google_refresh_token = '{google_refresh_token}',
+                        user_social_id = '{social_id}',
+                        user_access_expires_in = '{access_expires_in}';
+                        """
+            
+            response = execute(query, "post", conn)
+
+            if projectName in ('PM','MYSPACE','MYSPACE-DEV') :               
                 response['result'] = createTokens(user, projectName)
-            return response
-        elif projectName == 'MYSPACE-DEV':
+                response['message'] = 'Signup success'
+                response['code'] = 200
+
+        return response
+
+        # if projectName == 'PM':
+        #     conn = connect('pm')
+        #     data = request.get_json(force=True)
+
+        #     email = data.get('email')
+        #     phoneNumber = data.get('phone_number')
+        #     firstName = data.get('first_name')
+        #     lastName = data.get('last_name')
+        #     role = data.get('role')
+        #     google_auth_token = data.get('google_auth_token')
+        #     google_refresh_token = data.get('google_refresh_token')
+        #     social_id = data.get('social_id')
+        #     access_expires_in = data.get('access_expires_in')
+        #     password = data.get('password')
+        #     user = user_lookup_query(email, projectName)
+        #     if user:
+        #         response['message'] = 'User already exists'
+        #     else:
+        #         user = createUser(firstName, lastName, phoneNumber, email, password, role, '',
+        #                           google_auth_token, google_refresh_token, social_id, access_expires_in, 'PM')
+        #         response['message'] = 'Signup success'
+        #         response['code'] = 200
+        #         response['result'] = createTokens(user, projectName)
+        #     return response
+        # elif projectName == 'MYSPACE-DEV':
     
-            data = request.get_json(force=True)
+        #     data = request.get_json(force=True)
 
-            email = data.get('email')
-            phoneNumber = data.get('phone_number')
-            firstName = data.get('first_name')
-            lastName = data.get('last_name')
-            role = data.get('role')
-            google_auth_token = data.get('google_auth_token')
-            google_refresh_token = data.get('google_refresh_token')
-            social_id = data.get('social_id')
-            access_expires_in = data.get('access_expires_in')
-            password = data.get('password')
-            user = user_lookup_query(email, projectName)
-            if user:
-                response['message'] = 'User already exists'
-            else:
-                user = createUser(firstName, lastName, phoneNumber, email, password, role, '',
-                                  google_auth_token, google_refresh_token, social_id, access_expires_in, 'MYSPACE-DEV')
-                response['message'] = 'Signup success'
-                response['code'] = user[1]
-                response['result'] = createTokens(user[0], projectName)
-            return response
-        elif projectName == 'MYSPACE':
+        #     email = data.get('email')
+        #     phoneNumber = data.get('phone_number')
+        #     firstName = data.get('first_name')
+        #     lastName = data.get('last_name')
+        #     role = data.get('role')
+        #     google_auth_token = data.get('google_auth_token')
+        #     google_refresh_token = data.get('google_refresh_token')
+        #     social_id = data.get('social_id')
+        #     access_expires_in = data.get('access_expires_in')
+        #     password = data.get('password')
+        #     user = user_lookup_query(email, projectName)
+        #     if user:
+        #         response['message'] = 'User already exists'
+        #     else:
+        #         user = createUser(firstName, lastName, phoneNumber, email, password, role, '',
+        #                           google_auth_token, google_refresh_token, social_id, access_expires_in, 'MYSPACE-DEV')
+        #         response['message'] = 'Signup success'
+        #         response['code'] = user[1]
+        #         response['result'] = createTokens(user[0], projectName)
+        #     return response
+        # elif projectName == 'MYSPACE':
           
-            data = request.get_json(force=True)
+        #     data = request.get_json(force=True)
 
-            email = data.get('email')
-            phoneNumber = data.get('phone_number')
-            firstName = data.get('first_name')
-            lastName = data.get('last_name')
-            role = data.get('role')
-            google_auth_token = data.get('google_auth_token')
-            google_refresh_token = data.get('google_refresh_token')
-            social_id = data.get('social_id')
-            access_expires_in = data.get('access_expires_in')
-            password = data.get('password')
-            user = user_lookup_query(email, projectName)
-            if user:
-                response['message'] = 'User already exists'
-            else:
-                user = createUser(firstName, lastName, phoneNumber, email, password, role, '',
-                                  google_auth_token, google_refresh_token, social_id, access_expires_in, 'MYSPACE')
-                response['message'] = 'Signup success'
-                response['code'] = user[1]
-                response['result'] = createTokens(user[0], projectName)
-            return response
-        elif projectName == 'NITYA':
-            conn = connect('nitya')
-            try:
-                data = request.get_json(force=True)
+        #     email = data.get('email')
+        #     phoneNumber = data.get('phone_number')
+        #     firstName = data.get('first_name')
+        #     lastName = data.get('last_name')
+        #     role = data.get('role')
+        #     google_auth_token = data.get('google_auth_token')
+        #     google_refresh_token = data.get('google_refresh_token')
+        #     social_id = data.get('social_id')
+        #     access_expires_in = data.get('access_expires_in')
+        #     password = data.get('password')
+        #     user = user_lookup_query(email, projectName)
+        #     if user:
+        #         response['message'] = 'User already exists'
+        #     else:
+        #         user = createUser(firstName, lastName, phoneNumber, email, password, role, '',
+        #                           google_auth_token, google_refresh_token, social_id, access_expires_in, 'MYSPACE')
+        #         response['message'] = 'Signup success'
+        #         response['code'] = user[1]
+        #         response['result'] = createTokens(user[0], projectName)
+        #     return response
+        # elif projectName == 'NITYA':
+        #     conn = connect('nitya')
+        #     try:
+        #         data = request.get_json(force=True)
 
-                ts = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
+        #         ts = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
 
-                customer_email = data['customer_email']
-                customer_first_name = data['customer_first_name']
-                customer_last_name = data['customer_last_name']
-                customer_phone_num = data['customer_phone_num']
-                role = data["role"]
-                user_social_media = data["user_social_media"]
-                user_access_token = data["user_access_token"]
-                social_id = data["social_id"]
-                user_refresh_token = data["user_refresh_token"]
-                access_expires_in = data["access_expires_in"]
+        #         customer_email = data['customer_email']
+        #         customer_first_name = data['customer_first_name']
+        #         customer_last_name = data['customer_last_name']
+        #         customer_phone_num = data['customer_phone_num']
+        #         role = data["role"]
+        #         user_social_media = data["user_social_media"]
+        #         user_access_token = data["user_access_token"]
+        #         social_id = data["social_id"]
+        #         user_refresh_token = data["user_refresh_token"]
+        #         access_expires_in = data["access_expires_in"]
 
-                cust_id_response = execute("""SELECT customer_uid, password_hashed FROM customers
-                                                WHERE customer_email = \'""" + customer_email + """\';""", 'get', conn)
+        #         cust_id_response = execute("""SELECT customer_uid, password_hashed FROM customers
+        #                                         WHERE customer_email = \'""" + customer_email + """\';""", 'get', conn)
 
-                if len(cust_id_response['result']) > 0:
+        #         if len(cust_id_response['result']) > 0:
 
-                    response['message'] = "Email ID already exists."
+        #             response['message'] = "Email ID already exists."
 
-                else:
-                    new_customer_id_response = execute(
-                        "CALL new_customer_uid;", 'get', conn)
-                    new_customer_id = new_customer_id_response['result'][0]['new_id']
+        #         else:
+        #             new_customer_id_response = execute(
+        #                 "CALL new_customer_uid;", 'get', conn)
+        #             new_customer_id = new_customer_id_response['result'][0]['new_id']
 
-                    execute("""INSERT INTO customers
-                            SET customer_uid = \'""" + new_customer_id + """\',
-                                customer_created_at = \'""" + ts + """\',
-                                customer_email = \'""" + customer_email + """\',
-                                customer_first_name = \'""" + customer_first_name + """\',
-                                customer_last_name = \'""" + customer_last_name + """\',
-                                user_access_token = \'""" + user_access_token + """\',
-                                social_id = \'""" + social_id + """\',
-                                role = \'""" + role + """\',
-                                user_social_media = \'""" + user_social_media + """\',
-                                user_refresh_token = \'""" + user_refresh_token + """\',
-                                access_expires_in = \'""" + access_expires_in + """\',
-                                customer_phone_num = \'""" + customer_phone_num + """\';""", 'post', conn)
-                    response['message'] = 'successful'
-                    response['result'] = new_customer_id
+        #             execute("""INSERT INTO customers
+        #                     SET customer_uid = \'""" + new_customer_id + """\',
+        #                         customer_created_at = \'""" + ts + """\',
+        #                         customer_email = \'""" + customer_email + """\',
+        #                         customer_first_name = \'""" + customer_first_name + """\',
+        #                         customer_last_name = \'""" + customer_last_name + """\',
+        #                         user_access_token = \'""" + user_access_token + """\',
+        #                         social_id = \'""" + social_id + """\',
+        #                         role = \'""" + role + """\',
+        #                         user_social_media = \'""" + user_social_media + """\',
+        #                         user_refresh_token = \'""" + user_refresh_token + """\',
+        #                         access_expires_in = \'""" + access_expires_in + """\',
+        #                         customer_phone_num = \'""" + customer_phone_num + """\';""", 'post', conn)
+        #             response['message'] = 'successful'
+        #             response['result'] = new_customer_id
 
-                return response, 200
-            except:
-                raise BadRequest('Request failed, please try again later.')
-            finally:
-                disconnect(conn)
-        elif projectName == 'EVERY-CIRCLE':
-            conn = connect('every_circle')
-            timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
-            try:
-                data = request.get_json(force=True)
-                email_id = data["email_id"]
-                first_name = data["first_name"]
-                last_name = data["last_name"]
-                time_zone = data["time_zone"]
-                google_auth_token = data["google_auth_token"]
-                social_id = data["social_id"]
-                google_refresh_token = data["google_refresh_token"]
-                access_expires_in = data["access_expires_in"]
+        #         return response, 200
+        #     except:
+        #         raise BadRequest('Request failed, please try again later.')
+        #     finally:
+        #         disconnect(conn)
+        # elif projectName == 'EVERY-CIRCLE':
+        #     print("In Every Circle")
+        #     conn = connect('every_circle')
+        #     timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
+        #     try:
+        #         data = request.get_json(force=True)
+        #         email_id = data["email_id"]
+        #         first_name = data["first_name"]
+        #         last_name = data["last_name"]
+        #         time_zone = data["time_zone"]
+        #         google_auth_token = data["google_auth_token"]
+        #         social_id = data["social_id"]
+        #         google_refresh_token = data["google_refresh_token"]
+        #         access_expires_in = data["access_expires_in"]
+        #         print('here 1')
 
-                user_id_response = execute(
-                    """SELECT user_unique_id FROM users
-                                                WHERE user_email_id = \'"""
-                    + email_id
-                    + """\';""",
-                    "get",
-                    conn,
-                )
+        #         user_id_response = execute("""
+        #             SELECT user_unique_id FROM users
+        #             WHERE user_email_id = \'"""+ email_id+ """\';""",
+        #             "get",conn,)
+                
+        #         print(user_id_response)
 
-                if len(user_id_response["result"]) > 0:
-                    response["message"] = "User already exists"
+        #         if len(user_id_response["result"]) > 0:
+        #             response["message"] = "User already exists"
 
-                else:
-                    user_id_response = execute(
-                        "CAll get_user_id;", "get", conn)
-                    new_user_id = user_id_response["result"][0]["new_id"]
+        #         else:
+        #             user_id_response = execute(
+        #                 "CAll get_user_id;", "get", conn)
+        #             newUserID = user_id_response["result"][0]["new_id"]
 
-                    execute(
-                        """INSERT INTO users
-                            SET user_unique_id = \'""" + new_user_id + """\',
-                                user_timestamp = \'""" + timestamp + """\',
-                                user_email_id = \'""" + email_id + """\',
-                                user_first_name = \'""" + first_name + """\',        
-                                user_last_name = \'""" + last_name + """\',        
-                                social_id = \'""" + social_id + """\',        
-                                google_auth_token = \'""" + google_auth_token + """\',        
-                                google_refresh_token = \'""" + google_refresh_token + """\',       
-                                access_expires_in = \'""" + access_expires_in + """\',        
-                                time_zone = \'""" + time_zone + """\',        
-                                user_have_pic = \'""" + "False" + """\',        
-                                user_picture = \'""" + "" + """\',        
-                                user_social_media = \'""" + "null" + """\',        
-                                new_account = \'""" + "True" + """\',        
-                                user_guid_device_id_notification = \'""" + "null" + """\';""", "post",
-                        conn,
-                    )
 
-                    response["message"] = "successful"
-                    response["result"] = new_user_id
+        #             query = ("""
+        #                 INSERT INTO every_circle.users SET
+        #                     user_uid = \'""" + newUserID + """\',
+        #                     -- first_name = \'""" + firstName + """\',
+        #                     -- last_name = \'""" + lastName + """\',
+        #                     -- phone_number = \'""" + phoneNumber + """\',
+        #                     user_email_id = \'""" + email + """\',
+        #                     -- user_password_salt = \'""" + passwordSalt + """\',
+        #                     -- user_password_hash = \'""" + passwordHash + """\',
+        #                     -- role = \'""" + role + """\',
+        #                     user_google_auth_token = \'""" + google_auth_token + """\',
+        #                     user_google_refresh_token = \'""" + google_refresh_token + """\',
+        #                     user_social_id = \'""" + social_id + """\',
+        #                     user_access_expires_in = \'""" + access_expires_in + """\';
+        #                     """)
+        #             # print("EVERYCIRCLE Query: ", query)
+        #             response = execute(query, "post", conn)
 
-                return response, 200
-            except:
-                raise BadRequest("Request failed, please try again later.")
-            finally:
-                disconnect(conn)
-        elif projectName == 'SKEDUL':
-            conn = connect('skedul')
-            timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
-            try:
-                data = request.get_json(force=True)
-                email_id = data["email_id"]
-                first_name = data["first_name"]
-                last_name = data["last_name"]
-                time_zone = data["time_zone"]
-                google_auth_token = data["google_auth_token"]
-                social_id = data["social_id"]
-                google_refresh_token = data["google_refresh_token"]
-                access_expires_in = data["access_expires_in"]
 
-                user_id_response = execute(
-                    """SELECT user_unique_id FROM users
-                                                WHERE user_email_id = \'"""
-                    + email_id
-                    + """\';""",
-                    "get",
-                    conn,
-                )
+        #             # execute(
+        #             #     """INSERT INTO users
+        #             #         SET user_unique_id = \'""" + newUserID + """\',
+        #             #             user_timestamp = \'""" + timestamp + """\',
+        #             #             user_email_id = \'""" + email_id + """\',
+        #             #             user_first_name = \'""" + first_name + """\',        
+        #             #             user_last_name = \'""" + last_name + """\',        
+        #             #             user_social_id = \'""" + social_id + """\',        
+        #             #             user_google_auth_token = \'""" + google_auth_token + """\',        
+        #             #             user_google_refresh_token = \'""" + google_refresh_token + """\',       
+        #             #             user_access_expires_in = \'""" + access_expires_in + """\',        
+        #             #             user_time_zone = \'""" + time_zone + """\',        
+        #             #             user_have_pic = \'""" + "False" + """\',        
+        #             #             user_picture = \'""" + "" + """\',        
+        #             #             user_social_media = \'""" + "null" + """\',              
+        #             #             user_guid_device_id_notification = \'""" + "null" + """\';""", "post",
+        #             #     conn,
+        #             # )
 
-                if len(user_id_response["result"]) > 0:
-                    response["message"] = "User already exists"
+        #             response["message"] = "successful"
+        #             response["result"] = newUserID
 
-                else:
-                    user_id_response = execute(
-                        "CAll get_user_id;", "get", conn)
-                    new_user_id = user_id_response["result"][0]["new_id"]
+        #         return response, 200
+        #     except:
+        #         raise BadRequest("Request failed, please try again later.")
+        #     finally:
+        #         disconnect(conn)
+        # elif projectName == 'SKEDUL':
+        #     conn = connect('skedul')
+        #     timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
+        #     try:
+        #         data = request.get_json(force=True)
+        #         email_id = data["email_id"]
+        #         first_name = data["first_name"]
+        #         last_name = data["last_name"]
+        #         time_zone = data["time_zone"]
+        #         google_auth_token = data["google_auth_token"]
+        #         social_id = data["social_id"]
+        #         google_refresh_token = data["google_refresh_token"]
+        #         access_expires_in = data["access_expires_in"]
 
-                    execute(
-                        """INSERT INTO users
-                            SET user_unique_id = \'""" + new_user_id + """\',
-                                user_timestamp = \'""" + timestamp + """\',
-                                user_email_id = \'""" + email_id + """\',
-                                user_first_name = \'""" + first_name + """\',        
-                                user_last_name = \'""" + last_name + """\',        
-                                social_id = \'""" + social_id + """\',        
-                                google_auth_token = \'""" + google_auth_token + """\',        
-                                google_refresh_token = \'""" + google_refresh_token + """\',       
-                                access_expires_in = \'""" + access_expires_in + """\',        
-                                time_zone = \'""" + time_zone + """\',        
-                                user_have_pic = \'""" + "False" + """\',        
-                                user_picture = \'""" + "" + """\',        
-                                user_social_media = \'""" + "null" + """\',        
-                                new_account = \'""" + "True" + """\',        
-                                user_guid_device_id_notification = \'""" + "null" + """\';""", "post",
-                        conn,
-                    )
+        #         user_id_response = execute(
+        #             """SELECT user_unique_id FROM users
+        #                                         WHERE user_email_id = \'"""
+        #             + email_id
+        #             + """\';""",
+        #             "get",
+        #             conn,
+        #         )
 
-                    response["message"] = "successful"
-                    response["result"] = new_user_id
+        #         if len(user_id_response["result"]) > 0:
+        #             response["message"] = "User already exists"
 
-                return response, 200
-            except:
-                raise BadRequest("Request failed, please try again later.")
-            finally:
-                disconnect(conn)
-        elif projectName == 'FINDME':
-            conn = connect('find_me')
+        #         else:
+        #             user_id_response = execute(
+        #                 "CAll get_user_id;", "get", conn)
+        #             new_user_id = user_id_response["result"][0]["new_id"]
 
-            data = request.get_json(force=True)
+        #             execute(
+        #                 """INSERT INTO users
+        #                     SET user_unique_id = \'""" + new_user_id + """\',
+        #                         user_timestamp = \'""" + timestamp + """\',
+        #                         user_email_id = \'""" + email_id + """\',
+        #                         user_first_name = \'""" + first_name + """\',        
+        #                         user_last_name = \'""" + last_name + """\',        
+        #                         social_id = \'""" + social_id + """\',        
+        #                         google_auth_token = \'""" + google_auth_token + """\',        
+        #                         google_refresh_token = \'""" + google_refresh_token + """\',       
+        #                         access_expires_in = \'""" + access_expires_in + """\',        
+        #                         time_zone = \'""" + time_zone + """\',        
+        #                         user_have_pic = \'""" + "False" + """\',        
+        #                         user_picture = \'""" + "" + """\',        
+        #                         user_social_media = \'""" + "null" + """\',        
+        #                         new_account = \'""" + "True" + """\',        
+        #                         user_guid_device_id_notification = \'""" + "null" + """\';""", "post",
+        #                 conn,
+        #             )
 
-            email = data.get('email')
-            phoneNumber = data.get('phone_number')
-            firstName = data.get('first_name')
-            lastName = data.get('last_name')
-            role = data.get('role')
-            google_auth_token = data.get('google_auth_token')
-            google_refresh_token = data.get('google_refresh_token')
-            social_id = data.get('social_id')
-            access_expires_in = data.get('access_expires_in')
-            password = data.get('password')
-            user = user_lookup_query(email, projectName)
-            email_validated = str(randint(100, 999))
-            if user:
-                response['message'] = 'User already exists'
-            else:
-                user = createUser(firstName, lastName, phoneNumber, email, password, role, email_validated,
-                                  google_auth_token, google_refresh_token, social_id, access_expires_in, 'FINDME')
+        #             response["message"] = "successful"
+        #             response["result"] = new_user_id
 
-                response['message'] = 'Signup success'
-                response['code'] = 200
-                response['result'] = user
-            return response
-        elif projectName == 'MMU':
-            print("In MMU")
-            conn = connect('mmu')
+        #         return response, 200
+        #     except:
+        #         raise BadRequest("Request failed, please try again later.")
+        #     finally:
+        #         disconnect(conn)
+        # elif projectName == 'FINDME':
+        #     conn = connect('find_me')
 
-            data = request.get_json(force=True)
-            print("MMU Social data: ", data)
-            email = data.get('email')
-            phoneNumber = data.get('phone_number')
-            firstName = "" # data.get('first_name')
-            lastName = "" # data.get('last_name')
-            role = "" # data.get('role')
-            google_auth_token = data.get('google_auth_token')
-            google_refresh_token = data.get('google_refresh_token')
-            social_id = data.get('social_id')
-            access_expires_in = data.get('access_expires_in')
-            password = data.get('password')
-            user = user_lookup_query(email, projectName)
-            email_validated = str(randint(100, 999))
-            if user:
-                response['message'] = 'User already exists'
-            else:
-                user = createUser(firstName, lastName, phoneNumber, email, password, role, email_validated,
-                                  google_auth_token, google_refresh_token, social_id, access_expires_in, 'MMU')
+        #     data = request.get_json(force=True)
 
-                response['message'] = 'Signup success'
-                response['code'] = 200
-                response['result'] = user
-            return response
+        #     email = data.get('email')
+        #     phoneNumber = data.get('phone_number')
+        #     firstName = data.get('first_name')
+        #     lastName = data.get('last_name')
+        #     role = data.get('role')
+        #     google_auth_token = data.get('google_auth_token')
+        #     google_refresh_token = data.get('google_refresh_token')
+        #     social_id = data.get('social_id')
+        #     access_expires_in = data.get('access_expires_in')
+        #     password = data.get('password')
+        #     user = user_lookup_query(email, projectName)
+        #     email_validated = str(randint(100, 999))
+        #     if user:
+        #         response['message'] = 'User already exists'
+        #     else:
+        #         user = createUser(firstName, lastName, phoneNumber, email, password, role, email_validated,
+        #                           google_auth_token, google_refresh_token, social_id, access_expires_in, 'FINDME')
+
+        #         response['message'] = 'Signup success'
+        #         response['code'] = 200
+        #         response['result'] = user
+        #     return response
+        # elif projectName == 'MMU':
+        #     print("In MMU")
+        #     conn = connect('mmu')
+
+        #     data = request.get_json(force=True)
+        #     print("MMU Social data: ", data)
+        #     email = data.get('email')
+        #     phoneNumber = data.get('phone_number')
+        #     firstName = "" # data.get('first_name')
+        #     lastName = "" # data.get('last_name')
+        #     role = "" # data.get('role')
+        #     google_auth_token = data.get('google_auth_token')
+        #     google_refresh_token = data.get('google_refresh_token')
+        #     social_id = data.get('social_id')
+        #     access_expires_in = data.get('access_expires_in')
+        #     password = data.get('password')
+        #     user = user_lookup_query(email, projectName)
+        #     email_validated = str(randint(100, 999))
+        #     if user:
+        #         response['message'] = 'User already exists'
+        #     else:
+        #         user = createUser(firstName, lastName, phoneNumber, email, password, role, email_validated,
+        #                           google_auth_token, google_refresh_token, social_id, access_expires_in, 'MMU')
+
+        #         response['message'] = 'Signup success'
+        #         response['code'] = 200
+        #         response['result'] = user
+        #     return response
 
     def put(self, projectName):
         print("In UserSocialSignUp - PUT")
@@ -3533,18 +3755,12 @@ class UserSocialSignUp(Resource):
 # user social login
 class UserSocialLogin(Resource):
     def get(self, projectName, email_id):
-        print("In UserSocialLogin")
+        print("In UserSocialLogin ", projectName, email_id)
         response = {}
         items = {}
-
-        # global encrypt_flag 
-
-        # db = db_lookup(projectName)
-
-        # conn = connect(db)
-        # print(conn)
         
         user = user_lookup_query(email_id, projectName)
+        print("\nUser Lookup: ", user)
 
         if user:
             if projectName == 'MYSPACE' or projectName == 'MYSPACE-DEV' :
@@ -3684,6 +3900,27 @@ class SendEmail(Resource):
         return 'Email Sent'
 
 
+# -- MIDDLEWARE FUNCTIONS -------------------------------------------------------------------------------
+# Middleware for decrypting incoming request data
+@app.before_request 
+def before_request():
+    global encrypt_flag
+    global project_name
+    project_name = get_project_name_from_request()
+    # print("Postman Secret: ", request.headers.get("Postman-Secret"))
+    encrypt_flag = handle_before_request(project_name, full_encryption_projects, POSTMAN_SECRET)
+
+@app.after_request
+def after_request(response):
+    global encrypt_flag 
+    global project_name
+    print("Encrypt Flag: ", encrypt_flag)
+    
+    response = handle_after_request(response, project_name, full_encryption_projects, POSTMAN_SECRET, encrypt_flag)
+    encrypt_flag = False
+    return response
+
+
 # -- DEFINE APIS -------------------------------------------------------------------------------
 # signup endpoints
 api.add_resource(CreateAccount, "/api/v2/CreateAccount/<string:projectName>")
@@ -3713,26 +3950,6 @@ api.add_resource(CheckEmailValidationCode, "/api/v2/CheckEmailValidationCode/<st
 
 
 
-
-
-# Middleware for decrypting incoming request data
-@app.before_request 
-def before_request():
-    global encrypt_flag
-    global project_name
-    project_name = get_project_name_from_request()
-    # print("Postman Secret: ", request.headers.get("Postman-Secret"))
-    encrypt_flag = handle_before_request(project_name, full_encryption_projects, POSTMAN_SECRET)
-
-@app.after_request
-def after_request(response):
-    global encrypt_flag 
-    global project_name
-    print("Encrypt Flag: ", encrypt_flag)
-    
-    response = handle_after_request(response, project_name, full_encryption_projects, POSTMAN_SECRET, encrypt_flag)
-    encrypt_flag = False
-    return response
 
 
 if __name__ == "__main__":

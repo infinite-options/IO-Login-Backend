@@ -1,5 +1,6 @@
 # from flask import request
 from data import connect, execute
+# from auth import createTokens, createSalt, createHash, getHash
 
 def db_lookup(project):
     print("In db_lookup ", project)
@@ -26,11 +27,11 @@ def db_lookup(project):
 
 
 def user_lookup_query(param, project):
-    print("In user_lookup_query ", param, project)
+    print("In user_lookup_query ", project, param)
 
     # Determine the column based on the parameter
     if "@" in param:
-        if project == 'MMU':
+        if project in ['MMU', 'EVERY-CIRCLE']:
             column = 'user_email_id'
         else: 
             column = 'email'

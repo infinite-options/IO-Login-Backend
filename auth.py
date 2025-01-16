@@ -51,7 +51,7 @@ def createTokens(user, projectName):
     Returns:
         dict: Dictionary containing access_token, refresh_token, and user information
     """
-    print('IN CREATETOKENS')
+    print('IN CREATETOKENS ', projectName, user)
 
     businesses = getBusinessProfileInfo(user, projectName)['result']
     # print("1")
@@ -63,29 +63,34 @@ def createTokens(user, projectName):
     if not user.get('notifications'): user['notifications'] = "true"
     if not user.get('dark_mode'): user['dark_mode'] = "false"
     if not user.get('cookies'): user['cookies'] = "true"
+    print('4')
 
-    userInfo = {
-        'user_uid': user['user_uid'],
-        'first_name': user['first_name'],
-        'last_name': user['last_name'],
-        'phone_number': user['phone_number'],
-        'email': user['email'],
-        'role': user['role'],
-        'google_auth_token': user['google_auth_token'],
-        'businesses': businesses,
-        'tenant_id': tenant_id,
-        'owner_id': owner_id,
-        'notifications': user['notifications'],
-        'dark_mode': user['dark_mode'],
-        'cookies': user['cookies']
-    }
+    # userInfo = {
+    #     'user_uid': user['user_uid'],
+    #     # 'first_name': user['first_name'],
+    #     # 'last_name': user['last_name'],
+    #     'phone_number': user['phone_number'],
+    #     'email': user['email'],
+    #     'role': user['role'],
+    #     'google_auth_token': user['google_auth_token'],
+    #     'businesses': businesses,
+    #     'tenant_id': tenant_id,
+    #     'owner_id': owner_id,
+    #     'notifications': user['notifications'],
+    #     'dark_mode': user['dark_mode'],
+    #     'cookies': user['cookies']
+    # }
 
     # Create tokens with the full user info
-    access_token = create_access_token(identity=userInfo)
-    refresh_token = create_refresh_token(identity=userInfo)
+    # access_token = create_access_token(identity=userInfo)
+    # refresh_token = create_refresh_token(identity=userInfo)
+
+    # Create tokens with the user info
+    access_token = create_access_token(identity=user)
+    refresh_token = create_refresh_token(identity=user)
 
     return {
         'access_token': access_token,
-        'refresh_token': refresh_token,
-        'user': userInfo
+        'refresh_token': refresh_token
+        # 'user': userInfo
     } 
