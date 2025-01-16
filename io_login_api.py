@@ -1766,6 +1766,27 @@ class CreateAccount(Resource):
                 response['message'] = 'Signup success'
                 response['code'] = 200
 
+            elif projectName in ('MMU','EVERY-CIRCLE') : 
+                query = f"""
+                    INSERT INTO {db}.users 
+                    SET
+                        user_uid = '{newUserID}',
+                        -- user_first_name = '{firstName}',
+                        -- user_last_name = '{lastName}',
+                        -- user_phone_number = '{phone}',
+                        user_email_id = '{email}',
+                        user_password_salt = '{passwordSalt}',
+                        user_password_hash = '{passwordHash}',
+                        -- user_role = '{role}',
+                        user_google_auth_token = '{google_auth_token}',
+                        user_google_refresh_token = '{google_refresh_token}',
+                        user_social_id = '{social_id}',
+                        user_access_expires_in = '{access_expires_in}';
+                        """
+                print(query)
+                response = execute(query, "post", conn)
+                print(response)
+
             else:
                 query = f"""
                     INSERT INTO {db}.users 
