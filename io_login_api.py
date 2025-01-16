@@ -114,286 +114,6 @@ def sendEmail(recipient, subject, body):
         mail.send(msg)
 
 
-def createUser(firstName, lastName, phoneNumber, email, password, role=None, email_validated=None, google_auth_token=None, google_refresh_token=None, social_id=None, access_expires_in=None, projectName=None):
-    if projectName == 'PM':
-        conn = connect('pm')
-        query = ["CALL pm.new_user_id;"]
-        NewIDresponse = execute(query[0], "get", conn)
-
-        newUserID = NewIDresponse["result"][0]["new_id"]
-        passwordSalt = createSalt()
-        passwordHash = createHash(password, passwordSalt)
-        newUser = {
-            'user_uid': newUserID,
-            'first_name': firstName,
-            'last_name': lastName,
-            'phone_number': phoneNumber,
-            'email': email,
-            'password_salt': passwordSalt,
-            'password_hash': passwordHash,
-            'role': role,
-            'google_auth_token': google_auth_token,
-            'google_refresh_token': google_refresh_token,
-            'social_id': social_id,
-            'access_expires_in': access_expires_in
-        }
-        query = ("""
-            INSERT INTO pm.users SET
-                user_uid = \'""" + newUserID + """\',
-                first_name = \'""" + firstName + """\',
-                last_name = \'""" + lastName + """\',
-                phone_number = \'""" + phoneNumber + """\',
-                email = \'""" + email + """\',
-                password_salt = \'""" + passwordSalt + """\',
-                password_hash = \'""" + passwordHash + """\',
-                role = \'""" + role + """\',
-                google_auth_token = \'""" + google_auth_token + """\',
-                google_refresh_token = \'""" + google_refresh_token + """\',
-                social_id = \'""" + social_id + """\',
-                access_expires_in = \'""" + access_expires_in + """\';
-                    """)
-
-        # print("PM Query: ", query)
-        response = execute(query, "post", conn)
-        # print("After PM Create User: ", response)
-        return newUser
-    
-    elif projectName == 'MYSPACE-DEV':
-        conn = connect('space_dev')
-        query = ["CALL space_dev.new_user_uid;"]
-        NewIDresponse = execute(query[0], "get", conn)
-
-        newUserID = NewIDresponse["result"][0]["new_id"]
-        print("MySpace userID: ", newUserID)
-        passwordSalt = createSalt()
-        passwordHash = createHash(password, passwordSalt)
-        newUser = {
-            'user_uid': newUserID,
-            'first_name': firstName,
-            'last_name': lastName,
-            'phone_number': phoneNumber,
-            'email': email,
-            'password_salt': passwordSalt,
-            'password_hash': passwordHash,
-            'role': role,
-            'google_auth_token': google_auth_token,
-            'google_refresh_token': google_refresh_token,
-            'social_id': social_id,
-            'access_expires_in': access_expires_in
-        }
-        query = ("""
-            INSERT INTO space_dev.users SET
-                user_uid = \'""" + newUserID + """\',
-                first_name = \'""" + firstName + """\',
-                last_name = \'""" + lastName + """\',
-                phone_number = \'""" + phoneNumber + """\',
-                email = \'""" + email + """\',
-                password_salt = \'""" + passwordSalt + """\',
-                password_hash = \'""" + passwordHash + """\',
-                role = \'""" + role + """\',
-                google_auth_token = \'""" + google_auth_token + """\',
-                google_refresh_token = \'""" + google_refresh_token + """\',
-                social_id = \'""" + social_id + """\',
-                access_expires_in = \'""" + access_expires_in + """\';
-                """)
-        # print("MYSPACE Query: ", query)
-        response = execute(query, "post", conn)
-        # print("MYSPACE response: ", response)
-        # print("MYSPACE response code: ", response['code'])
-        return (newUser, response['code'])
-    
-    elif projectName == 'MYSPACE':
-        conn = connect('space_prod')
-        query = ["CALL space_prod.new_user_uid;"]
-        NewIDresponse = execute(query[0], "get", conn)
-
-        newUserID = NewIDresponse["result"][0]["new_id"]
-        print("MySpace userID: ", newUserID)
-        passwordSalt = createSalt()
-        passwordHash = createHash(password, passwordSalt)
-        newUser = {
-            'user_uid': newUserID,
-            'first_name': firstName,
-            'last_name': lastName,
-            'phone_number': phoneNumber,
-            'email': email,
-            'password_salt': passwordSalt,
-            'password_hash': passwordHash,
-            'role': role,
-            'google_auth_token': google_auth_token,
-            'google_refresh_token': google_refresh_token,
-            'social_id': social_id,
-            'access_expires_in': access_expires_in
-        }
-        query = ("""
-            INSERT INTO space_prod.users SET
-                user_uid = \'""" + newUserID + """\',
-                first_name = \'""" + firstName + """\',
-                last_name = \'""" + lastName + """\',
-                phone_number = \'""" + phoneNumber + """\',
-                email = \'""" + email + """\',
-                password_salt = \'""" + passwordSalt + """\',
-                password_hash = \'""" + passwordHash + """\',
-                role = \'""" + role + """\',
-                google_auth_token = \'""" + google_auth_token + """\',
-                google_refresh_token = \'""" + google_refresh_token + """\',
-                social_id = \'""" + social_id + """\',
-                access_expires_in = \'""" + access_expires_in + """\';
-                """)
-        # print("MYSPACE Query: ", query)
-        response = execute(query, "post", conn)
-        # print("MYSPACE response: ", response)
-        # print("MYSPACE response code: ", response['code'])
-        return (newUser, response['code'])
-    
-    elif projectName == 'EVERY-CIRCLE':
-        conn = connect('every_circle')
-        query = "CALL every_circle.new_user_uid;"
-        NewIDresponse = execute(query, "get", conn)
-
-        newUserID = NewIDresponse["result"][0]["new_id"]
-        print("Every Circle userID: ", newUserID)
-        passwordSalt = createSalt()
-        passwordHash = createHash(password, passwordSalt)
-        newUser = {
-            'user_uid': newUserID,
-            # 'first_name': firstName,
-            # 'last_name': lastName,
-            # 'phone_number': phoneNumber,
-            'email': email,
-            'password_salt': passwordSalt,
-            'password_hash': passwordHash,
-            # 'role': role,
-            'google_auth_token': google_auth_token,
-            'google_refresh_token': google_refresh_token,
-            'social_id': social_id,
-            'access_expires_in': access_expires_in
-        }
-        query = ("""
-            INSERT INTO every_circle.users SET
-                user_uid = \'""" + newUserID + """\',
-                -- first_name = \'""" + firstName + """\',
-                -- last_name = \'""" + lastName + """\',
-                -- phone_number = \'""" + phoneNumber + """\',
-                user_email_id = \'""" + email + """\',
-                user_password_salt = \'""" + passwordSalt + """\',
-                user_password_hash = \'""" + passwordHash + """\',
-                -- role = \'""" + role + """\',
-                user_google_auth_token = \'""" + google_auth_token + """\',
-                user_google_refresh_token = \'""" + google_refresh_token + """\',
-                user_social_id = \'""" + social_id + """\',
-                user_access_expires_in = \'""" + access_expires_in + """\';
-                """)
-        # print("EVERYCIRCLE Query: ", query)
-        response = execute(query, "post", conn)
-        # print("EVERYCIRCLE response: ", response)
-        # print("EVERYCIRCLE response code: ", response['code'])
-        return (newUser, response['code'])
-    
-    elif projectName == 'FINDME':
-        conn = connect('find_me')
-        query = ["CALL find_me.new_user_id;"]
-        NewIDresponse = execute(query[0], "get", conn)
-        newUserID = NewIDresponse["result"][0]["new_id"]
-        passwordSalt = createSalt()
-        passwordHash = createHash(password, passwordSalt)
-
-        newUser = {
-            'user_uid': newUserID,
-            'first_name': firstName,
-            'last_name': lastName,
-            'phone_number': phoneNumber,
-            'email': email,
-            'password_salt': passwordSalt,
-            'password_hash': passwordHash,
-            'role': role,
-            'email_validated': email_validated,
-            'google_auth_token': google_auth_token,
-            'google_refresh_token': google_refresh_token,
-            'social_id': social_id,
-            'access_expires_in': access_expires_in
-        }
-        query = ("""
-            INSERT INTO find_me.users SET
-                 user_uid = \'""" + newUserID + """\',
-                first_name = \'""" + firstName + """\',
-                last_name = \'""" + lastName + """\',
-                phone_number = \'""" + phoneNumber + """\',
-                email = \'""" + email + """\',
-                password_salt = \'""" + passwordSalt + """\',
-                password_hash = \'""" + passwordHash + """\',
-                role = \'""" + role + """\',
-                email_validated = \'""" + email_validated + """\',
-                google_auth_token = \'""" + str(google_auth_token) + """\',
-                google_refresh_token = \'""" + str(google_refresh_token) + """\',
-                social_id = \'""" + social_id + """\',
-                access_expires_in = \'""" + str(access_expires_in) + """\';
-                    """)
-
-        response = execute(query, "post", conn)
-        subject = "Email Verification Code"
-        message = "Email Verification Code Sent " + email_validated
-        # msg = Message(
-        #     "Email Verification Code",
-        #     sender="support@manifestmy.space",
-        #     recipients=[email],
-        # )
-        # print(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
-        # msg.body = ("Email Verification Code Sent ")
-        # # print('msg-bd----', msg.body)
-        # mail.send(str(email_validated))
-        # print('after mail send')
-        sendEmail(email, subject, message)
-
-        return newUser
-    
-    elif projectName == 'MMU':
-        conn = connect('mmu')
-        query = ["CALL mmu.new_user_uid;"]
-        NewIDresponse = execute(query[0], "get", conn)
-
-        newUserID = NewIDresponse["result"][0]["new_id"]
-        print("MMU userID: ", newUserID)
-        passwordSalt = createSalt()
-        passwordHash = createHash(password, passwordSalt)
-        print(passwordHash)
-        newUser = {
-            'user_uid': newUserID,
-            'first_name': firstName,
-            'last_name': lastName,
-            'phone_number': phoneNumber,
-            'email': email,
-            'password_salt': passwordSalt,
-            'password_hash': passwordHash,
-            'role': role,
-            'google_auth_token': google_auth_token,
-            'google_refresh_token': google_refresh_token,
-            'social_id': social_id,
-            'access_expires_in': access_expires_in
-        }
-        print(newUser)
-        query = ("""
-            INSERT INTO mmu.users SET
-                user_uid = \'""" + newUserID + """\',
-                -- user_first_name = \'""" + firstName + """\',
-                -- user_last_name = \'""" + lastName + """\',
-                -- user_phone_number = \'""" + phoneNumber + """\',
-                user_email_id = \'""" + email + """\',
-                user_password_salt = \'""" + passwordSalt + """\',
-                user_password_hash = \'""" + passwordHash + """\',
-                -- user_role = \'""" + role + """\',
-                user_google_auth_token = \'""" + google_auth_token + """\',
-                user_google_refresh_token = \'""" + google_refresh_token + """\',
-                user_social_id = \'""" + social_id + """\',
-                user_access_expires_in = \'""" + access_expires_in + """\';
-                    """)
-        print("MMU Query: ", query)
-        response = execute(query, "post", conn)
-        # print("MMU response: ", response)
-        # print("MMU response code: ", response['code'])
-        return (newUser, response['code'])
-
-
 # Get the correct users for a project
 class GetUsers(Resource):
     def get(self, projectName):
@@ -420,6 +140,70 @@ class GetUsers(Resource):
             disconnect(conn)
 
         return response
+
+class GetEmailId(Resource):
+    def get(self, projectName, email_id):
+        print("In GetEmailID")
+        response = {}
+        items = {}
+        if projectName == 'NITYA':
+            conn = connect('nitya')
+            emails = execute(
+                """SELECT customer_email from customers where customer_email = \'""" + email_id + """\';""", 'get', conn)
+            if len(emails['result']) > 0:
+                response['message'] = emails['result'][0]['customer_email']
+            else:
+                response['message'] = 'User ID doesnt exist'
+
+            return response, 200
+        elif projectName == 'EVERY-CIRCLE':
+            # print("In Every-Circle ", email_id, type(email_id))
+            conn = connect('every_circle')
+            try:
+                emails = execute(
+                    """
+                    SELECT user_uid, email
+                    FROM every_circle.users
+                    -- WHERE email = 'pmtest1@gmail.com'
+                    WHERE email = \'""" + email_id + """\';
+                    """,
+                    "get",
+                    conn,
+                )
+                # print(emails["result"])
+                if len(emails["result"]) > 0:
+                    response["message"] = "User EmailID exists"
+                    response["result"] = emails["result"][0]["user_uid"]
+                else:
+                    response["message"] = "User EmailID doesnt exist"
+
+                return response, 200
+            except:
+                raise BadRequest("Request failed, please try again later.")
+            finally:
+                disconnect(conn)
+        elif projectName == 'SKEDUL':
+            conn = connect('skedul')
+            try:
+                emails = execute(
+                    """SELECT user_email_id, user_unique_id from users where user_email_id = \'"""
+                    + email_id
+                    + """\';""",
+                    "get",
+                    conn,
+                )
+                if len(emails["result"]) > 0:
+                    response["message"] = "User EmailID exists"
+                    response["result"] = emails["result"][0]["user_unique_id"]
+                else:
+                    response["message"] = "User EmailID doesnt exist"
+
+                return response, 200
+            except:
+                raise BadRequest("Request failed, please try again later.")
+            finally:
+                disconnect(conn)
+
 
 
 class SetTempPassword(Resource):
@@ -476,8 +260,6 @@ class SetTempPassword(Resource):
         return response
 
 
-
-
 class UpdateEmailPassword(Resource):
     def post(self, projectName):
         print("In UpdateEmailPassword")
@@ -516,7 +298,6 @@ class UpdateEmailPassword(Resource):
         response['message'] = 'User email and password updated successfully'
 
         return response
-
 
 
 class AccountSalt(Resource):
@@ -560,7 +341,6 @@ class AccountSalt(Resource):
         response["message"] = "SALT sent successfully"
         response["code"] = 200
         return response
-
 
 
 class Login(Resource):
@@ -619,6 +399,38 @@ class Login(Resource):
                 response['code'] = 401
         return response
 
+# user social login
+class UserSocialLogin(Resource):
+    def get(self, projectName, email_id):
+        print("In UserSocialLogin ", projectName, email_id)
+        response = {}
+        
+        db = db_lookup(projectName)
+        conn = connect(db)
+        
+        user = user_lookup_query(email_id, projectName)
+        print("\nUser Lookup: ", user)
+
+        if user:
+            if projectName == 'MYSPACE' or projectName == 'MYSPACE-DEV' :
+                if user['social_id'] == '':
+                    response['message'] = 'Login with email'
+                    response['result'] = False
+
+                else:
+                    response['message'] = 'Login successful'
+                    response['code'] = 200
+                    response['result'] = createTokens(user, db) 
+            else:
+                user_unique_id = user.get('user_uid')
+                google_auth_token = user.get('google_auth_token')
+                response['result'] = user_unique_id, google_auth_token
+                response['message'] = 'Correct Email'
+
+        else:
+            response['result'] = False
+            response['message'] = 'Email ID does not exist'
+        return response
 
 
 # CreateAccount is identical to UserSocialSignUp
@@ -798,69 +610,137 @@ class CreateAccount(Resource):
                            
         return response
 
-
-
-class CheckEmailValidationCode(Resource):
+# creating new user social
+class UserSocialSignUp(Resource):
     def post(self, projectName):
+        print("In UserSocialSignUp - POST ", projectName)
         response = {}
-        items = {}
-        cus_id = {}
-        if projectName == 'FINDME':
-            try:
-                conn = connect('find_me')
-                data = request.get_json(force=True)
 
-                user_uid = data["user_uid"]
-                code = data["code"]
+        db = db_lookup(projectName)
+        conn = connect(db)
+                
+        data = request.get_json(force=True)
+        print("Input Data: ", data)
 
-                get_verification_code_query = '''
-                                SELECT email_validated FROM find_me.users WHERE user_uid=\'''' + user_uid + '''\'
-                                '''
+        email = data.get('email')
+        phone = data.get('phone_number')
+        firstName = data.get('first_name')
+        lastName = data.get('last_name')
+        role = data.get('role')
+        google_auth_token = data.get('google_auth_token')
+        google_refresh_token = data.get('google_refresh_token')
+        social_id = data.get('social_id')
+        access_expires_in = data.get('access_expires_in')
+        password = data.get('password')
 
-                validation = execute(get_verification_code_query, "get", conn)
+        user = user_lookup_query(email, projectName)    
 
-                # If for some reason we can't find a user in the table with the given user_uid....
-                if len(validation["result"]) == 0:
-                    response["message"] = "No user has been found for the following user_uid. " \
-                        "Perhaps you have entered an invalid user_uid, " \
-                        "or the endpoint to createNewUsers is broken"
-                    return response, 200
+        if user:
+            response['message'] = 'User already exists'
+        
+        else:
+            user_id_response = execute("CAll new_user_id;", "get", conn)
+            newUserID = user_id_response["result"][0]["new_id"]
+            print("newUserID: ", newUserID)
 
-                # If we do find such a user,
-                # we will cross-examine the code they have typed in against what we have stored in the database.
-                # If it matches --> hooray! We set the email_validated of that user to true.
-                # If it DOES NOT match --> whoops! They typed in a bad code.
+            passwordSalt = createSalt()
+            passwordHash = createHash(password, passwordSalt)
 
-                if validation["result"][0]["email_validated"] == "TRUE":
-                    response["message"] = "User Email for this specific user has already been verified." \
-                        " No need for a code! :)"
-                    response["email_validated_status"] = "TRUE"
+            query = f"""
+                    INSERT INTO {db}.users 
+                    SET
+                        user_uid = '{newUserID}',
+                        first_name = '{firstName}',
+                        last_name = '{lastName}',
+                        phone_number = '{phone}',
+                        user_email_id = '{email}',
+                        user_password_salt = '{passwordSalt}',
+                        user_password_hash = '{passwordHash}',
+                        role = '{role}',
+                        user_google_auth_token = '{google_auth_token}',
+                        user_google_refresh_token = '{google_refresh_token}',
+                        user_social_id = '{social_id}',
+                        user_access_expires_in = '{access_expires_in}';
+                        """
+            print(query)
 
-                elif validation["result"][0]["email_validated"] == "FALSE":
-                    response["message"] = "You need to generate a code for this user before you verify it."
-                    response["email_validated_status"] = "FALSE"
+            response = execute(query, "post", conn)
+            print(response)
 
-                elif validation["result"][0]["email_validated"] == code:
-                    set_code_query = '''
-                                    UPDATE find_me.users
-                                    SET email_validated =\'''' + "TRUE" + '''\'
-                                    WHERE user_uid=\'''' + user_uid + '''\'
-                                    '''
-                    verification = execute(set_code_query, "post", conn)
-                    response["message"] = "User Email Verification Code has been validated. Have fun!"
-                    response["email_validated_status"] = "TRUE"
+            if projectName in ('PM','MYSPACE','MYSPACE-DEV') :               
+                response['result'] = createTokens(user, db)
+                response['message'] = 'Signup success'
+                response['code'] = 200
 
-                else:
-                    response["message"] = "Invalid Verification Code." \
-                        "The code provided does not match what we have in the database"
-                    response["email_validated_status"] = "..."
+        return response
 
-                return response, 200
-            except:
-                raise BadRequest(
-                    "Validate Email Verification Code Request Failed. Try again later. :(")
-            finally:
-                disconnect(conn)
+      
+
+    def put(self, projectName):
+        print("In UserSocialSignUp - PUT ", projectName)
+        response = {}
+
+        db = db_lookup(projectName)
+        conn = connect(db)
+                
+        data = request.get_json(force=True)
+        print("Input Data: ", data)
+
+        if not ("user_uid" in data):
+            return "ERROR - user_id missing"
+
+        userUID = data.get('user_uid')
+        email = data.get('email')
+        phone = data.get('phone_number')
+        firstName = data.get('first_name')
+        lastName = data.get('last_name')
+        role = data.get('role')
+        google_auth_token = data.get('google_auth_token')
+        google_refresh_token = data.get('google_refresh_token')
+        social_id = data.get('social_id')
+        access_expires_in = data.get('access_expires_in')
+        password = data.get('password')
+
+        user = user_lookup_query(userUID, projectName)
+        
+        if not user:
+            response['message'] = 'User does not exist'
+            response['code'] = 404
+
+        else: 
+            passwordSalt = createSalt()
+            passwordHash = createHash(password, passwordSalt)   
+
+            query = f"""
+                    UPDATE {db}.users 
+                    SET
+                        first_name = '{firstName}',
+                        last_name = '{lastName}',
+                        phone_number = '{phone}',
+                        email = '{email}',
+                        password_salt = '{passwordSalt}',
+                        password_hash = '{passwordHash}',
+                        role = '{role}',
+                        google_auth_token = '{google_auth_token}',
+                        google_refresh_token = '{google_refresh_token}',
+                        social_id = '{social_id}',
+                        access_expires_in = '{access_expires_in}'
+                    WHERE user_uid = '{userUID}';
+                    """
+            print(query)
+
+            response = execute(query, "post", conn)
+            print(response)
+
+            if projectName in ('PM','MYSPACE','MYSPACE-DEV') :               
+                response['result'] = createTokens(user, db)
+                response['message'] = 'User details updated'
+                response['code'] = 200
+                           
+        return response
+
+
+
 
 
 class UpdateUser(Resource):
@@ -938,451 +818,529 @@ class UpdateUserByUID(Resource):
             raise
         return response, 200
 
+
 #  updating access token if expired
 class UpdateAccessToken(Resource):
-    def post(self, projectName, user_id,):
-        print("In UpdateAccessToken")
+    def post(self, projectName, user_id):
+        print("In UpdateAccessToken ", projectName, user_id )
         response = {}
+
+        db = db_lookup(projectName)
+        conn = connect(db)
         
-        items = {}
         data = request.get_json(force=True)
+        print("Input Data: ", data)
+
         google_auth_token = data["google_auth_token"]
-        if projectName == 'PM':
-            conn = connect('pm')
 
-            query = """UPDATE pm.users
-                SET google_auth_token = \'""" + google_auth_token + """\'
-                WHERE user_uid = \'""" + user_id + """\' """
-            response = execute(query, "post", conn)
+        query = f"""
+                UPDATE {db}.users 
+                SET
+                    google_auth_token = '{google_auth_token}'
+                WHERE user_uid = '{user_id}';
+                """
+        print(query)
 
-            return response, 200
-        elif projectName == 'MYSPACE-DEV':
-            
-            conn = connect('space_dev')
-
-            query = """
-                UPDATE space_dev.users
-                SET google_auth_token = \'""" + google_auth_token + """\'
-                WHERE user_uid = \'""" + user_id + """\' """
-            response = execute(query, "post", conn)
-
-            return response, 200
-        elif projectName == 'MYSPACE':
-            
-            conn = connect('space_prod')
-
-            query = """
-                UPDATE space_prod.users
-                SET google_auth_token = \'""" + google_auth_token + """\'
-                WHERE user_uid = \'""" + user_id + """\' """
-            response = execute(query, "post", conn)
-
-            return response, 200
+        response = execute(query, "post", conn)
+        print(response)
         
-        elif projectName == 'NITYA':
-            conn = connect('nitya')
-            query = """UPDATE nitya.customers
-                       SET user_access_token = \'""" + google_auth_token + """\'
-                       WHERE customer_uid = \'""" + user_id + """\';
-                        """
-            response = execute(query, "post", conn)
-            return response, 200
-        elif projectName == 'EVERY-CIRCLE':
-            conn = connect('every_circle')
-            query = """UPDATE every_circle.users 
-                        SET  google_auth_token = \'""" + google_auth_token + """\'
-                        WHERE user_unique_id = \'""" + user_id + """\';
-                        """
-            response = execute(query, "post", conn)
-            return response, 200
-        elif projectName == 'SKEDUL':
-            conn = connect('skedul')
-            query = """UPDATE skedul.users 
-                        SET  google_auth_token = \'""" + google_auth_token + """\'
-                        WHERE user_unique_id = \'""" + user_id + """\';
-                        """
-            response = execute(query, "post", conn)
-            return response, 200
-        elif projectName == 'FINDME':
-            conn = connect('find_me')
-            query = """UPDATE find_me.users
-                SET google_auth_token = \'""" + google_auth_token + """\'
-                WHERE user_uid = \'""" + user_id + """\' """
-            response = execute(query, "post", conn)
-            return response
+        return response, 200
+
+        # items = {}
+        # data = request.get_json(force=True)
+        # google_auth_token = data["google_auth_token"]
+        # if projectName == 'PM':
+        #     conn = connect('pm')
+
+        #     query = """UPDATE pm.users
+        #         SET google_auth_token = \'""" + google_auth_token + """\'
+        #         WHERE user_uid = \'""" + user_id + """\' """
+        #     response = execute(query, "post", conn)
+
+        #     return response, 200
+        # elif projectName == 'MYSPACE-DEV':
+            
+        #     conn = connect('space_dev')
+
+        #     query = """
+        #         UPDATE space_dev.users
+        #         SET google_auth_token = \'""" + google_auth_token + """\'
+        #         WHERE user_uid = \'""" + user_id + """\' """
+        #     response = execute(query, "post", conn)
+
+        #     return response, 200
+        # elif projectName == 'MYSPACE':
+            
+        #     conn = connect('space_prod')
+
+        #     query = """
+        #         UPDATE space_prod.users
+        #         SET google_auth_token = \'""" + google_auth_token + """\'
+        #         WHERE user_uid = \'""" + user_id + """\' """
+        #     response = execute(query, "post", conn)
+
+        #     return response, 200
+        
+        # elif projectName == 'NITYA':
+        #     conn = connect('nitya')
+        #     query = """UPDATE nitya.customers
+        #                SET user_access_token = \'""" + google_auth_token + """\'
+        #                WHERE customer_uid = \'""" + user_id + """\';
+        #                 """
+        #     response = execute(query, "post", conn)
+        #     return response, 200
+        # elif projectName == 'EVERY-CIRCLE':
+        #     conn = connect('every_circle')
+        #     query = """UPDATE every_circle.users 
+        #                 SET  google_auth_token = \'""" + google_auth_token + """\'
+        #                 WHERE user_unique_id = \'""" + user_id + """\';
+        #                 """
+        #     response = execute(query, "post", conn)
+        #     return response, 200
+        # elif projectName == 'SKEDUL':
+        #     conn = connect('skedul')
+        #     query = """UPDATE skedul.users 
+        #                 SET  google_auth_token = \'""" + google_auth_token + """\'
+        #                 WHERE user_unique_id = \'""" + user_id + """\';
+        #                 """
+        #     response = execute(query, "post", conn)
+        #     return response, 200
+        # elif projectName == 'FINDME':
+        #     conn = connect('find_me')
+        #     query = """UPDATE find_me.users
+        #         SET google_auth_token = \'""" + google_auth_token + """\'
+        #         WHERE user_uid = \'""" + user_id + """\' """
+        #     response = execute(query, "post", conn)
+        #     return response
 
 
 # get user tokens
 class UserToken(Resource):
     def get(self, projectName, user_email_id):
-        print("In usertoken")
+        print("In usertoken ",  projectName, user_email_id)
         response = {}
+        
+        db = db_lookup(projectName)
+        conn = connect(db)
+        
+        data = request.get_json(force=True)
+        print("Input Data: ", data)
+
+        query = f"""
+                SELECT user_uid
+                        , email
+                        , google_auth_token
+                        , google_refresh_token
+                FROM {db}.users 
+                WHERE email = '{user_email_id}';
+                """
+        print(query)
+
+        response = execute(query, 'get', conn)
+        print(response)
+
+        return response, 200
+
+
+
+    # def get(self, projectName, user_email_id):
+    #     print("In usertoken")
+    #     response = {}
    
-        items = {}
-        if projectName == 'PM':
-            conn = connect('pm')
-            query = (
-                """SELECT user_uid
-                                , email
-                                , google_auth_token
-                                , google_refresh_token
-                        FROM
-                        users WHERE email = \'"""
-                + user_email_id
-                + """\';"""
-            )
-            response = execute(query, 'get', conn)
+    #     items = {}
+    #     if projectName == 'PM':
+    #         conn = connect('pm')
+    #         query = (
+    #             """SELECT user_uid
+    #                             , email
+    #                             , google_auth_token
+    #                             , google_refresh_token
+    #                     FROM
+    #                     users WHERE email = \'"""
+    #             + user_email_id
+    #             + """\';"""
+    #         )
+    #         response = execute(query, 'get', conn)
 
-            return response, 200
-        elif projectName == 'MYSPACE-DEV':
+    #         return response, 200
+    #     elif projectName == 'MYSPACE-DEV':
          
-            conn = connect('space_dev')
-            query = ("""
-                SELECT user_uid
-                    , email
-                    , google_auth_token
-                    , google_refresh_token
-                FROM space_dev.users 
-                WHERE email = \'"""+ user_email_id+ """\';
-                """
-            )
-            response = execute(query, 'get', conn)
+    #         conn = connect('space_dev')
+    #         query = ("""
+    #             SELECT user_uid
+    #                 , email
+    #                 , google_auth_token
+    #                 , google_refresh_token
+    #             FROM space_dev.users 
+    #             WHERE email = \'"""+ user_email_id+ """\';
+    #             """
+    #         )
+    #         response = execute(query, 'get', conn)
 
-            return response, 200
-        elif projectName == 'MYSPACE':
+    #         return response, 200
+    #     elif projectName == 'MYSPACE':
        
-            conn = connect('space_prod')
-            query = ("""
-                SELECT user_uid
-                    , email
-                    , google_auth_token
-                    , google_refresh_token
-                FROM space_prod.users 
-                WHERE email = \'"""+ user_email_id+ """\';
-                """
-            )
-            response = execute(query, 'get', conn)
+    #         conn = connect('space_prod')
+    #         query = ("""
+    #             SELECT user_uid
+    #                 , email
+    #                 , google_auth_token
+    #                 , google_refresh_token
+    #             FROM space_prod.users 
+    #             WHERE email = \'"""+ user_email_id+ """\';
+    #             """
+    #         )
+    #         response = execute(query, 'get', conn)
 
-            return response, 200
+    #         return response, 200
         
-        elif projectName == 'NITYA':
-            conn = connect('nitya')
-            query = (
-                """SELECT customer_uid
-                                , customer_email
-                                , user_access_token
-                                , user_refresh_token
-                        FROM
-                        customers WHERE customer_email = \'"""
-                + user_email_id
-                + """\';"""
-            )
-            response = execute(query, 'get', conn)
-            response["message"] = "successful"
-            response["customer_uid"] = items["result"][0]["customer_uid"]
-            response["customer_email"] = items["result"][0]["customer_email"]
-            response["user_access_token"] = items["result"][0]["user_access_token"]
-            response["user_refresh_token"] = items["result"][0][
-                "user_refresh_token"
-            ]
+    #     elif projectName == 'NITYA':
+    #         conn = connect('nitya')
+    #         query = (
+    #             """SELECT customer_uid
+    #                             , customer_email
+    #                             , user_access_token
+    #                             , user_refresh_token
+    #                     FROM
+    #                     customers WHERE customer_email = \'"""
+    #             + user_email_id
+    #             + """\';"""
+    #         )
+    #         response = execute(query, 'get', conn)
+    #         response["message"] = "successful"
+    #         response["customer_uid"] = items["result"][0]["customer_uid"]
+    #         response["customer_email"] = items["result"][0]["customer_email"]
+    #         response["user_access_token"] = items["result"][0]["user_access_token"]
+    #         response["user_refresh_token"] = items["result"][0][
+    #             "user_refresh_token"
+    #         ]
 
-            return response, 200
+    #         return response, 200
         
-        elif projectName == 'EVERY-CIRCLE':
-            conn = connect('every_circle')
-            query = (
-                """SELECT user_unique_id
-                                , user_email
-                                , google_auth_token
-                                , google_refresh_token
-                        FROM
-                        users WHERE user_email_id= \'"""
-                + user_email_id
-                + """\';"""
-            )
+    #     elif projectName == 'EVERY-CIRCLE':
+    #         conn = connect('every_circle')
+    #         query = (
+    #             """SELECT user_unique_id
+    #                             , user_email
+    #                             , google_auth_token
+    #                             , google_refresh_token
+    #                     FROM
+    #                     users WHERE user_email_id= \'"""
+    #             + user_email_id
+    #             + """\';"""
+    #         )
 
-            response = execute(query, 'get', conn)
-            response["message"] = "successful"
-            response["user_unique_id"] = items["result"][0]["user_unique_id"]
-            response["user_email_id"] = items["result"][0]["user_email_id"]
-            response["google_auth_token"] = items["result"][0]["google_auth_token"]
-            response["google_refresh_token"] = items["result"][0][
-                "google_refresh_token"
-            ]
+    #         response = execute(query, 'get', conn)
+    #         response["message"] = "successful"
+    #         response["user_unique_id"] = items["result"][0]["user_unique_id"]
+    #         response["user_email_id"] = items["result"][0]["user_email_id"]
+    #         response["google_auth_token"] = items["result"][0]["google_auth_token"]
+    #         response["google_refresh_token"] = items["result"][0][
+    #             "google_refresh_token"
+    #         ]
 
-            return response, 200
-        elif projectName == 'SKEDUL':
-            conn = connect('skedul')
-            query = (
-                """SELECT user_unique_id
-                                , user_email
-                                , google_auth_token
-                                , google_refresh_token
-                        FROM
-                        users WHERE user_email_id= \'"""
-                + user_email_id
-                + """\';"""
-            )
+    #         return response, 200
+    #     elif projectName == 'SKEDUL':
+    #         conn = connect('skedul')
+    #         query = (
+    #             """SELECT user_unique_id
+    #                             , user_email
+    #                             , google_auth_token
+    #                             , google_refresh_token
+    #                     FROM
+    #                     users WHERE user_email_id= \'"""
+    #             + user_email_id
+    #             + """\';"""
+    #         )
 
-            response = execute(query, 'get', conn)
-            response["message"] = "successful"
-            response["user_unique_id"] = items["result"][0]["user_unique_id"]
-            response["user_email_id"] = items["result"][0]["user_email_id"]
-            response["google_auth_token"] = items["result"][0]["google_auth_token"]
-            response["google_refresh_token"] = items["result"][0][
-                "google_refresh_token"
-            ]
+    #         response = execute(query, 'get', conn)
+    #         response["message"] = "successful"
+    #         response["user_unique_id"] = items["result"][0]["user_unique_id"]
+    #         response["user_email_id"] = items["result"][0]["user_email_id"]
+    #         response["google_auth_token"] = items["result"][0]["google_auth_token"]
+    #         response["google_refresh_token"] = items["result"][0][
+    #             "google_refresh_token"
+    #         ]
 
-            return response, 200
-        elif projectName == 'FINDME':
-            conn = connect('find_me')
-            query = (
-                """SELECT user_uid
-                                , email
-                                , google_auth_token
-                                , google_refresh_token
-                        FROM
-                        users WHERE email = \'"""
-                + user_email_id
-                + """\';"""
-            )
-            response = execute(query, 'get', conn)
+    #         return response, 200
+    #     elif projectName == 'FINDME':
+    #         conn = connect('find_me')
+    #         query = (
+    #             """SELECT user_uid
+    #                             , email
+    #                             , google_auth_token
+    #                             , google_refresh_token
+    #                     FROM
+    #                     users WHERE email = \'"""
+    #             + user_email_id
+    #             + """\';"""
+    #         )
+    #         response = execute(query, 'get', conn)
 
-            return response, 200
-        elif projectName == 'SF':
-            conn = connect('sf')
-            query = (
-                """SELECT customer_uid
-                                , customer_email
-                                , user_access_token
-                                , user_refresh_token
-                                , social_id
-                        FROM
-                        sf.customers WHERE customer_email = \'"""
-                + user_email_id
-                + """\';"""
-            )
-            response = execute(query, 'get', conn)
+    #         return response, 200
+    #     elif projectName == 'SF':
+    #         conn = connect('sf')
+    #         query = (
+    #             """SELECT customer_uid
+    #                             , customer_email
+    #                             , user_access_token
+    #                             , user_refresh_token
+    #                             , social_id
+    #                     FROM
+    #                     sf.customers WHERE customer_email = \'"""
+    #             + user_email_id
+    #             + """\';"""
+    #         )
+    #         response = execute(query, 'get', conn)
 
-            return response, 200
+    #         return response, 200
 
 
 class UserDetails(Resource):
     def get(self, projectName, user_id):
-        print("In userDetails")
+        print("In userDetails ", projectName, user_id)
         response = {}
-      
-        items = {}
-        if projectName == 'PM':
-            conn = connect('pm')
-            if user_id[0] == '1':
-                query = """SELECT 
-                user_uid
-                , email
-                , first_name
-                , last_name
-                , google_auth_token
-                , google_refresh_token FROM users WHERE user_uid = \'""" + user_id + """\' """
 
-                response = execute(query, 'get', conn)
+        db = db_lookup(projectName)
+        conn = connect(db)
+        
+        data = request.get_json(force=True)
+        print("Input Data: ", data)
 
-            elif user_id[0] == '3':
-                query = """SELECT 
-                user_uid
-                , email
-                , first_name
-                , last_name
-                , google_auth_token
-                , google_refresh_token FROM tenantProfileInfo t
-                                    LEFT JOIN
-                                    users u
-                                     ON t.tenant_user_id = u.user_uid WHERE tenant_id = \'""" + user_id + """\' """
-
-                response = execute(query, 'get', conn)
-
-            else:
-                query = """ SELECT business_uid
-                                    , business_email
-                                    , business_name FROM businesses WHERE business_uid = \'""" + user_id + """\' """
-                business_email = execute(query, 'get', conn)
-                query = """SELECT user_uid
-                                    , email
-                                    , first_name
-                                    , last_name
-                                    , google_auth_token
-                                    , google_refresh_token FROM users WHERE email = \'""" + business_email['result'][0]['business_email'] + """\' """
-                response = execute(query, 'get', conn)
-            return response
-        elif projectName == 'MYSPACE-DEV':
-      
-            conn = connect('space_dev')
-            if user_id[0] == '1':
-                query = """
-                    SELECT user_uid
+        query = f"""
+                SELECT user_uid
                     , email
                     , first_name
                     , last_name
                     , google_auth_token
                     , google_refresh_token 
-                FROM space_dev.users 
-                WHERE user_uid = \'""" + user_id + """\' 
+                FROM {db}.users 
+                WHERE user_uid = '{user_id}';
                 """
+        print(query)
 
-                response = execute(query, 'get', conn)
+        response = execute(query, 'get', conn)
+        print(response)
 
-            elif user_id[0] == '3':
-                query = """
-                    SELECT user_uid
-                    , email
-                    , first_name
-                    , last_name
-                    , google_auth_token
-                    , google_refresh_token 
-                    FROM space_dev.tenantProfileInfo t
-                    LEFT JOIN space_dev.users u ON t.tenant_user_id = u.user_uid 
-                    WHERE tenant_id = \'""" + user_id + """\' 
-                    """
+        return response, 200
 
-                response = execute(query, 'get', conn)
 
-            else:
-                query = """ 
-                    SELECT business_uid
-                    , business_email
-                    , business_name 
-                    FROM space_dev.businessProfileInfo 
-                    WHERE business_uid = \'""" + user_id + """\' 
-                    """
-                business_email = execute(query, 'get', conn)
-                query = """
-                    SELECT user_uid
-                    , email
-                    , first_name
-                    , last_name
-                    , google_auth_token
-                    , google_refresh_token 
-                    FROM space_dev.users 
-                    WHERE email = \'""" + business_email['result'][0]['business_email'] + """\' 
-                    """
-                response = execute(query, 'get', conn)
-            return response
-        elif projectName == 'MYSPACE':
+
+    # def get(self, projectName, user_id):
+    #     print("In userDetails")
+    #     response = {}
+      
+    #     items = {}
+    #     if projectName == 'PM':
+    #         conn = connect('pm')
+    #         if user_id[0] == '1':
+    #             query = """SELECT 
+    #             user_uid
+    #             , email
+    #             , first_name
+    #             , last_name
+    #             , google_auth_token
+    #             , google_refresh_token FROM users WHERE user_uid = \'""" + user_id + """\' """
+
+    #             response = execute(query, 'get', conn)
+
+    #         elif user_id[0] == '3':
+    #             query = """SELECT 
+    #             user_uid
+    #             , email
+    #             , first_name
+    #             , last_name
+    #             , google_auth_token
+    #             , google_refresh_token FROM tenantProfileInfo t
+    #                                 LEFT JOIN
+    #                                 users u
+    #                                  ON t.tenant_user_id = u.user_uid WHERE tenant_id = \'""" + user_id + """\' """
+
+    #             response = execute(query, 'get', conn)
+
+    #         else:
+    #             query = """ SELECT business_uid
+    #                                 , business_email
+    #                                 , business_name FROM businesses WHERE business_uid = \'""" + user_id + """\' """
+    #             business_email = execute(query, 'get', conn)
+    #             query = """SELECT user_uid
+    #                                 , email
+    #                                 , first_name
+    #                                 , last_name
+    #                                 , google_auth_token
+    #                                 , google_refresh_token FROM users WHERE email = \'""" + business_email['result'][0]['business_email'] + """\' """
+    #             response = execute(query, 'get', conn)
+    #         return response
+    #     elif projectName == 'MYSPACE-DEV':
+      
+    #         conn = connect('space_dev')
+    #         if user_id[0] == '1':
+    #             query = """
+    #                 SELECT user_uid
+    #                 , email
+    #                 , first_name
+    #                 , last_name
+    #                 , google_auth_token
+    #                 , google_refresh_token 
+    #             FROM space_dev.users 
+    #             WHERE user_uid = \'""" + user_id + """\' 
+    #             """
+
+    #             response = execute(query, 'get', conn)
+
+    #         elif user_id[0] == '3':
+    #             query = """
+    #                 SELECT user_uid
+    #                 , email
+    #                 , first_name
+    #                 , last_name
+    #                 , google_auth_token
+    #                 , google_refresh_token 
+    #                 FROM space_dev.tenantProfileInfo t
+    #                 LEFT JOIN space_dev.users u ON t.tenant_user_id = u.user_uid 
+    #                 WHERE tenant_id = \'""" + user_id + """\' 
+    #                 """
+
+    #             response = execute(query, 'get', conn)
+
+    #         else:
+    #             query = """ 
+    #                 SELECT business_uid
+    #                 , business_email
+    #                 , business_name 
+    #                 FROM space_dev.businessProfileInfo 
+    #                 WHERE business_uid = \'""" + user_id + """\' 
+    #                 """
+    #             business_email = execute(query, 'get', conn)
+    #             query = """
+    #                 SELECT user_uid
+    #                 , email
+    #                 , first_name
+    #                 , last_name
+    #                 , google_auth_token
+    #                 , google_refresh_token 
+    #                 FROM space_dev.users 
+    #                 WHERE email = \'""" + business_email['result'][0]['business_email'] + """\' 
+    #                 """
+    #             response = execute(query, 'get', conn)
+    #         return response
+    #     elif projectName == 'MYSPACE':
           
-            conn = connect('space_prod')
-            if user_id[0] == '1':
-                query = """
-                    SELECT user_uid
-                    , email
-                    , first_name
-                    , last_name
-                    , google_auth_token
-                    , google_refresh_token 
-                FROM space_prod.users 
-                WHERE user_uid = \'""" + user_id + """\' 
-                """
+    #         conn = connect('space_prod')
+    #         if user_id[0] == '1':
+    #             query = """
+    #                 SELECT user_uid
+    #                 , email
+    #                 , first_name
+    #                 , last_name
+    #                 , google_auth_token
+    #                 , google_refresh_token 
+    #             FROM space_prod.users 
+    #             WHERE user_uid = \'""" + user_id + """\' 
+    #             """
 
-                response = execute(query, 'get', conn)
+    #             response = execute(query, 'get', conn)
 
-            elif user_id[0] == '3':
-                query = """
-                    SELECT user_uid
-                    , email
-                    , first_name
-                    , last_name
-                    , google_auth_token
-                    , google_refresh_token 
-                    FROM space_prod.tenantProfileInfo t
-                    LEFT JOIN space_prod.users u ON t.tenant_user_id = u.user_uid 
-                    WHERE tenant_id = \'""" + user_id + """\' 
-                    """
+    #         elif user_id[0] == '3':
+    #             query = """
+    #                 SELECT user_uid
+    #                 , email
+    #                 , first_name
+    #                 , last_name
+    #                 , google_auth_token
+    #                 , google_refresh_token 
+    #                 FROM space_prod.tenantProfileInfo t
+    #                 LEFT JOIN space_prod.users u ON t.tenant_user_id = u.user_uid 
+    #                 WHERE tenant_id = \'""" + user_id + """\' 
+    #                 """
 
-                response = execute(query, 'get', conn)
+    #             response = execute(query, 'get', conn)
 
-            else:
-                query = """ 
-                    SELECT business_uid
-                    , business_email
-                    , business_name 
-                    FROM space_prod.businessProfileInfo 
-                    WHERE business_uid = \'""" + user_id + """\' 
-                    """
-                business_email = execute(query, 'get', conn)
-                query = """
-                    SELECT user_uid
-                    , email
-                    , first_name
-                    , last_name
-                    , google_auth_token
-                    , google_refresh_token 
-                    FROM space_prod.users 
-                    WHERE email = \'""" + business_email['result'][0]['business_email'] + """\' 
-                    """
-                response = execute(query, 'get', conn)
-            return response
-        elif projectName == 'EVERY-CIRCLE':
-            conn = connect('every_circle')
-            query = None
+    #         else:
+    #             query = """ 
+    #                 SELECT business_uid
+    #                 , business_email
+    #                 , business_name 
+    #                 FROM space_prod.businessProfileInfo 
+    #                 WHERE business_uid = \'""" + user_id + """\' 
+    #                 """
+    #             business_email = execute(query, 'get', conn)
+    #             query = """
+    #                 SELECT user_uid
+    #                 , email
+    #                 , first_name
+    #                 , last_name
+    #                 , google_auth_token
+    #                 , google_refresh_token 
+    #                 FROM space_prod.users 
+    #                 WHERE email = \'""" + business_email['result'][0]['business_email'] + """\' 
+    #                 """
+    #             response = execute(query, 'get', conn)
+    #         return response
+    #     elif projectName == 'EVERY-CIRCLE':
+    #         conn = connect('every_circle')
+    #         query = None
 
-            query = ("""
-                    SELECT user_unique_id
-                    , user_email_id
-                    , user_first_name
-                    , user_last_name
-                    , google_auth_token
-                    , google_refresh_token
-                    FROM users WHERE user_unique_id = \'""" + user_id + """\';
-                    """)
-            items = execute(query, "get", conn)
-            response["message"] = "successful"
-            response["user_unique_id"] = items["result"][0]["user_unique_id"]
-            response["user_first_name"] = items["result"][0]["user_first_name"]
-            response["user_last_name"] = items["result"][0]["user_last_name"]
-            response["user_email_id"] = items["result"][0]["user_email_id"]
-            response["google_auth_token"] = items["result"][0]["google_auth_token"]
-            response["google_refresh_token"] = items["result"][0][
-                "google_refresh_token"
-            ]
+    #         query = ("""
+    #                 SELECT user_unique_id
+    #                 , user_email_id
+    #                 , user_first_name
+    #                 , user_last_name
+    #                 , google_auth_token
+    #                 , google_refresh_token
+    #                 FROM users WHERE user_unique_id = \'""" + user_id + """\';
+    #                 """)
+    #         items = execute(query, "get", conn)
+    #         response["message"] = "successful"
+    #         response["user_unique_id"] = items["result"][0]["user_unique_id"]
+    #         response["user_first_name"] = items["result"][0]["user_first_name"]
+    #         response["user_last_name"] = items["result"][0]["user_last_name"]
+    #         response["user_email_id"] = items["result"][0]["user_email_id"]
+    #         response["google_auth_token"] = items["result"][0]["google_auth_token"]
+    #         response["google_refresh_token"] = items["result"][0][
+    #             "google_refresh_token"
+    #         ]
 
-            return response, 200
-        elif projectName == 'SKEDUL':
-            conn = connect('skedul')
-            query = None
+    #         return response, 200
+    #     elif projectName == 'SKEDUL':
+    #         conn = connect('skedul')
+    #         query = None
 
-            query = ("""
-                    SELECT user_unique_id
-                    , user_email_id
-                    , user_first_name
-                    , user_last_name
-                    , google_auth_token
-                    , google_refresh_token
-                    FROM users WHERE user_unique_id = \'""" + user_id + """\';
-                    """)
-            items = execute(query, "get", conn)
-            response["message"] = "successful"
-            response["user_unique_id"] = items["result"][0]["user_unique_id"]
-            response["user_first_name"] = items["result"][0]["user_first_name"]
-            response["user_last_name"] = items["result"][0]["user_last_name"]
-            response["user_email_id"] = items["result"][0]["user_email_id"]
-            response["google_auth_token"] = items["result"][0]["google_auth_token"]
-            response["google_refresh_token"] = items["result"][0][
-                "google_refresh_token"
-            ]
+    #         query = ("""
+    #                 SELECT user_unique_id
+    #                 , user_email_id
+    #                 , user_first_name
+    #                 , user_last_name
+    #                 , google_auth_token
+    #                 , google_refresh_token
+    #                 FROM users WHERE user_unique_id = \'""" + user_id + """\';
+    #                 """)
+    #         items = execute(query, "get", conn)
+    #         response["message"] = "successful"
+    #         response["user_unique_id"] = items["result"][0]["user_unique_id"]
+    #         response["user_first_name"] = items["result"][0]["user_first_name"]
+    #         response["user_last_name"] = items["result"][0]["user_last_name"]
+    #         response["user_email_id"] = items["result"][0]["user_email_id"]
+    #         response["google_auth_token"] = items["result"][0]["google_auth_token"]
+    #         response["google_refresh_token"] = items["result"][0][
+    #             "google_refresh_token"
+    #         ]
 
-            return response, 200
-        elif projectName == 'FINDME':
-            conn = connect('find_me')
-            query = """SELECT 
-                user_uid
-                , email
-                , first_name
-                , last_name
-                , phone_number
-                , google_auth_token
-                , google_refresh_token FROM users u
-                WHERE user_uid = \'""" + user_id + """\' """
+    #         return response, 200
+    #     elif projectName == 'FINDME':
+    #         conn = connect('find_me')
+    #         query = """SELECT 
+    #             user_uid
+    #             , email
+    #             , first_name
+    #             , last_name
+    #             , phone_number
+    #             , google_auth_token
+    #             , google_refresh_token FROM users u
+    #             WHERE user_uid = \'""" + user_id + """\' """
 
-            response = execute(query, 'get', conn)
-            return response
+    #         response = execute(query, 'get', conn)
+    #         return response
 
 
 class UserDetailsByEmail(Resource):
@@ -1406,233 +1364,6 @@ class UserDetailsByEmail(Resource):
             return response
 
 
-class GetEmailId(Resource):
-    def get(self, projectName, email_id):
-        print("In GetEmailID")
-        response = {}
-        items = {}
-        if projectName == 'NITYA':
-            conn = connect('nitya')
-            emails = execute(
-                """SELECT customer_email from customers where customer_email = \'""" + email_id + """\';""", 'get', conn)
-            if len(emails['result']) > 0:
-                response['message'] = emails['result'][0]['customer_email']
-            else:
-                response['message'] = 'User ID doesnt exist'
-
-            return response, 200
-        elif projectName == 'EVERY-CIRCLE':
-            # print("In Every-Circle ", email_id, type(email_id))
-            conn = connect('every_circle')
-            try:
-                emails = execute(
-                    """
-                    SELECT user_uid, email
-                    FROM every_circle.users
-                    -- WHERE email = 'pmtest1@gmail.com'
-                    WHERE email = \'""" + email_id + """\';
-                    """,
-                    "get",
-                    conn,
-                )
-                # print(emails["result"])
-                if len(emails["result"]) > 0:
-                    response["message"] = "User EmailID exists"
-                    response["result"] = emails["result"][0]["user_uid"]
-                else:
-                    response["message"] = "User EmailID doesnt exist"
-
-                return response, 200
-            except:
-                raise BadRequest("Request failed, please try again later.")
-            finally:
-                disconnect(conn)
-        elif projectName == 'SKEDUL':
-            conn = connect('skedul')
-            try:
-                emails = execute(
-                    """SELECT user_email_id, user_unique_id from users where user_email_id = \'"""
-                    + email_id
-                    + """\';""",
-                    "get",
-                    conn,
-                )
-                if len(emails["result"]) > 0:
-                    response["message"] = "User EmailID exists"
-                    response["result"] = emails["result"][0]["user_unique_id"]
-                else:
-                    response["message"] = "User EmailID doesnt exist"
-
-                return response, 200
-            except:
-                raise BadRequest("Request failed, please try again later.")
-            finally:
-                disconnect(conn)
-
-
-# creating new user social
-class UserSocialSignUp(Resource):
-    def post(self, projectName):
-        print("In UserSocialSignUp - POST ", projectName)
-        response = {}
-
-        db = db_lookup(projectName)
-        conn = connect(db)
-                
-        data = request.get_json(force=True)
-        print("Input Data: ", data)
-
-        email = data.get('email')
-        phone = data.get('phone_number')
-        firstName = data.get('first_name')
-        lastName = data.get('last_name')
-        role = data.get('role')
-        google_auth_token = data.get('google_auth_token')
-        google_refresh_token = data.get('google_refresh_token')
-        social_id = data.get('social_id')
-        access_expires_in = data.get('access_expires_in')
-        password = data.get('password')
-
-        user = user_lookup_query(email, projectName)    
-
-        if user:
-            response['message'] = 'User already exists'
-        
-        else:
-            user_id_response = execute("CAll new_user_id;", "get", conn)
-            newUserID = user_id_response["result"][0]["new_id"]
-            print("newUserID: ", newUserID)
-
-            passwordSalt = createSalt()
-            passwordHash = createHash(password, passwordSalt)
-
-            query = f"""
-                    INSERT INTO {db}.users 
-                    SET
-                        user_uid = '{newUserID}',
-                        first_name = '{firstName}',
-                        last_name = '{lastName}',
-                        phone_number = '{phone}',
-                        user_email_id = '{email}',
-                        user_password_salt = '{passwordSalt}',
-                        user_password_hash = '{passwordHash}',
-                        role = '{role}',
-                        user_google_auth_token = '{google_auth_token}',
-                        user_google_refresh_token = '{google_refresh_token}',
-                        user_social_id = '{social_id}',
-                        user_access_expires_in = '{access_expires_in}';
-                        """
-            
-            response = execute(query, "post", conn)
-
-            if projectName in ('PM','MYSPACE','MYSPACE-DEV') :               
-                response['result'] = createTokens(user, db)
-                response['message'] = 'Signup success'
-                response['code'] = 200
-
-        return response
-
-      
-
-    def put(self, projectName):
-        print("In UserSocialSignUp - PUT ", projectName)
-        response = {}
-
-        db = db_lookup(projectName)
-        conn = connect(db)
-                
-        data = request.get_json(force=True)
-        print("Input Data: ", data)
-
-        if not ("user_uid" in data):
-            return "ERROR - user_id missing"
-
-        userUID = data.get('user_uid')
-        email = data.get('email')
-        phone = data.get('phone_number')
-        firstName = data.get('first_name')
-        lastName = data.get('last_name')
-        role = data.get('role')
-        google_auth_token = data.get('google_auth_token')
-        google_refresh_token = data.get('google_refresh_token')
-        social_id = data.get('social_id')
-        access_expires_in = data.get('access_expires_in')
-        password = data.get('password')
-
-        user = user_lookup_query(userUID, projectName)
-        
-        if not user:
-            response['message'] = 'User does not exist'
-            response['code'] = 404
-
-        else: 
-            passwordSalt = createSalt()
-            passwordHash = createHash(password, passwordSalt)   
-
-            query = f"""
-                    UPDATE {db}.users 
-                    SET
-                        first_name = '{firstName}',
-                        last_name = '{lastName}',
-                        phone_number = '{phone}',
-                        email = '{email}',
-                        password_salt = '{passwordSalt}',
-                        password_hash = '{passwordHash}',
-                        role = '{role}',
-                        google_auth_token = '{google_auth_token}',
-                        google_refresh_token = '{google_refresh_token}',
-                        social_id = '{social_id}',
-                        access_expires_in = '{access_expires_in}'
-                    WHERE user_uid = '{userUID}';
-                    """
-            response = execute(query, "post", conn)
-
-            if projectName in ('PM','MYSPACE','MYSPACE-DEV') :               
-                response['result'] = createTokens(user, db)
-                response['message'] = 'User details updated'
-                response['code'] = 200
-                           
-        return response
-
-
-
-        
-
-# user social login
-class UserSocialLogin(Resource):
-    def get(self, projectName, email_id):
-        print("In UserSocialLogin ", projectName, email_id)
-        response = {}
-        
-        db = db_lookup(projectName)
-        conn = connect(db)
-        
-        user = user_lookup_query(email_id, projectName)
-        print("\nUser Lookup: ", user)
-
-        if user:
-            if projectName == 'MYSPACE' or projectName == 'MYSPACE-DEV' :
-                if user['social_id'] == '':
-                    response['message'] = 'Login with email'
-                    response['result'] = False
-
-                else:
-                    response['message'] = 'Login successful'
-                    response['code'] = 200
-                    response['result'] = createTokens(user, db) 
-            else:
-                user_unique_id = user.get('user_uid')
-                google_auth_token = user.get('google_auth_token')
-                response['result'] = user_unique_id, google_auth_token
-                response['message'] = 'Correct Email'
-
-        else:
-            response['result'] = False
-            response['message'] = 'Email ID does not exist'
-        return response
-
-
-
 
 # SEND EMAIL
 class SendEmail(Resource):
@@ -1646,6 +1377,68 @@ class SendEmail(Resource):
         message = "Email Verification Code Sent " + code
         sendEmail(email, subject, message)
         return 'Email Sent'
+
+class CheckEmailValidationCode(Resource):
+    def post(self, projectName):
+        response = {}
+        items = {}
+        cus_id = {}
+        if projectName == 'FINDME':
+            try:
+                conn = connect('find_me')
+                data = request.get_json(force=True)
+
+                user_uid = data["user_uid"]
+                code = data["code"]
+
+                get_verification_code_query = '''
+                                SELECT email_validated FROM find_me.users WHERE user_uid=\'''' + user_uid + '''\'
+                                '''
+
+                validation = execute(get_verification_code_query, "get", conn)
+
+                # If for some reason we can't find a user in the table with the given user_uid....
+                if len(validation["result"]) == 0:
+                    response["message"] = "No user has been found for the following user_uid. " \
+                        "Perhaps you have entered an invalid user_uid, " \
+                        "or the endpoint to createNewUsers is broken"
+                    return response, 200
+
+                # If we do find such a user,
+                # we will cross-examine the code they have typed in against what we have stored in the database.
+                # If it matches --> hooray! We set the email_validated of that user to true.
+                # If it DOES NOT match --> whoops! They typed in a bad code.
+
+                if validation["result"][0]["email_validated"] == "TRUE":
+                    response["message"] = "User Email for this specific user has already been verified." \
+                        " No need for a code! :)"
+                    response["email_validated_status"] = "TRUE"
+
+                elif validation["result"][0]["email_validated"] == "FALSE":
+                    response["message"] = "You need to generate a code for this user before you verify it."
+                    response["email_validated_status"] = "FALSE"
+
+                elif validation["result"][0]["email_validated"] == code:
+                    set_code_query = '''
+                                    UPDATE find_me.users
+                                    SET email_validated =\'''' + "TRUE" + '''\'
+                                    WHERE user_uid=\'''' + user_uid + '''\'
+                                    '''
+                    verification = execute(set_code_query, "post", conn)
+                    response["message"] = "User Email Verification Code has been validated. Have fun!"
+                    response["email_validated_status"] = "TRUE"
+
+                else:
+                    response["message"] = "Invalid Verification Code." \
+                        "The code provided does not match what we have in the database"
+                    response["email_validated_status"] = "..."
+
+                return response, 200
+            except:
+                raise BadRequest(
+                    "Validate Email Verification Code Request Failed. Try again later. :(")
+            finally:
+                disconnect(conn)
 
 
 # -- MIDDLEWARE FUNCTIONS -------------------------------------------------------------------------------
