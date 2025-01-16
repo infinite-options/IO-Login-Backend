@@ -40,24 +40,25 @@ def createHash(password, salt):
     """
     return getHash(password + salt)
 
-def createTokens(user, projectName):
+def createTokens(user, database):
     """
     Creates access and refresh tokens for a user, including their profile information.
     
     Args:
         user (dict): User information including profile details
         projectName (str): Name of the project
+        database (str): Name of the database used
         
     Returns:
         dict: Dictionary containing access_token, refresh_token, and user information
     """
-    print('IN CREATETOKENS ', projectName, user)
+    print('IN CREATETOKENS ', database, user)
 
-    businesses = getBusinessProfileInfo(user, projectName)['result']
+    businesses = getBusinessProfileInfo(user, database)['result']
     # print("1")
-    tenant_id = getTenantProfileInfo(user, projectName)['result']
+    tenant_id = getTenantProfileInfo(user, database)['result']
     # print("2")
-    owner_id = getOwnerProfileInfo(user, projectName)['result']
+    owner_id = getOwnerProfileInfo(user, database)['result']
     # print("3")
 
     if not user.get('notifications'): user['notifications'] = "true"
