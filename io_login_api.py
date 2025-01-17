@@ -10,6 +10,15 @@
 # README:  if there are errors, make sure you have all requirements are loaded
 # pip3 install -r requirements.txt
 
+
+# -- BASIC LOGIN FLOW -------------------------------------------------------------------------------
+# EMAIL LOGIN
+# 1.  Check individual Project user table to see if User already exists
+# 2.  If not, call CreateAccount.  Note: CreateAccount only affects the users table.  Profile tables are updated directly from the individual projects
+
+# SOCIAL LOGIN
+
+
 print("-------------------- New Program Run --------------------")
 
 
@@ -482,6 +491,7 @@ class CreateAccount(Resource):
                         password_salt = '{passwordSalt}',
                         password_hash = '{passwordHash}',
                         role = '{role}',
+                        created_date = DATE_FORMAT(NOW(), '%m-%d-%Y %H:%i'),
                         google_auth_token = '{google_auth_token}',
                         google_refresh_token = '{google_refresh_token}',
                         social_id = '{social_id}',
