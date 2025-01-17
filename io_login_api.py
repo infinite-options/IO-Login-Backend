@@ -422,14 +422,17 @@ class UserSocialLogin(Resource):
 
         if user:
             if projectName == 'MYSPACE' or projectName == 'MYSPACE-DEV' :
-                if user['social_id'] == '':
-                    response['message'] = 'Login with email'
-                    response['result'] = False
+                # if user['social_id'] == '':
+                #     response['message'] = 'Login with email'
+                #     response['result'] = False
 
-                else:
-                    response['message'] = 'Login successful'
-                    response['code'] = 200
-                    response['result'] = createTokens(user, db) 
+                # else:
+                #     response['message'] = 'Login successful'
+                #     response['code'] = 200
+                #     response['result'] = createTokens(user, db) 
+                response['message'] = 'Login successful'
+                response['code'] = 200
+                response['result'] = createTokens(user, db) 
             else:
                 user_unique_id = user.get('user_uid')
                 google_auth_token = user.get('google_auth_token')
