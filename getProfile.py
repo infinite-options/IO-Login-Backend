@@ -31,7 +31,8 @@ def getBusinessProfileInfo(user, database):
         response = execute(query, "get", conn)
         print(response)
 
-        if "result" not in response or len(response["result"]) == 0:
+        # if "result" not in response or len(response["result"]) == 0:
+        if "result" not in response:
             response["result"] = None
         else:
             businesses = {
@@ -58,6 +59,46 @@ def getBusinessProfileInfo(user, database):
                 })
             response["result"] = businesses
         return response
+
+
+# elif projectName == "MYSPACE-DEV":
+#         encrypt_flag = True
+#         response = {}
+#         conn = connect('space_dev')
+#         query = """
+#             SELECT business_uid, business_type, employee_uid, employee_role 
+#             FROM space_dev.employees
+#             LEFT JOIN space_dev.businessProfileInfo ON employee_business_id = business_uid
+#             WHERE employee_user_id = \'""" + user['user_uid'] + """\'
+#             """
+#         response = execute(query, "get", conn)
+#         if "result" not in response:
+#             response["result"] = None
+#         else:
+#             businesses = {
+#                 'MAINTENANCE': {},
+#                 'MANAGEMENT': {}
+#             }
+#             key_map = {
+#                 'MAINTENANCE': {
+#                     'OWNER': 'business_owner_id',
+#                     'EMPLOYEE': 'business_employee_id'
+#                 },
+#                 'MANAGEMENT': {
+#                     'OWNER': 'business_owner_id',
+#                     'EMPLOYEE': 'business_employee_id' 
+#                 }
+#             }
+#             for record in response["result"]:
+#                 role_key = key_map[record['business_type']][record['employee_role']]
+#                 businesses[record['business_type']].update({
+#                     role_key: record['employee_uid'],
+#                     'business_uid': record['business_uid']
+#                 })
+#             response["result"] = businesses
+#         return response
+
+
 
 
 def getOwnerProfileInfo(user, database):
