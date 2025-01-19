@@ -646,20 +646,78 @@ class UserSocialSignUp(Resource):
         access_expires_in = data.get('access_expires_in')
         password = data.get('password')
 
-        user = user_lookup_query(email, projectName)    
+        user = user_lookup_query(email, projectName)
+        print(user)    
 
         if user:
             response['message'] = 'User already exists'
         
         else:
-            user_id_response = execute("CAll new_user_id;", "get", conn)
+            user_id_response = execute("CAll new_user_uid;", "get", conn)
             newUserID = user_id_response["result"][0]["new_id"]
             print("newUserID: ", newUserID)
 
             passwordSalt = createSalt()
             passwordHash = createHash(password, passwordSalt)
 
-            query = f"""
+            if projectName in ('PM','MYSPACE','MYSPACE-DEV') :  
+                query = f"""
+                        INSERT INTO {db}.users 
+                        SET
+                            user_uid = '{newUserID}',
+                            first_name = '{firstName}',
+                            last_name = '{lastName}',
+                            phone_number = '{phone}',
+                            email = '{email}',
+                            password_salt = '{passwordSalt}',
+                            password_hash = '{passwordHash}',
+                            role = '{role}',
+                            created_date = DATE_FORMAT(NOW(), '%m-%d-%Y %H:%i'),
+                            google_auth_token = '{google_auth_token}',
+                            google_refresh_token = '{google_refresh_token}',
+                            social_id = '{social_id}',
+                            access_expires_in = '{access_expires_in}';
+                            """
+                print(query)
+                response = execute(query, "post", conn)
+                print(response)
+
+                query = f"""
+                    SELECT * 
+                    FROM {db}.users
+                    WHERE user_uid = '{newUserID}';
+                    """
+                print(query)
+                user = execute(query, "get", conn)['result'][0]
+                print(user)
+   
+                response['result'] = createTokens(user, db)
+                response['message'] = 'Signup success'
+                response['code'] = 200
+
+            elif projectName in ('MMU','EVERY-CIRCLE') : 
+                query = f"""
+                    INSERT INTO {db}.users 
+                    SET
+                        user_uid = '{newUserID}',
+                        -- user_first_name = '{firstName}',
+                        -- user_last_name = '{lastName}',
+                        -- user_phone_number = '{phone}',
+                        user_email_id = '{email}',
+                        user_password_salt = '{passwordSalt}',
+                        user_password_hash = '{passwordHash}',
+                        -- user_role = '{role}',
+                        user_google_auth_token = '{google_auth_token}',
+                        user_google_refresh_token = '{google_refresh_token}',
+                        user_social_id = '{social_id}',
+                        user_access_expires_in = '{access_expires_in}';
+                        """
+                print(query)
+                response = execute(query, "post", conn)
+                print(response)
+
+            else:
+                query = f"""
                     INSERT INTO {db}.users 
                     SET
                         user_uid = '{newUserID}',
@@ -675,16 +733,11 @@ class UserSocialSignUp(Resource):
                         user_social_id = '{social_id}',
                         user_access_expires_in = '{access_expires_in}';
                         """
-            print(query)
+                print(query)
+                response = execute(query, "post", conn)
+                print(response)
 
-            response = execute(query, "post", conn)
-            print(response)
-
-            if projectName in ('PM','MYSPACE','MYSPACE-DEV') :               
-                response['result'] = createTokens(user, db)
-                response['message'] = 'Signup success'
-                response['code'] = 200
-
+        
         return response
 
       
