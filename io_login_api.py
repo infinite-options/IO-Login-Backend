@@ -536,6 +536,7 @@ class CreateAccount(Resource):
                         """
                 print(query)
                 response = execute(query, "post", conn)
+                response["user_uid"] = newUserID
                 print(response)
 
             else:
