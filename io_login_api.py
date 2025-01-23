@@ -162,19 +162,19 @@ class GetEmailId(Resource):
             if len(emails['result']) > 0:
                 response['message'] = emails['result'][0]['customer_email']
             else:
-                response['message'] = 'User ID doesnt exist'
+                response['message'] = 'User email does not exist'
 
             return response, 200
         elif projectName == 'EVERY-CIRCLE':
-            # print("In Every-Circle ", email_id, type(email_id))
+            print("In Every-Circle ", email_id, type(email_id))
             conn = connect('every_circle')
             try:
                 emails = execute(
                     """
-                    SELECT user_uid, email
+                    SELECT user_uid, user_email_id
                     FROM every_circle.users
-                    -- WHERE email = 'pmtest1@gmail.com'
-                    WHERE email = \'""" + email_id + """\';
+                    -- WHERE user_email_id = 'pmtest1@gmail.com'
+                    WHERE user_email_id = \'""" + email_id + """\';
                     """,
                     "get",
                     conn,
@@ -184,7 +184,7 @@ class GetEmailId(Resource):
                     response["message"] = "User EmailID exists"
                     response["result"] = emails["result"][0]["user_uid"]
                 else:
-                    response["message"] = "User EmailID doesnt exist"
+                    response["message"] = "User email does not exist"
 
                 return response, 200
             except:
@@ -205,7 +205,7 @@ class GetEmailId(Resource):
                     response["message"] = "User EmailID exists"
                     response["result"] = emails["result"][0]["user_unique_id"]
                 else:
-                    response["message"] = "User EmailID doesnt exist"
+                    response["message"] = "User email does not exist"
 
                 return response, 200
             except:
@@ -224,22 +224,22 @@ class SetTempPassword(Resource):
         response = {}
          
         items = {}
-        user_lookup = {}
+        user = {}
         data = request.get_json(force=True)
         email = data['email']
 
         db = db_lookup(projectName)
         conn = connect(db)
-        user_lookup = user_lookup_query(email, projectName)
-        print(db, user_lookup)
+        user = user_lookup_query(email, projectName)
+        print("\nBack in Temp Password POST: ", db, user)
 
-        if not user_lookup:
-                print("In not user_lookup")
-                response["message"] = "User email does not exists"
+        if not user:
+                print("In not user")
+                response["message"] = "User email does not exist"
                 response["code"] = 404
                 return response
         
-        user_uid = user_lookup['user_uid']
+        user_uid = user['user_uid']
         print(user_uid)
         # create password salt and hash
         pass_temp = self.get_random_string()
@@ -279,16 +279,16 @@ class UpdateEmailPassword(Resource):
 
         db = db_lookup(projectName)
         conn = connect(db)
-        user_lookup = user_lookup_query(user_uid, projectName)
-        print(db, user_lookup)
+        user = user_lookup_query(user_uid, projectName)
+        print("\nBack in UpdateEmailPassword POST: ", db, user)
 
-        if not user_lookup:
-                print("In not user_lookup")
-                response["message"] = "User email does not exists"
+        if not user:
+                print("In not user")
+                response["message"] = "User email does not exist"
                 response["code"] = 404
                 return response
         
-        user_uid = user_lookup['user_uid']
+        user_uid = user['user_uid']
         # create password salt and hash
         salt = createSalt()
         password = createHash(data['password'], salt)
@@ -325,27 +325,27 @@ class AccountSalt(Resource):
 
         db = db_lookup(projectName)
         conn = connect(db)
-        user_lookup = user_lookup_query(email, projectName)
-        print("\nBack in Account Salt POST: ", db, user_lookup)
+        user = user_lookup_query(email, projectName)
+        print("\nBack in Account Salt POST: ", db, user)
 
-        if not user_lookup:
-                print("In not user_lookup")
-                response["message"] = "User email does not exists"
+        if not user:
+                print("In not user")
+                response["message"] = "User email does not exist"
                 response["code"] = 404
                 return response
         
-        user_uid = user_lookup['user_uid']
+        user_uid = user['user_uid']
         print(user_uid)
 
         if projectName in ['MMU', 'EVERY-CIRCLE']:
             response['result'] = [{
                         "password_algorithm": "SHA256",
-                        "password_salt": user_lookup['user_password_salt'],
+                        "password_salt": user['user_password_salt'],
                     }]
         else:
             response['result'] = [{
                     "password_algorithm": "SHA256",
-                    "password_salt": user_lookup['password_salt'],
+                    "password_salt": user['password_salt'],
                     }]
         response["message"] = "SALT sent successfully"
         response["code"] = 200
@@ -356,7 +356,7 @@ class Login(Resource):
     def post(self, projectName):
         print("\nIn Login POST ", projectName)
         response = {}
-        user_lookup = {}
+        user = {}
 
         data = request.get_json(force=True)
         if "encrypted_data" in data:
@@ -370,39 +370,39 @@ class Login(Resource):
 
         db = db_lookup(projectName)
         conn = connect(db)
-        user_lookup = user_lookup_query(email, projectName)
-        print("\nBack in Login POST: ", db, user_lookup)
+        user = user_lookup_query(email, projectName)
+        print("\nBack in Login POST: ", db, user)
 
-        if not user_lookup:
-                print("In not user_lookup")
-                response["message"] = "User email does not exists"
+        if not user:
+                print("In not user")
+                response["message"] = "User email does not exist"
                 response["code"] = 404
                 return response
         
-        user_uid = user_lookup['user_uid']
+        user_uid = user['user_uid']
         print(user_uid)
 
-        if projectName in ['MMU', 'EVERY-CIRCLE']:
-            if password == user_lookup['user_password_hash']:
+        if projectName in ['MMU', 'EVERY-CIRCLE', 'SIGNUP']:
+            if password == user['user_password_hash']:
                     response['message'] = 'Login successful'
                     response['code'] = 200
-                    response['result'] = user_lookup
+                    response['result'] = user
             else:
                 response['message'] = 'Incorrect password'
                 response['code'] = 401
         elif projectName in ['MYSPACE-DEV', 'MYSPACE']:
-            if password == user_lookup['password_hash']:
+            if password == user['password_hash']:
                     response['message'] = 'Login successful'
                     response['code'] = 200
-                    response['result'] = createTokens(user_lookup, db)
+                    response['result'] = createTokens(user, db)
             else:
                 response['message'] = 'Incorrect password'
                 response['code'] = 401
         else:
-            if password == user_lookup['password_hash']:
+            if password == user['password_hash']:
                     response['message'] = 'Login successful'
                     response['code'] = 200
-                    response['result'] = user_lookup
+                    response['result'] = user
             else:
                 response['message'] = 'Incorrect password'
                 response['code'] = 401
@@ -418,7 +418,7 @@ class UserSocialLogin(Resource):
         conn = connect(db)
         
         user = user_lookup_query(email_id, projectName)
-        print("\nUser Lookup: ", user)
+        print("\nBack in UserSocialLogin GET: ", db, user)
 
         if user:
             if projectName == 'MYSPACE' or projectName == 'MYSPACE-DEV' :
@@ -441,7 +441,7 @@ class UserSocialLogin(Resource):
 
         else:
             response['result'] = False
-            response['message'] = 'Email ID does not exist'
+            response['message'] = 'User email does not exist'
         return response
 
 
@@ -469,7 +469,7 @@ class CreateAccount(Resource):
         password = data.get('password')
 
         user = user_lookup_query(email, projectName)    
-        print(user)
+        print("\nBack in CreateAcount POST: ", db, user)
 
         if user:
             response['message'] = 'User already exists'
@@ -590,6 +590,7 @@ class CreateAccount(Resource):
         password = data.get('password')
 
         user = user_lookup_query(userUID, projectName)
+        print("\nBack in CreateAccount PUT: ", db, user)
         
         if not user:
             response['message'] = 'User does not exist'
@@ -648,7 +649,7 @@ class UserSocialSignUp(Resource):
         password = data.get('password')
 
         user = user_lookup_query(email, projectName)
-        print(user)    
+        print("\nBack in UserSocialSignUp POST: ", db, user)   
 
         if user:
             response['message'] = 'User already exists'
@@ -662,6 +663,7 @@ class UserSocialSignUp(Resource):
             passwordHash = createHash(password, passwordSalt)
 
             if projectName in ('PM','MYSPACE','MYSPACE-DEV') :  
+                print(projectName)
                 query = f"""
                         INSERT INTO {db}.users 
                         SET
@@ -697,6 +699,7 @@ class UserSocialSignUp(Resource):
                 response['code'] = 200
 
             elif projectName in ('MMU','EVERY-CIRCLE') : 
+                print(projectName)
                 query = f"""
                     INSERT INTO {db}.users 
                     SET
@@ -769,6 +772,7 @@ class UserSocialSignUp(Resource):
         password = data.get('password')
 
         user = user_lookup_query(userUID, projectName)
+        print("\nBack in UserSocialSignUp PUT: ", db, user)   
         
         if not user:
             response['message'] = 'User does not exist'

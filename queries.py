@@ -14,7 +14,8 @@ def db_lookup(project):
         "NITYA": "nitya",
         "SKEDUL": "skedul",
         "FINDME": "find_me",
-        "MMU": "mmu"
+        "MMU": "mmu",
+        "SIGNUP":"signup"
     }
     
     db = db_mapping.get(project)
