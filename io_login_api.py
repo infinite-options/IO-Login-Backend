@@ -463,11 +463,11 @@ class CreateAccount(Resource):
         data = request.get_json(force=True)
         print("Input Data: ", data)
 
-        email = data.get('email')
-        phone = data.get('phone_number')
-        firstName = data.get('first_name')
-        lastName = data.get('last_name')
-        role = data.get('role')
+        email = data.get('email', None)
+        phone = data.get('phone_number', None)
+        firstName = data.get('first_name', None)
+        lastName = data.get('last_name', None)
+        role = data.get('role', None)
         google_auth_token = data.get('google_auth_token')
         google_refresh_token = data.get('google_refresh_token')
         social_id = data.get('social_id')
@@ -493,13 +493,13 @@ class CreateAccount(Resource):
                     INSERT INTO {db}.users 
                     SET
                         user_uid = '{newUserID}',
-                        first_name = '{firstName}',
-                        last_name = '{lastName}',
-                        phone_number = '{phone}',
-                        email = '{email}',
+                        first_name = {f"'{firstName}'" if firstName is not None else 'NULL'},
+                        last_name = {f"'{lastName}'" if lastName is not None else 'NULL'},
+                        phone_number = {f"'{phone}'" if phone is not None else 'NULL'},
+                        email = {f"'{email}'" if email is not None else 'NULL'},
+                        role = {f"'{role}'" if role is not None else 'NULL'},
                         password_salt = '{passwordSalt}',
                         password_hash = '{passwordHash}',
-                        role = '{role}',
                         created_date = DATE_FORMAT(NOW(), '%m-%d-%Y %H:%i'),
                         google_auth_token = '{google_auth_token}',
                         google_refresh_token = '{google_refresh_token}',
@@ -528,13 +528,14 @@ class CreateAccount(Resource):
                     INSERT INTO {db}.users 
                     SET
                         user_uid = '{newUserID}',
-                        -- user_first_name = '{firstName}',
-                        -- user_last_name = '{lastName}',
-                        -- user_phone_number = '{phone}',
-                        user_email_id = '{email}',
+                        user_first_name = {f"'{firstName}'" if firstName is not None else 'NULL'},
+                        user_last_name = {f"'{lastName}'" if lastName is not None else 'NULL'},
+                        user_phone_number = {f"'{phone}'" if phone is not None else 'NULL'},
+                        user_email_id = {f"'{email}'" if email is not None else 'NULL'},
+                        user_role = {f"'{role}'" if role is not None else 'NULL'},
                         user_password_salt = '{passwordSalt}',
                         user_password_hash = '{passwordHash}',
-                        -- user_role = '{role}',
+                        user_created_date = DATE_FORMAT(NOW(), '%m-%d-%Y %H:%i'),
                         user_google_auth_token = '{google_auth_token}',
                         user_google_refresh_token = '{google_refresh_token}',
                         user_social_id = '{social_id}',
@@ -550,13 +551,14 @@ class CreateAccount(Resource):
                     INSERT INTO {db}.users 
                     SET
                         user_uid = '{newUserID}',
-                        first_name = '{firstName}',
-                        last_name = '{lastName}',
-                        phone_number = '{phone}',
-                        user_email_id = '{email}',
+                        first_name = {f"'{firstName}'" if firstName is not None else 'NULL'},
+                        last_name = {f"'{lastName}'" if lastName is not None else 'NULL'},
+                        phone_number = {f"'{phone}'" if phone is not None else 'NULL'},
+                        user_email_id = {f"'{email}'" if email is not None else 'NULL'},
+                        role = {f"'{role}'" if role is not None else 'NULL'},
                         user_password_salt = '{passwordSalt}',
                         user_password_hash = '{passwordHash}',
-                        role = '{role}',
+                        user_created_date = DATE_FORMAT(NOW(), '%m-%d-%Y %H:%i'),
                         user_google_auth_token = '{google_auth_token}',
                         user_google_refresh_token = '{google_refresh_token}',
                         user_social_id = '{social_id}',
@@ -566,7 +568,7 @@ class CreateAccount(Resource):
                 response = execute(query, "post", conn)
                 print(response)
 
-        
+        response['user_uid'] = newUserID
         return response
 
 
@@ -584,11 +586,11 @@ class CreateAccount(Resource):
             return "ERROR - user_id missing"
 
         userUID = data.get('user_uid')
-        email = data.get('email')
-        phone = data.get('phone_number')
-        firstName = data.get('first_name')
-        lastName = data.get('last_name')
-        role = data.get('role')
+        email = data.get('email', None)
+        phone = data.get('phone_number', None)
+        firstName = data.get('first_name', None)
+        lastName = data.get('last_name', None)
+        role = data.get('role', None)
         google_auth_token = data.get('google_auth_token')
         google_refresh_token = data.get('google_refresh_token')
         social_id = data.get('social_id')
@@ -606,29 +608,77 @@ class CreateAccount(Resource):
             passwordSalt = createSalt()
             passwordHash = createHash(password, passwordSalt)   
 
-            query = f"""
+            if projectName in ('PM','MYSPACE','MYSPACE-DEV') :  
+                print(projectName)
+                query = f"""
                     UPDATE {db}.users 
                     SET
-                        first_name = '{firstName}',
-                        last_name = '{lastName}',
-                        phone_number = '{phone}',
-                        email = '{email}',
+                        first_name = {f"'{firstName}'" if firstName is not None else 'NULL'},
+                        last_name = {f"'{lastName}'" if lastName is not None else 'NULL'},
+                        phone_number = {f"'{phone}'" if phone is not None else 'NULL'},
+                        email = {f"'{email}'" if email is not None else 'NULL'},
+                        role = {f"'{role}'" if role is not None else 'NULL'},
                         password_salt = '{passwordSalt}',
                         password_hash = '{passwordHash}',
-                        role = '{role}',
                         google_auth_token = '{google_auth_token}',
                         google_refresh_token = '{google_refresh_token}',
                         social_id = '{social_id}',
                         access_expires_in = '{access_expires_in}'
                     WHERE user_uid = '{userUID}';
                     """
-            response = execute(query, "post", conn)
-
-            if projectName in ('PM','MYSPACE','MYSPACE-DEV') :               
+                print(query)
+                response = execute(query, "post", conn)
+                print(response)
+   
                 response['result'] = createTokens(user, db)
                 response['message'] = 'User details updated'
                 response['code'] = 200
-                           
+
+            elif projectName in ['MMU', 'EVERY-CIRCLE', 'SIGNUP'] : 
+                print(projectName)
+                query = f"""
+                    UPDATE {db}.users 
+                    SET
+                        user_first_name = {f"'{firstName}'" if firstName is not None else 'NULL'},
+                        user_last_name = {f"'{lastName}'" if lastName is not None else 'NULL'},
+                        user_phone_number = {f"'{phone}'" if phone is not None else 'NULL'},
+                        user_email_id = {f"'{email}'" if email is not None else 'NULL'},
+                        user_role = {f"'{role}'" if role is not None else 'NULL'},
+                        user_password_salt = '{passwordSalt}',
+                        user_password_hash = '{passwordHash}',
+                        user_google_auth_token = '{google_auth_token}',
+                        user_google_refresh_token = '{google_refresh_token}',
+                        user_social_id = '{social_id}',
+                        user_access_expires_in = '{access_expires_in}'
+                    WHERE user_uid = '{userUID}';
+                    """
+                print(query)
+                response = execute(query, "post", conn)
+                print(response)
+
+            else:
+                print(projectName)
+                query = f"""
+                    UPDATE {db}.users 
+                    SET
+                        first_name = {f"'{firstName}'" if firstName is not None else 'NULL'},
+                        last_name = {f"'{lastName}'" if lastName is not None else 'NULL'},
+                        phone_number = {f"'{phone}'" if phone is not None else 'NULL'},
+                        user_email_id = {f"'{email}'" if email is not None else 'NULL'},
+                        role = {f"'{role}'" if role is not None else 'NULL'},
+                        user_password_salt = '{passwordSalt}',
+                        user_password_hash = '{passwordHash}',
+                        user_google_auth_token = '{google_auth_token}',
+                        user_google_refresh_token = '{google_refresh_token}',
+                        user_social_id = '{social_id}',
+                        user_access_expires_in = '{access_expires_in}'
+                    WHERE user_uid = '{userUID}';
+                    """
+                print(query)
+                response = execute(query, "post", conn)
+                print(response)
+
+        response['user_uid'] = userUID
         return response
 
 # creating new user social
