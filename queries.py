@@ -49,11 +49,11 @@ def user_lookup_query(param, db):
         FROM {db}.users
         WHERE {column} = \'""" + param + """\';
     """
-    print(query)
+    # print(query)
 
     conn = connect(db)
     result = execute(query, "get", conn)
-    print("Query Result: ", result)
+    # print("Query Result: ", result)
 
     if result and 'result' in result and len(result['result']) > 0:
         return result['result'][0]

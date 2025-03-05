@@ -479,6 +479,8 @@ class CreateAccount(Resource):
 
         if user:
             response['message'] = 'User already exists'
+            response['user_uid'] = user['user_uid']
+            return response
         
         else:
             user_id_response = execute("CAll new_user_uid;", "get", conn)
@@ -508,7 +510,7 @@ class CreateAccount(Resource):
                         """    
                 print(query)
                 response = execute(query, "post", conn)
-                print(response)
+                # print(response)
 
                 query = f"""
                     SELECT * 
@@ -709,6 +711,8 @@ class UserSocialSignUp(Resource):
 
         if user:
             response['message'] = 'User already exists'
+            response['user_uid'] = user['user_uid']
+            return response
         
         else:
             user_id_response = execute("CAll new_user_uid;", "get", conn)
