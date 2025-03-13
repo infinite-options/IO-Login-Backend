@@ -29,7 +29,9 @@ def db_lookup(project):
 
 def user_lookup_query(param, db):
     print("\nIn user_lookup_query ", db, param)
+    param = str(param)
 
+    print("About to enter if block", param, type(param))
     # Determine the column based on the parameter
     if "@" in param:
         if db in ['space_dev', 'space_prod', 'pm']:
@@ -38,9 +40,14 @@ def user_lookup_query(param, db):
             column = 'user_email_id'
     elif "-" in param:
         column = 'user_uid'
+    elif "." in param:
+        column = 'user_social_id'
     else:
+        print("In else.  Invalid parameter")
         raise ValueError("Invalid parameter format. Expected an email or user_uid.")
+        # return None
 
+    print("Past check. ", column)
     # db = db_lookup(project)
 
     # Safely construct the query

@@ -706,6 +706,9 @@ class UserSocialSignUp(Resource):
         access_expires_in = data.get('access_expires_in')
         password = data.get('password')
 
+        if not email or email.lower() == "null":
+            print("No email")
+            email = social_id
         user = user_lookup_query(email, db)
         print("\nBack in UserSocialSignUp POST: ", db, user)   
 
