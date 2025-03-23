@@ -451,6 +451,30 @@ class UserSocialLogin(Resource):
         return response
 
 
+class AppleLogin(Resource):
+    def post(self, projectName):
+        print("In Apple Login POST")
+
+        response = {}
+        db = db_lookup(projectName)
+        conn = connect(db)
+        data = request.get_json()
+        
+        print(data)
+
+
+        if projectName in ('EVERY-CIRCLE') :  
+                query = f"""
+                        SELECT * 
+                        FROM users 
+                        WHERE user_social_id = '{data.get('id')}'
+                        """    
+                print(query)
+                response = execute(query, "get", conn)
+                print(response)
+        return response
+    
+
 # CreateAccount is identical to UserSocialSignUp
 class CreateAccount(Resource):
     def post(self, projectName):
@@ -1664,6 +1688,8 @@ api.add_resource(GetUsers, "/api/v2/GetUsers/<string:projectName>")
 api.add_resource(UserSocialSignUp,
                  "/api/v2/UserSocialSignUp/<string:projectName>")
 api.add_resource(UserSocialLogin, "/api/v2/UserSocialLogin/<string:projectName>/<string:email_id>")
+api.add_resource(AppleLogin, "/api/v2/AppleLogin/<string:projectName>")
+
 api.add_resource(SendEmail, "/api/v2/SendEmail")
 api.add_resource(CheckEmailValidationCode, "/api/v2/CheckEmailValidationCode/<string:projectName>")
 
