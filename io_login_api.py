@@ -293,13 +293,36 @@ class UpdateEmailPassword(Resource):
         salt = createSalt()
         password = createHash(data['password'], salt)
         # update table
-        query_update = f"""
-            UPDATE {db}.users 
+
+        if projectName in ('PM','MYSPACE','MYSPACE-DEV') :  
+            query_update = f"""
+                UPDATE {db}.users 
+                    SET 
+                    password_salt = \'""" + salt + """\',
+                    password_hash =  \'""" + password + """\'
+                WHERE user_uid = \'""" + user_uid + """\' 
+                """
+            print(query_update)
+
+        elif projectName in ('MMU', 'EVERY-CIRCLE', 'SIGNUP') : 
+            query_update = f"""
+                UPDATE {db}.users 
                 SET 
-                password_salt = \'""" + salt + """\',
-                password_hash =  \'""" + password + """\'
-            WHERE user_uid = \'""" + user_uid + """\' 
+                    user_password_salt = \'""" + salt + """\',
+                    user_password_hash =  \'""" + password + """\'
+                WHERE user_uid = \'""" + user_uid + """\' 
             """
+            print(query_update)
+
+        else:
+            query_update = f"""
+                UPDATE {db}.users 
+                SET 
+                    password_salt = \'""" + salt + """\',
+                    password_hash =  \'""" + password + """\'
+                WHERE user_uid = \'""" + user_uid + """\' 
+            """
+            print(query_update)
 
         items = execute(query_update, "post", conn)
         print(items)
