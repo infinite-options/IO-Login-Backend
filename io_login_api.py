@@ -572,7 +572,7 @@ class CreateAccount(Resource):
                 response['message'] = 'Signup success'
                 response['code'] = 200
 
-            elif projectName in ['MMU', 'EVERY-CIRCLE', 'SIGNUP'] : 
+            elif projectName in ['MMU', 'SIGNUP'] : 
                 query = f"""
                     INSERT INTO {db}.users 
                     SET
@@ -580,6 +580,26 @@ class CreateAccount(Resource):
                         user_first_name = {f"'{firstName}'" if firstName is not None else 'NULL'},
                         user_last_name = {f"'{lastName}'" if lastName is not None else 'NULL'},
                         user_phone_number = {f"'{phone}'" if phone is not None else 'NULL'},
+                        user_email_id = {f"'{email}'" if email is not None else 'NULL'},
+                        user_role = {f"'{role}'" if role is not None else 'NULL'},
+                        user_password_salt = '{passwordSalt}',
+                        user_password_hash = '{passwordHash}',
+                        user_created_date = DATE_FORMAT(NOW(), '%m-%d-%Y %H:%i'),
+                        user_google_auth_token = '{google_auth_token}',
+                        user_google_refresh_token = '{google_refresh_token}',
+                        user_social_id = '{social_id}',
+                        user_access_expires_in = '{access_expires_in}';
+                        """
+                print(query)
+                response = execute(query, "post", conn)
+                response["user_uid"] = newUserID
+                print(response)
+
+            elif projectName in ['EVERY-CIRCLE'] : 
+                query = f"""
+                    INSERT INTO {db}.users 
+                    SET
+                        user_uid = '{newUserID}',
                         user_email_id = {f"'{email}'" if email is not None else 'NULL'},
                         user_role = {f"'{role}'" if role is not None else 'NULL'},
                         user_password_salt = '{passwordSalt}',
