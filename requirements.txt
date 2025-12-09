@@ -25,14 +25,13 @@ kappa==0.6.0
 MarkupSafe==2.1.2
 placebo==0.9.0
 pycparser==2.22
-pycryptodome==3.21.0
 PyJWT==2.7.0
 PyMySQL==1.0.3
 python-dateutil==2.8.2
 python-dotenv==1.0.1
 python-slugify==8.0.1
 pytz==2023.3
-PyYAML==6.0.1
+PyYAML==6.0
 requests==2.31.0
 s3transfer==0.6.1
 six==1.16.0
@@ -43,5 +42,5 @@ troposphere==4.3.2
 typing_extensions==4.5.0
 urllib3==1.26.15
 Werkzeug==2.2.3
-zappa==0.57.0
+zappa==0.59.0
 zipp==3.15.0

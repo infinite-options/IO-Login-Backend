@@ -31,6 +31,7 @@ from flask_restful import Resource, Api
 from flask_cors import CORS
 from flask_mail import Mail, Message
 from werkzeug.exceptions import BadRequest, NotFound
+import smtplib
 from datetime import datetime, date, timedelta
 import pymysql
 from decimal import Decimal
@@ -112,15 +113,28 @@ mail = Mail(app)
 
 
 def sendEmail(recipient, subject, body):
-    with app.app_context():
-
-        msg = Message(
-            sender="support@manifestmy.space",
-            recipients=[recipient],
-            subject=subject,
-            body=str(body)
-        )
-        mail.send(msg)
+    try:
+        with app.app_context():
+            msg = Message(
+                sender="support@manifestmy.space",
+                recipients=[recipient],
+                subject=subject,
+                body=str(body)
+            )
+            mail.send(msg)
+            return True, None
+    except smtplib.SMTPAuthenticationError as e:
+        error_msg = f"SMTP authentication failed: {str(e)}"
+        print(f"Email error: {error_msg}")
+        return False, error_msg
+    except smtplib.SMTPException as e:
+        error_msg = f"SMTP error: {str(e)}"
+        print(f"Email error: {error_msg}")
+        return False, error_msg
+    except Exception as e:
+        error_msg = f"Email sending failed: {str(e)}"
+        print(f"Email error: {error_msg}")
+        return False, error_msg
 
 
 # Get the correct users for a project
@@ -221,6 +235,7 @@ class SetTempPassword(Resource):
         return "".join([random.choice(lettersAndDigits) for i in range(stringLength)])
 
     def post(self, projectName):
+        print("In SetTempPassword POST ", projectName)
         response = {}
          
         items = {}
@@ -247,14 +262,25 @@ class SetTempPassword(Resource):
         passwordHash = createHash(pass_temp, passwordSalt)
 
         # update table
-        query_update = f"""
-            UPDATE {db}.users 
-            SET password_salt = \'""" + passwordSalt + """\',
-                password_hash =  \'""" + passwordHash + """\'
-            WHERE user_uid = \'""" + user_uid + """\' 
+        if projectName in ('MMU', 'EVERY-CIRCLE', 'SIGNUP') : 
+            query_update = f"""
+                UPDATE {db}.users 
+                SET 
+                    user_password_salt = \'""" + passwordSalt + """\',
+                    user_password_hash =  \'""" + passwordHash + """\'
+                WHERE user_uid = \'""" + user_uid + """\' 
             """
-        
-        print(query_update)
+            print(query_update)
+
+        else:
+            query_update = f"""
+                UPDATE {db}.users 
+                SET 
+                    password_salt = \'""" + passwordSalt + """\',
+                    password_hash =  \'""" + passwordHash + """\'
+                WHERE user_uid = \'""" + user_uid + """\' 
+            """
+            print(query_update)
 
         items = execute(query_update, "post", conn)
         # send email
@@ -263,15 +289,20 @@ class SetTempPassword(Resource):
         body = (
             "Your temporary password is {}. Please use it to reset your password".format(pass_temp)
             )
-        sendEmail(recipient, subject, body)
-        response['message'] = "A temporary password has been sent"
+        email_sent, email_error = sendEmail(recipient, subject, body)
+        if email_sent:
+            response['message'] = "A temporary password has been sent"
+        else:
+            response['message'] = f"Password updated but email failed to send: {email_error}"
+            response['temp_password'] = pass_temp  # Include temp password in response as fallback
+            print(f"Warning: Email failed to send. Temp password: {pass_temp}")
 
         return response
 
 
 class UpdateEmailPassword(Resource):
     def post(self, projectName):
-        print("In UpdateEmailPassword")
+        print("In UpdateEmailPassword POST ", projectName)
         response = {}
         
         data = request.get_json(force=True)
@@ -297,7 +328,7 @@ class UpdateEmailPassword(Resource):
         if projectName in ('PM','MYSPACE','MYSPACE-DEV') :  
             query_update = f"""
                 UPDATE {db}.users 
-                    SET 
+                SET 
                     password_salt = \'""" + salt + """\',
                     password_hash =  \'""" + password + """\'
                 WHERE user_uid = \'""" + user_uid + """\' 
@@ -1620,8 +1651,11 @@ class SendEmail(Resource):
         code = data['code']
         subject = "Email Verification Code"
         message = "Email Verification Code Sent " + code
-        sendEmail(email, subject, message)
-        return 'Email Sent'
+        email_sent, email_error = sendEmail(email, subject, message)
+        if email_sent:
+            return {'message': 'Email Sent'}, 200
+        else:
+            return {'message': f'Email failed to send: {email_error}'}, 500
 
 class CheckEmailValidationCode(Resource):
     def post(self, projectName):
