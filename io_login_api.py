@@ -93,9 +93,9 @@ jwt = JWTManager(app)
 
 # --------------- Mail Variables ------------------
 # Mail username and password loaded in .env file
-app.config['MAIL_USERNAME'] = "support@manifestmy.space"
-app.config['MAIL_PASSWORD'] = "Support4MySpace"
-app.config['MAIL_DEFAULT_SENDER'] = "support@manifestmy.space"
+app.config['MAIL_USERNAME'] = os.getenv('SUPPORT_EMAIL')
+app.config['MAIL_PASSWORD'] = os.getenv('SUPPORT_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', 'support@manifestmy.space')
 
 app.config["MAIL_SERVER"] = "smtp.mydomain.com"
 app.config["MAIL_PORT"] = 465
@@ -116,7 +116,7 @@ def sendEmail(recipient, subject, body):
     try:
         with app.app_context():
             msg = Message(
-                sender="support@manifestmy.space",
+                sender=app.config['MAIL_DEFAULT_SENDER'],
                 recipients=[recipient],
                 subject=subject,
                 body=str(body)
