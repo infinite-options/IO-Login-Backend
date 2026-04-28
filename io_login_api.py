@@ -552,10 +552,10 @@ class AppleAuth(Resource):
         # access_expires_in = data.get('access_expires_in')
         # password = data.get('password')
 
-        # if not email or email.lower() == "null":
-        #     print("No email received from Apple")
-        #     # email = social_id
-        #     return ("No email received from Apple", 400)
+        if not email or email.lower() == "null":
+            print("No email received from Apple")
+            # email = social_id
+            return ("No email received from Apple", 400)
         user = user_lookup_query(email, db)
         print("\nBack in UserSocialAuth POST: ", db, user)   
 
