@@ -23,9 +23,11 @@ def connect(RDS_DB):
     global RDS_USER
 
     # print("Trying to connect to RDS (API v2)...")
+    host_env = "RDS_HOST_EC" if RDS_DB == "every_circle" else "RDS_HOST"
+    print("host_env: ", host_env)
     try:
         conn = pymysql.connect(
-            host=os.getenv('RDS_HOST'),
+            host=os.getenv(host_env),
             user=os.getenv('RDS_USER'),
             port=int(os.getenv('RDS_PORT')),
             passwd=os.getenv('RDS_PW'),
