@@ -92,11 +92,8 @@ app.config['PROPAGATE_EXCEPTIONS'] = True
 jwt = JWTManager(app)
 
 # --------------- Mail Variables ------------------
-# Mail username and password loaded in .env file
-app.config['MAIL_USERNAME'] = os.getenv('SUPPORT_EMAIL')
-app.config['MAIL_PASSWORD'] = os.getenv('SUPPORT_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', 'support@manifestmy.space')
-
+# Per-project credentials live in .env / zappa_settings (SUPPORT_EMAIL_<KEY>, etc.)
+# and are applied at send time via get_mail_credentials() / apply_mail_credentials().
 app.config["MAIL_SERVER"] = "smtp.mydomain.com"
 app.config["MAIL_PORT"] = 465
 
@@ -111,12 +108,65 @@ app.config["DEBUG"] = True
 mail = Mail(app)
 
 
+# Default mailbox when projectName is missing or not in MAIL_CREDENTIAL_KEYS.
+DEFAULT_MAIL_CREDENTIAL_KEY = "IO"
 
-def sendEmail(recipient, subject, body):
+# Maps API projectName values to the env-var suffix used for mail credentials.
+MAIL_CREDENTIAL_KEYS = {
+    "MYSPACE": "MYSPACE",
+    "MYSPACE-DEV": "MYSPACE",
+    "EVERY-CIRCLE": "EVERY_CIRCLE",
+    "NITYA": "NITYA",
+    "PM": "IO",
+}
+
+
+def get_mail_credentials(project_name=None):
+    """Load SUPPORT_EMAIL / SUPPORT_PASSWORD / MAIL_DEFAULT_SENDER for a project.
+
+    Env vars are named with a project suffix, e.g.:
+      SUPPORT_EMAIL_MYSPACE, SUPPORT_PASSWORD_MYSPACE, MAIL_DEFAULT_SENDER_MYSPACE
+
+    Unknown or missing project names use DEFAULT_MAIL_CREDENTIAL_KEY (IO).
+    """
+    if project_name and project_name in MAIL_CREDENTIAL_KEYS:
+        key = MAIL_CREDENTIAL_KEYS[project_name]
+    else:
+        key = DEFAULT_MAIL_CREDENTIAL_KEY
+        if project_name:
+            print(f"Unknown project {project_name!r}; using default mail credentials ({key})")
+    email = os.getenv(f"SUPPORT_EMAIL_{key}")
+    password = os.getenv(f"SUPPORT_PASSWORD_{key}")
+    sender = os.getenv(f"MAIL_DEFAULT_SENDER_{key}") or email
+    print(f"Mail credentials key for project {project_name!r}: {key} (sender={sender})")
+    return {
+        "key": key,
+        "email": email,
+        "password": password,
+        "sender": sender,
+    }
+
+
+def apply_mail_credentials(project_name=None):
+    """Set Flask-Mail config from the project's env credentials. Returns the sender address."""
+    creds = get_mail_credentials(project_name)
+    if not creds["email"] or not creds["password"]:
+        raise ValueError(
+            f"Missing mail credentials for project {project_name!r} "
+            f"(expected SUPPORT_EMAIL_{creds['key']} / SUPPORT_PASSWORD_{creds['key']})"
+        )
+    app.config["MAIL_USERNAME"] = creds["email"]
+    app.config["MAIL_PASSWORD"] = creds["password"]
+    app.config["MAIL_DEFAULT_SENDER"] = creds["sender"]
+    return creds["sender"]
+
+
+def sendEmail(recipient, subject, body, project_name=None):
     try:
         with app.app_context():
+            sender = apply_mail_credentials(project_name)
             msg = Message(
-                sender=app.config['MAIL_DEFAULT_SENDER'],
+                sender=sender,
                 recipients=[recipient],
                 subject=subject,
                 body=str(body)
@@ -267,7 +317,8 @@ class SetTempPassword(Resource):
                 UPDATE {db}.users 
                 SET 
                     user_password_salt = \'""" + passwordSalt + """\',
-                    user_password_hash =  \'""" + passwordHash + """\'
+                    user_password_hash =  \'""" + passwordHash + """\',
+                    user_password_temp = 1
                 WHERE user_uid = \'""" + user_uid + """\' 
             """
             print(query_update)
@@ -277,7 +328,8 @@ class SetTempPassword(Resource):
                 UPDATE {db}.users 
                 SET 
                     password_salt = \'""" + passwordSalt + """\',
-                    password_hash =  \'""" + passwordHash + """\'
+                    password_hash =  \'""" + passwordHash + """\',
+                    user_password_temp = 1
                 WHERE user_uid = \'""" + user_uid + """\' 
             """
             print(query_update)
@@ -289,13 +341,203 @@ class SetTempPassword(Resource):
         body = (
             "Your temporary password is {}. Please use it to reset your password".format(pass_temp)
             )
-        email_sent, email_error = sendEmail(recipient, subject, body)
+        email_sent, email_error = sendEmail(recipient, subject, body, projectName)
         if email_sent:
             response['message'] = "A temporary password has been sent"
         else:
             response['message'] = f"Password updated but email failed to send: {email_error}"
             response['temp_password'] = pass_temp  # Include temp password in response as fallback
             print(f"Warning: Email failed to send. Temp password: {pass_temp}")
+
+        return response
+
+
+
+class CreateAccountTempPassword(Resource):
+    """Email-only signup: create account, store generated temp password, email it.
+
+    EVERY-CIRCLE: also returns Circle-compatible JWTs when possible so the app can
+    continue signup (stub profile) without knowing the temp password.
+    """
+
+    def get_random_string(self, stringLength=8):
+        lettersAndDigits = string.ascii_letters + string.digits
+        return "".join([random.choice(lettersAndDigits) for i in range(stringLength)])
+
+    def _issue_circle_tokens(self, user_uid, email, role=None):
+        """Match Every-Circle auth.issue_tokens claim shape (same JWT secret)."""
+        try:
+            user_uid = str(user_uid)
+            role_norm = (role or "").strip().upper() or None
+            claims = {
+                "user_uid": user_uid,
+                "profile_id": None,
+                "email": email,
+                "role": role_norm,
+                "is_admin": role_norm == "ADMIN",
+            }
+            access = create_access_token(identity=user_uid, additional_claims=claims)
+            refresh = create_refresh_token(identity=user_uid, additional_claims=claims)
+            return access, refresh
+        except Exception as e:
+            print(f"CreateAccountTempPassword token issue failed: {e}")
+            return None, None
+
+    def _soft_deleted_conflict(self, conn, db, user):
+        """Same conflict shape as Circle AuthRegister / CreateAccount soft-delete routing."""
+        user_uid = user.get("user_uid")
+        if not user_uid:
+            return None
+        query = f"""
+            SELECT
+                profile_personal_is_deleted,
+                profile_personal_purge_scheduled_at,
+                profile_personal_user_id
+            FROM {db}.profile_personal
+            WHERE profile_personal_user_id = '{user_uid}'
+            LIMIT 1
+        """
+        result = execute(query, "get", conn)
+        rows = (result or {}).get("result") or []
+        if not rows:
+            return None
+        row = rows[0]
+        try:
+            is_deleted = int(row.get("profile_personal_is_deleted") or 0) == 1
+        except (TypeError, ValueError):
+            is_deleted = bool(row.get("profile_personal_is_deleted"))
+        if not is_deleted:
+            return None
+        if not str(row.get("profile_personal_user_id") or "").strip():
+            return None
+        purge_at = row.get("profile_personal_purge_scheduled_at")
+        # If purge time is past, treat as permanently deleted → fall through to already-exists
+        if purge_at:
+            try:
+                from datetime import datetime as _dt
+                purge_dt = purge_at
+                if isinstance(purge_at, str):
+                    for fmt in (
+                        "%Y-%m-%d %H:%M:%S",
+                        "%Y-%m-%dT%H:%M:%S",
+                        "%Y-%m-%dT%H:%M:%SZ",
+                        "%m-%d-%Y %H:%M:%S",
+                    ):
+                        try:
+                            purge_dt = _dt.strptime(purge_at.replace("+00:00", ""), fmt)
+                            break
+                        except ValueError:
+                            continue
+                if isinstance(purge_dt, _dt) and purge_dt.replace(tzinfo=None) <= _dt.utcnow():
+                    return None
+            except Exception as e:
+                print(f"CreateAccountTempPassword purge parse: {e}")
+        return {
+            "message": "Reactivate existing account",
+            "code": 409,
+            "pending_deletion": True,
+            "purge_scheduled_at": str(purge_at) if purge_at is not None else None,
+            "can_reactivate": True,
+            "user_uid": user_uid,
+        }, 409
+
+    def post(self, projectName):
+        print("In CreateAccountTempPassword POST ", projectName)
+        response = {}
+
+        data = request.get_json(force=True) or {}
+        email = (data.get("email") or "").strip()
+        if not email or "@" not in email:
+            response["message"] = "email is required"
+            response["code"] = 400
+            return response, 400
+
+        email = email.lower()
+        db = db_lookup(projectName)
+        conn = connect(db)
+
+        user = user_lookup_query(email, db)
+        print("\nBack in CreateAccountTempPassword POST: ", db, user)
+
+        if user:
+            soft = None
+            if projectName == "EVERY-CIRCLE":
+                soft = self._soft_deleted_conflict(conn, db, user)
+            if soft:
+                return soft
+            response["message"] = "User already exists"
+            response["code"] = 409
+            response["user_uid"] = user.get("user_uid")
+            return response
+
+        user_id_response = execute("CAll new_user_uid;", "get", conn)
+        newUserID = user_id_response["result"][0]["new_id"]
+        print("newUserID: ", newUserID)
+
+        pass_temp = self.get_random_string(8)
+        passwordSalt = createSalt()
+        passwordHash = createHash(pass_temp, passwordSalt)
+        role = data.get("role")
+
+        if projectName in ("MMU", "SIGNUP"):
+            query = f"""
+                INSERT INTO {db}.users
+                SET
+                    user_uid = '{newUserID}',
+                    user_email_id = '{email}',
+                    user_role = {f"'{role}'" if role is not None else 'NULL'},
+                    user_password_salt = '{passwordSalt}',
+                    user_password_hash = '{passwordHash}',
+                    user_password_temp = 1,
+                    user_created_date = DATE_FORMAT(NOW(), '%m-%d-%Y %H:%i');
+            """
+        elif projectName == "EVERY-CIRCLE":
+            query = f"""
+                INSERT INTO {db}.users
+                SET
+                    user_uid = '{newUserID}',
+                    user_email_id = '{email}',
+                    user_role = {f"'{role}'" if role is not None else 'NULL'},
+                    user_password_salt = '{passwordSalt}',
+                    user_password_hash = '{passwordHash}',
+                    user_password_temp = 1,
+                    user_created_date = DATE_FORMAT(NOW(), '%m-%d-%Y %H:%i');
+            """
+        else:
+            response["message"] = f"CreateAccountTempPassword is not supported for project {projectName}"
+            response["code"] = 400
+            return response, 400
+
+        print(query)
+        items = execute(query, "post", conn)
+        if not items or items.get("code") != 281:
+            response["message"] = (items or {}).get("message") or "Failed to create account"
+            response["code"] = (items or {}).get("code") or 500
+            return response, 500
+
+        # Same mailer path as SetTempPassword
+        subject = "Email Verification"
+        body = (
+            "Your temporary password is {}. Please use it to reset your password".format(pass_temp)
+        )
+        email_sent, email_error = sendEmail(email, subject, body, projectName)
+
+        response["code"] = 281
+        response["user_uid"] = newUserID
+        response["email_sent"] = bool(email_sent)
+
+        if email_sent:
+            response["message"] = "Account created and temporary password sent"
+        else:
+            response["message"] = "Account created but temporary password email failed"
+            print(f"Warning: CreateAccountTempPassword email failed: {email_error}")
+
+        if projectName == "EVERY-CIRCLE":
+            access, refresh = self._issue_circle_tokens(newUserID, email, role)
+            if access:
+                response["access_token"] = access
+            if refresh:
+                response["refresh_token"] = refresh
 
         return response
 
@@ -2116,9 +2358,11 @@ class SendEmail(Resource):
         data = request.get_json(force=True)
         email = data['email']
         code = data['code']
+        # Optional: projectName selects which support mailbox to send from
+        project_name = data.get('projectName') or data.get('project_name')
         subject = "Email Verification Code"
         message = "Email Verification Code Sent " + code
-        email_sent, email_error = sendEmail(email, subject, message)
+        email_sent, email_error = sendEmail(email, subject, message, project_name)
         if email_sent:
             return {'message': 'Email Sent'}, 200
         else:
@@ -2217,6 +2461,7 @@ api.add_resource(UpdateUserByUID, "/api/v2/UpdateUserByUID/<string:projectName>"
 api.add_resource(AccountSalt, "/api/v2/AccountSalt/<string:projectName>")
 api.add_resource(Login, "/api/v2/Login/<string:projectName>")
 # update password
+api.add_resource(CreateAccountTempPassword, "/api/v2/CreateAccountTempPassword/<string:projectName>")
 api.add_resource(SetTempPassword, "/api/v2/SetTempPassword/<string:projectName>")
 api.add_resource(UpdateEmailPassword, "/api/v2/UpdateEmailPassword/<string:projectName>")
 # token endpoints
