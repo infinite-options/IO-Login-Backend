@@ -61,6 +61,7 @@ from encryption import (
 )
 from auth import createTokens, createSalt, createHash, getHash
 from queries import db_lookup, user_lookup_query
+from email_service import sendEmail as sendEmailMicrosoftGraph
 
 
 
@@ -162,6 +163,17 @@ def apply_mail_credentials(project_name=None):
 
 
 def sendEmail(recipient, subject, body, project_name=None):
+    print("In sendEmail ", project_name)
+    # Every Circle uses Microsoft Graph; all other projects use SMTP via Flask-Mail.
+    if project_name == "EVERY-CIRCLE":
+        try:
+            sendEmailMicrosoftGraph(recipient, subject, str(body))
+            return True, None
+        except Exception as e:
+            error_msg = f"Email sending failed: {str(e)}"
+            print(f"Email error: {error_msg}")
+            return False, error_msg
+
     try:
         with app.app_context():
             sender = apply_mail_credentials(project_name)
